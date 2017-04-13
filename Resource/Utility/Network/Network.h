@@ -1,3 +1,8 @@
+#pragma once
+
+#ifndef NINI_FTP_NETWORK_H
+#define NINI_FTP_NETWORK_H
+
 #include <stdio.h>
 
 namespace network {
@@ -6,14 +11,14 @@ namespace network {
 		int max_connect;
 	};
 
-	typedef void (*callback_server)(int ev, void *data);
+	typedef void(*callback_server)(int ev, void *data);
 
 	class Server {
 	public:
-		bool start(config_server *cs,callback_server callback);
+		bool start(config_server *cs, callback_server callback);
 		bool stop();
 	private:
-		bool _start(int port,int max_connect);
+		bool _start(int port, int max_connect);
 		void _stop(SOCKET sockid);
 	private:
 		SOCKET sockid;
@@ -26,3 +31,4 @@ namespace network {
 
 	};
 }
+#endif //NINI_FTP_NETWORK_H
