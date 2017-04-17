@@ -4,6 +4,8 @@
 #define NINI_FTP_NETWORK_H
 
 #include <stdio.h>
+#include <WinSock2.h>
+#include <iostream>
 
 namespace network {
 	struct config_server {

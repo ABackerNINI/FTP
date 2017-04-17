@@ -1,5 +1,4 @@
 
-#include <WinSock2.h>
 #include "Network.h"
 
 #pragma comment(lib,"ws2_32.lib")
@@ -27,27 +26,26 @@
 // };
 
 DWORD WINAPI ServerWorkThread(LPVOID CompletionPortID);
-DWORD WINAPI ServerSendThread(LPVOID IpParam);
+//DWORD WINAPI ServerSendThread(LPVOID IpParam);
 HANDLE hMutex = CreateMutex(NULL, FALSE, NULL);
 
 struct _SOCK {
 	SOCKET Sockid;
 	char Buffer[1024];
-	unsigned int BLen;
+	unsigned int BufferLen;
 };
 
-bool network::Server::_start(int port, int max_connect) {
-	//WSADATA
-	WSADATA Wsadata;
-	WORD wVersionRequested = MAKEWORD(2,2);
-	if (WSAStartup(wVersionRequested, &Wsadata) != 0) {
-		return false;
-	}
-	if(LOBYTE(Wsadata.wVersion)!=2 || HIBYTE(Wsadata.wVersion)!=2){
-		WSACleanup();
-		return false;
-	}
+bool network::Server::start(config_server *cs, callback_server callback) {
+	return _start(cs->port, cs->max_connect);
+}
 
+bool network::Server::stop() {
+	_stop(sockid);
+
+	return true;
+}
+
+bool network::Server::_start(int port, int max_connect) {
 	//Completion Port
 	HANDLE CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE,NULL,0,0);
 	if(CompletionPort == NULL){
@@ -57,13 +55,24 @@ bool network::Server::_start(int port, int max_connect) {
 
 	SYSTEM_INFO SysInfo;
 	GetSystemInfo(&SysInfo);
+	HANDLE* WorkerThreads = new HANDLE[SysInfo.dwNumberOfProcessors * 2];
 
-	for (DWORD i = 0; i < (SysInfo.dwNumberOfProcessors * 2); ++i) {
-		HANDLE ThreadHandle = CreateThread(NULL, 0, ServerWorkThread, CompletionPort, 0, NULL);
-		if (NULL == ThreadHandle) {
+	for (int i = 0; i < (SysInfo.dwNumberOfProcessors * 2); ++i) {
+		WorkerThreads[i] = CreateThread(NULL, 0, ServerWorkThread, CompletionPort, 0, NULL);
+		if (WorkerThreads[i] == NULL) {
 			return false;
 		}
-		CloseHandle(ThreadHandle);
+	}
+
+	//WSADATA
+	WSADATA Wsadata;
+	WORD wVersionRequested = MAKEWORD(2,2);
+	if (WSAStartup(wVersionRequested, &Wsadata) != 0) {
+		return false;
+	}
+	if(LOBYTE(Wsadata.wVersion)!=2 || HIBYTE(Wsadata.wVersion)!=2){
+		WSACleanup();
+		return false;
 	}
 
 	//SOCKET
@@ -95,6 +104,7 @@ bool network::Server::_start(int port, int max_connect) {
 	int RemoteAddrLen;
 	OVERLAPPED Overlapped;
 	while (true) {
+		RemoteAddrLen = sizeof(RemoteAddr);
 		RemoteSockid = accept(Sockid, (SOCKADDR *)&RemoteAddr, &RemoteAddrLen);
 		if (RemoteSockid == SOCKET_ERROR) {
 			//mark:exit or continue?
@@ -102,12 +112,19 @@ bool network::Server::_start(int port, int max_connect) {
 		}
 
 		_SOCK *_Sock = (_SOCK*)GlobalAlloc(GPTR, sizeof(_SOCK));
+		_Sock->Sockid = RemoteSockid;
+
+
+		CreateIoCompletionPort((HANDLE)RemoteSockid, CompletionPort, (ULONG_PTR)_Sock, 0);
+
+
 		DWORD RecvBytes,Flags = 0;
-		CreateIoCompletionPort((HANDLE)RemoteSockid, CompletionPort, (ULONG_PTR)&RemoteSockid, 0);
+
+
 		WSARecv(RemoteSockid, (WSABUF *)&_Sock->Buffer, 1, &RecvBytes, &Flags, &Overlapped, NULL);
 	}
 
-	//network::Server::sockid = sockid;
+	network::Server::sockid = sockid;
 
 	return true;
 }
@@ -135,7 +152,7 @@ DWORD WINAPI ServerWorkThread(LPVOID IpParam) {
 			continue;
 		}
 		WaitForSingleObject(hMutex, INFINITE);
-
+		std::cout << _Sock->Buffer << std::endl;
 		ReleaseMutex(hMutex);
 
 
