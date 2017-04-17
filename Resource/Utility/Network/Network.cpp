@@ -26,6 +26,16 @@
 // 	WSADATA _Wsadata;
 // };
 
+DWORD WINAPI ServerWorkThread(LPVOID CompletionPortID);
+DWORD WINAPI ServerSendThread(LPVOID IpParam);
+HANDLE hMutex = CreateMutex(NULL, FALSE, NULL);
+
+struct _SOCK {
+	SOCKET Sockid;
+	char Buffer[1024];
+	unsigned int BLen;
+};
+
 bool network::Server::_start(int port, int max_connect) {
 	//WSADATA
 	WSADATA Wsadata;
@@ -38,37 +48,64 @@ bool network::Server::_start(int port, int max_connect) {
 		return false;
 	}
 
+	//Completion Port
 	HANDLE CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE,NULL,0,0);
 	if(CompletionPort == NULL){
 		WSACleanup();
 		return false;
 	}
 
+	SYSTEM_INFO SysInfo;
+	GetSystemInfo(&SysInfo);
+
+	for (DWORD i = 0; i < (SysInfo.dwNumberOfProcessors * 2); ++i) {
+		HANDLE ThreadHandle = CreateThread(NULL, 0, ServerWorkThread, CompletionPort, 0, NULL);
+		if (NULL == ThreadHandle) {
+			return false;
+		}
+		CloseHandle(ThreadHandle);
+	}
+
 	//SOCKET
-	SOCKET sockid = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (sockid == INVALID_SOCKET) {
+	SOCKET Sockid = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (Sockid == INVALID_SOCKET) {
 		WSACleanup();
 		return false;
 	}
 
-	SOCKADDR_IN addr;
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
-	addr.sin_port = htons(port);
+	SOCKADDR_IN Addr;
+	memset(&Addr, 0, sizeof(Addr));
+	Addr.sin_family = AF_INET;
+	Addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+	Addr.sin_port = htons(port);
 
-	if (bind(sockid, (SOCKADDR*)&addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
-		closesocket(sockid);
+	if (bind(Sockid, (SOCKADDR*)&Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
+		closesocket(Sockid);
 		WSACleanup();
 		return false;
 	}
-	if (listen(sockid, max_connect)==SOCKET_ERROR) {
-		closesocket(sockid);
+	if (listen(Sockid, max_connect)==SOCKET_ERROR) {
+		closesocket(Sockid);
 		WSACleanup();
 		return false;
 	}
 
+	SOCKET RemoteSockid;
+	SOCKADDR_IN RemoteAddr;
+	int RemoteAddrLen;
+	OVERLAPPED Overlapped;
+	while (true) {
+		RemoteSockid = accept(Sockid, (SOCKADDR *)&RemoteAddr, &RemoteAddrLen);
+		if (RemoteSockid == SOCKET_ERROR) {
+			//mark:exit or continue?
+			continue;
+		}
 
+		_SOCK *_Sock = (_SOCK*)GlobalAlloc(GPTR, sizeof(_SOCK));
+		DWORD RecvBytes,Flags = 0;
+		CreateIoCompletionPort((HANDLE)RemoteSockid, CompletionPort, (ULONG_PTR)&RemoteSockid, 0);
+		WSARecv(RemoteSockid, (WSABUF *)&_Sock->Buffer, 1, &RecvBytes, &Flags, &Overlapped, NULL);
+	}
 
 	//network::Server::sockid = sockid;
 
@@ -78,4 +115,31 @@ bool network::Server::_start(int port, int max_connect) {
 void network::Server::_stop(SOCKET sockid) {
 	closesocket(sockid);
 	WSACleanup();
+}
+
+DWORD WINAPI ServerWorkThread(LPVOID IpParam) {
+
+	HANDLE ComplitionPort = (HANDLE)IpParam;
+	DWORD BytesTransferred;
+	OVERLAPPED Overlapped;
+	_SOCK *_Sock;
+
+	while (true) {
+		if (GetQueuedCompletionStatus(ComplitionPort, &BytesTransferred, (PULONG_PTR)&_Sock, (LPOVERLAPPED*)&Overlapped, INFINITE) == false) {
+			return -1;
+		}
+
+		if (BytesTransferred == 0) {
+			closesocket(_Sock->Sockid);
+			GlobalFree(_Sock);
+			continue;
+		}
+		WaitForSingleObject(hMutex, INFINITE);
+
+		ReleaseMutex(hMutex);
+
+
+	}
+
+	return 0;
 }
