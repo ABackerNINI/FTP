@@ -1,11 +1,5 @@
 
 #include "Network.h"
-#include <ws2tcpip.h>
-#include <mswsock.h>
-#include <list>
-
-#pragma comment(lib,"ws2_32.lib")
-#pragma comment(lib, "Kernel32.lib")
 
 //typedef BOOL(*LPFN_ACCEPTEX)(
 //	SOCKET sListenSocket,
@@ -18,15 +12,17 @@
 //	LPOVERLAPPED lpOverlapped
 //	);
 
+#define BUFFER_LEN 1024
+
 enum OPERATION_TYPE {
-	ACCEPT,RECV
+	ACCEPT,RECV,SEND
 };
 
 typedef struct _PER_IO_CONTEXT {
 	OVERLAPPED   m_Overlapped;          // 每一个重叠I/O网络操作都要有一个                
 	SOCKET       m_sockAccept;          // 这个I/O操作所使用的Socket，每个连接的都是一样的  
 	WSABUF       m_wsaBuf;              // 存储数据的缓冲区，用来给重叠操作传递参数的，关于WSABUF后面还会讲  
-	char         m_szBuffer[1024]; // 对应WSABUF里的缓冲区  
+	char         m_szBuffer[BUFFER_LEN]; // 对应WSABUF里的缓冲区  
 	OPERATION_TYPE  m_OpType;               // 标志这个重叠I/O操作是做什么的，例如Accept/Recv等  
 
 } PER_IO_CONTEXT, *PPER_IO_CONTEXT;
@@ -61,8 +57,8 @@ bool network::Server::stop() {
 
 bool network::Server::_start(int port, int max_connect = SOMAXCONN) {
 	//Completion Port
-	HANDLE CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE,NULL,0,0);
-	if(CompletionPort == NULL){
+	HANDLE CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
+	if (CompletionPort == NULL) {
 		WSACleanup();
 		return false;
 	}
@@ -74,7 +70,7 @@ bool network::Server::_start(int port, int max_connect = SOMAXCONN) {
 
 	for (int i = 0; i < (SysInfo.dwNumberOfProcessors * 2); ++i) {
 		WorkerThreads[i] = CreateThread(NULL, 0, ServerWorkThread, CompletionPort, 0, NULL);
-		if (WorkerThreads[i] == NULL){
+		if (WorkerThreads[i] == NULL) {
 			//TODO CloseHandle
 			return false;
 		}
@@ -82,21 +78,26 @@ bool network::Server::_start(int port, int max_connect = SOMAXCONN) {
 
 	//WSADATA
 	WSADATA Wsadata;
-	WORD wVersionRequested = MAKEWORD(2,2);
+	WORD wVersionRequested = MAKEWORD(2, 2);
 	if (WSAStartup(wVersionRequested, &Wsadata) != 0) {
 		return false;
 	}
-	if(LOBYTE(Wsadata.wVersion)!=2 || HIBYTE(Wsadata.wVersion)!=2){
+	if (LOBYTE(Wsadata.wVersion) != 2 || HIBYTE(Wsadata.wVersion) != 2) {
 		WSACleanup();
 		return false;
 	}
 
 	//SOCKET
-	SOCKET Sockid = WSASocket(AF_INET, SOCK_STREAM, 0,NULL,0,WSA_FLAG_OVERLAPPED);
+	SOCKET Sockid = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (Sockid == INVALID_SOCKET) {
 		WSACleanup();
 		return false;
 	}
+
+	_PER_SOCKET_CONTEXT *PerSocketContext = (_PER_SOCKET_CONTEXT *)GlobalAlloc(GPTR, sizeof(_PER_SOCKET_CONTEXT));
+	PerSocketContext->m_Socket = Sockid;
+
+	CreateIoCompletionPort((HANDLE)Sockid, CompletionPort, (ULONG_PTR)PerSocketContext, 0);
 
 	SOCKADDR_IN Addr;
 	memset(&Addr, 0, sizeof(Addr));
@@ -109,43 +110,30 @@ bool network::Server::_start(int port, int max_connect = SOMAXCONN) {
 		WSACleanup();
 		return false;
 	}
-	if (listen(Sockid, max_connect)==SOCKET_ERROR) {
+	if (listen(Sockid, max_connect) == SOCKET_ERROR) {
 		closesocket(Sockid);
 		WSACleanup();
 		return false;
 	}
-	
+
 	//ACCEPTEX
 	LPFN_ACCEPTEX pAcceptEx;
 	GUID GuidAcceptEx = WSAID_ACCEPTEX;
 	DWORD dwBytes = 0;
-	WSAIoctl(sockid, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidAcceptEx, sizeof(GuidAcceptEx), &pAcceptEx, sizeof(pAcceptEx), &dwBytes, NULL, NULL);
-	
+	WSAIoctl(Sockid, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidAcceptEx, sizeof(GuidAcceptEx), &pAcceptEx, sizeof(pAcceptEx), &dwBytes, NULL, NULL);
 
-	SOCKET RemoteSockid;
-	SOCKADDR_IN RemoteAddr;
-	int RemoteAddrLen;
-	OVERLAPPED Overlapped;
-	while (true) {
-		RemoteAddrLen = sizeof(RemoteAddr);
-		RemoteSockid = accept(Sockid, (SOCKADDR *)&RemoteAddr, &RemoteAddrLen);
-		if (RemoteSockid == SOCKET_ERROR) {
-			//mark:exit or continue?
-			continue;
-		}
-
-		_SOCK *_Sock = (_SOCK*)GlobalAlloc(GPTR, sizeof(_SOCK));
-		_Sock->Sockid = RemoteSockid;
-
-
-		CreateIoCompletionPort((HANDLE)RemoteSockid, CompletionPort, (ULONG_PTR)_Sock, 0);
-
-
-		DWORD RecvBytes,Flags = 0;
-
-
-		WSARecv(RemoteSockid, (WSABUF *)&_Sock->Buffer, 1, &RecvBytes, &Flags, &Overlapped, NULL);
+	//
+	DWORD flags = 0;
+	//while (true) {
+	_PER_IO_CONTEXT *PerIoContext = (_PER_IO_CONTEXT *)GlobalAlloc(GPTR, sizeof(_PER_IO_CONTEXT));
+	memset(&(PerIoContext->m_Overlapped), 0, sizeof(OVERLAPPED));
+	PerIoContext->m_OpType = ACCEPT;
+	PerIoContext->m_sockAccept = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+	int rc = pAcceptEx(Sockid, PerIoContext->m_sockAccept, PerIoContext->m_szBuffer, BUFFER_LEN - ((sizeof(SOCKADDR_IN) + 16) * 2), sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, &flags, &(PerIoContext->m_Overlapped));
+	if (rc == 0) {
+		//TODO
 	}
+	//}
 
 	network::Server::sockid = sockid;
 
@@ -158,27 +146,58 @@ void network::Server::_stop(SOCKET sockid) {
 }
 
 DWORD WINAPI ServerWorkThread(LPVOID IpParam) {
-
 	HANDLE ComplitionPort = (HANDLE)IpParam;
 	DWORD BytesTransferred;
-	OVERLAPPED Overlapped;
-	_SOCK *_Sock;
+	_PER_SOCKET_CONTEXT *PerSocketContext;
+	_PER_IO_CONTEXT *PerIoContext;
+	DWORD flags;
 
 	while (true) {
-		if (GetQueuedCompletionStatus(ComplitionPort, &BytesTransferred, (PULONG_PTR)&_Sock, (LPOVERLAPPED*)&Overlapped, INFINITE) == false) {
+		BytesTransferred = 0;
+
+		if (GetQueuedCompletionStatus(ComplitionPort, &BytesTransferred, (PULONG_PTR)&PerSocketContext, (LPOVERLAPPED*)&PerIoContext, INFINITE) == false) {
 			return -1;
 		}
 
-		if (BytesTransferred == 0) {
-			closesocket(_Sock->Sockid);
-			GlobalFree(_Sock);
+		if (BytesTransferred == 0 && (PerIoContext->m_OpType == RECV || PerIoContext->m_OpType == SEND)) {
+			closesocket(PerSocketContext->m_Socket);
+			GlobalFree(PerSocketContext);
+			GlobalFree(PerIoContext);
 			continue;
 		}
-		WaitForSingleObject(hMutex, INFINITE);
-		std::cout << _Sock->Buffer << std::endl;
-		ReleaseMutex(hMutex);
 
+		if (PerIoContext->m_OpType == ACCEPT) {
+			if (setsockopt(PerIoContext->m_sockAccept, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char *)&(PerSocketContext->m_Socket), sizeof(PerSocketContext->m_Socket)) == SOCKET_ERROR) {
+				//todo
+			}
 
+			PerSocketContext->m_Socket = PerIoContext->m_sockAccept;
+			CreateIoCompletionPort((HANDLE)PerSocketContext->m_Socket, ComplitionPort, (ULONG_PTR)PerSocketContext, 0);
+			memset(&PerIoContext->m_Overlapped, 0, sizeof(OVERLAPPED));
+			PerIoContext->m_OpType = RECV;
+
+			PerIoContext->m_wsaBuf.buf = PerIoContext->m_szBuffer;
+			PerIoContext->m_wsaBuf.len = BUFFER_LEN;
+
+			flags = 0;
+			if (WSARecv(PerSocketContext->m_Socket, &(PerIoContext->m_wsaBuf), 1, &BytesTransferred, &flags, &(PerIoContext->m_Overlapped), NULL) == SOCKET_ERROR) {
+				if (WSAGetLastError() == WSA_IO_PENDING) {
+					//todo
+				}
+			}
+
+			continue;
+		}
+
+		if (PerIoContext->m_OpType == RECV) {
+			std::cout << PerIoContext->m_wsaBuf.buf << std::endl;
+		}
+
+		flags = 0;
+		PerIoContext->m_OpType = RECV;
+		memset(&(PerIoContext->m_Overlapped), 0, sizeof(OVERLAPPED));
+
+		WSARecv(PerSocketContext->m_Socket, &(PerIoContext->m_wsaBuf), 1, &BytesTransferred, &flags, &(PerIoContext->m_Overlapped), NULL);
 	}
 
 	return 0;
