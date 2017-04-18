@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <WinSock2.h>
 #include <iostream>
+#include <windows.h>
 
 namespace network {
 	struct config_server {

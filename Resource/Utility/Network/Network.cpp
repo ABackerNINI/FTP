@@ -1,29 +1,43 @@
 
 #include "Network.h"
+#include <ws2tcpip.h>
+#include <mswsock.h>
+#include <list>
 
 #pragma comment(lib,"ws2_32.lib")
 #pragma comment(lib, "Kernel32.lib")
 
+//typedef BOOL(*LPFN_ACCEPTEX)(
+//	SOCKET sListenSocket,
+//	SOCKET sAcceptSocket,
+//	PVOID lpOUtputBuffer,
+//	DWORD dwReceiveDataLength,
+//	DWORD dwLocalAddressLength,
+//	DWORD dwRemoteAddressLength,
+//	LPDWORD lpdwBytesReceived,
+//	LPOVERLAPPED lpOverlapped
+//	);
 
-// struct _WSADATA{
-// public:
-// 	_WSADATA(){
-// 	}
+enum OPERATION_TYPE {
+	ACCEPT,RECV
+};
 
-// 	int WSAStartup(wVersionRequested){
-// 		return WSAStartup(wVersionRequested, &_Wsadata)
-// 	}
+typedef struct _PER_IO_CONTEXT {
+	OVERLAPPED   m_Overlapped;          // 每一个重叠I/O网络操作都要有一个                
+	SOCKET       m_sockAccept;          // 这个I/O操作所使用的Socket，每个连接的都是一样的  
+	WSABUF       m_wsaBuf;              // 存储数据的缓冲区，用来给重叠操作传递参数的，关于WSABUF后面还会讲  
+	char         m_szBuffer[1024]; // 对应WSABUF里的缓冲区  
+	OPERATION_TYPE  m_OpType;               // 标志这个重叠I/O操作是做什么的，例如Accept/Recv等  
 
-// 	int WSACleanup(){
-// 		return WSACleanup();
-// 	}
+} PER_IO_CONTEXT, *PPER_IO_CONTEXT;
 
-// 	~_WSADATA(){
-// 		_WSADATA::WSACleanup();
-// 	}
-// public:
-// 	WSADATA _Wsadata;
-// };
+typedef struct _PER_SOCKET_CONTEXT {
+	SOCKET                   m_Socket;              // 每一个客户端连接的Socket  
+	SOCKADDR_IN              m_ClientAddr;          // 这个客户端的地址  
+	std::list<_PER_IO_CONTEXT*>  m_arrayIoContext;   // 数组，所有客户端IO操作的参数，  
+												  // 也就是说对于每一个客户端Socket  
+												  // 是可以在上面同时投递多个IO请求的  
+} PER_SOCKET_CONTEXT, *PPER_SOCKET_CONTEXT;
 
 DWORD WINAPI ServerWorkThread(LPVOID CompletionPortID);
 //DWORD WINAPI ServerSendThread(LPVOID IpParam);
@@ -45,7 +59,7 @@ bool network::Server::stop() {
 	return true;
 }
 
-bool network::Server::_start(int port, int max_connect) {
+bool network::Server::_start(int port, int max_connect = SOMAXCONN) {
 	//Completion Port
 	HANDLE CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE,NULL,0,0);
 	if(CompletionPort == NULL){
@@ -56,10 +70,12 @@ bool network::Server::_start(int port, int max_connect) {
 	SYSTEM_INFO SysInfo;
 	GetSystemInfo(&SysInfo);
 	HANDLE* WorkerThreads = new HANDLE[SysInfo.dwNumberOfProcessors * 2];
+	memset(WorkerThreads, 0, sizeof(HANDLE)*SysInfo.dwNumberOfProcessors * 2);
 
 	for (int i = 0; i < (SysInfo.dwNumberOfProcessors * 2); ++i) {
 		WorkerThreads[i] = CreateThread(NULL, 0, ServerWorkThread, CompletionPort, 0, NULL);
-		if (WorkerThreads[i] == NULL) {
+		if (WorkerThreads[i] == NULL){
+			//TODO CloseHandle
 			return false;
 		}
 	}
@@ -76,7 +92,7 @@ bool network::Server::_start(int port, int max_connect) {
 	}
 
 	//SOCKET
-	SOCKET Sockid = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	SOCKET Sockid = WSASocket(AF_INET, SOCK_STREAM, 0,NULL,0,WSA_FLAG_OVERLAPPED);
 	if (Sockid == INVALID_SOCKET) {
 		WSACleanup();
 		return false;
@@ -98,6 +114,13 @@ bool network::Server::_start(int port, int max_connect) {
 		WSACleanup();
 		return false;
 	}
+	
+	//ACCEPTEX
+	LPFN_ACCEPTEX pAcceptEx;
+	GUID GuidAcceptEx = WSAID_ACCEPTEX;
+	DWORD dwBytes = 0;
+	WSAIoctl(sockid, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidAcceptEx, sizeof(GuidAcceptEx), &pAcceptEx, sizeof(pAcceptEx), &dwBytes, NULL, NULL);
+	
 
 	SOCKET RemoteSockid;
 	SOCKADDR_IN RemoteAddr;
