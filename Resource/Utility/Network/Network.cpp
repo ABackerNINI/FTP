@@ -1,27 +1,54 @@
 
 #include "Network.h"
 
-#define _SERVER network::Server
-
 DWORD WINAPI ServerWorkThread(LPVOID CompletionPortID);
 //DWORD WINAPI ServerSendThread(LPVOID IpParam);
 //HANDLE hMutex = CreateMutex(NULL, FALSE, NULL);
 
-_SERVER::Server() {
+network::Server::Server() {
 
 }
 
-bool _SERVER::Start(config_server *cs, callback_server callback) {
+bool network::Server::Start(config_server *cs, callback_server callback) {
 	return _Start(cs->port, cs->max_connect);
 }
 
-bool _SERVER::Stop() {
+bool network::Server::Stop() {
 	_Stop(m_Sockid);
 
 	return true;
 }
 
-bool _SERVER::_InitSock(int _Port, unsigned int _Max_Connect) {
+bool network::Server::_InitComplitionPort() {
+	//Completion Port
+	m_CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
+	if (m_CompletionPort == NULL) {
+		return false;
+	}
+
+	SYSTEM_INFO SysInfo;
+	GetSystemInfo(&SysInfo);
+
+	unsigned int _WorkerThreadsNum = SysInfo.dwNumberOfProcessors * 2;
+	HANDLE* _WorkerThreads = new HANDLE[_WorkerThreadsNum];
+	memset(_WorkerThreads, 0, sizeof(HANDLE)*_WorkerThreadsNum);
+	DWORD ThreadId;
+	for (unsigned int i = 0; i < 2; ++i) {
+		WORKER_PARAMS *_pWorkerParams = new WORKER_PARAMS();
+		_pWorkerParams->m_Server = this;
+		_pWorkerParams->m_ThreadNo = i;
+
+		_WorkerThreads[i] = CreateThread(NULL, 0, ServerWorkThread, _pWorkerParams, 0, &ThreadId);
+		if (_WorkerThreads[i] == NULL) {
+			//TODO CloseHandle
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	//WSADATA
 	WSADATA Wsadata;
 	WORD wVersionRequested = MAKEWORD(2, 2);
@@ -37,6 +64,13 @@ bool _SERVER::_InitSock(int _Port, unsigned int _Max_Connect) {
 	m_Sockid = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (m_Sockid == INVALID_SOCKET) {
 		WSACleanup();
+		return false;
+	}
+
+	m_pListenContext = new PER_SOCKET_CONTEXT();
+	m_pListenContext->m_Socket = m_Sockid;
+	if (CreateIoCompletionPort((HANDLE)m_Sockid, m_CompletionPort, (ULONG_PTR)m_pListenContext, 0) == NULL) {
+		//TODO
 		return false;
 	}
 
@@ -60,152 +94,194 @@ bool _SERVER::_InitSock(int _Port, unsigned int _Max_Connect) {
 		return false;
 	}
 
-	return true;
-}
-
-bool _SERVER::_InitComplitionPort(HANDLE *_CompletionPort) {
-	//Completion Port
-	*_CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
-	if (*_CompletionPort == NULL) {
+	//pACCEPTEX pACCEPTEXSOCKADDRS
+	GUID GuidAcceptEx = WSAID_ACCEPTEX;
+	GUID GuidGetAcceptExSockAddrs = WSAID_GETACCEPTEXSOCKADDRS;
+	DWORD dwBytes = 0;
+	if (SOCKET_ERROR == WSAIoctl(
+		m_Sockid,
+		SIO_GET_EXTENSION_FUNCTION_POINTER,
+		&GuidAcceptEx,
+		sizeof(GuidAcceptEx),
+		&m_pAcceptEx,
+		sizeof(m_pAcceptEx),
+		&dwBytes,
+		NULL,
+		NULL)) {
 		return false;
 	}
 
-	SYSTEM_INFO SysInfo;
-	GetSystemInfo(&SysInfo);
-
-	unsigned int _WorkerThreadsNum = SysInfo.dwNumberOfProcessors * 2;
-	HANDLE* _WorkerThreads = new HANDLE[];
-	memset(_WorkerThreads, 0, sizeof(HANDLE)*_WorkerThreadsNum);
-	DWORD ThreadId;
-	for (int i = 0; i < _WorkerThreadsNum; ++i) {
-		_WorkerThreads[i] = CreateThread(NULL, 0, ServerWorkThread, *_CompletionPort, 0, &ThreadId);
-		if (_WorkerThreads[i] == NULL) {
-			//TODO CloseHandle
-			return false;
-		}
+	if (SOCKET_ERROR == WSAIoctl(
+		m_Sockid,
+		SIO_GET_EXTENSION_FUNCTION_POINTER,
+		&GuidGetAcceptExSockAddrs,
+		sizeof(GuidGetAcceptExSockAddrs),
+		&m_pGetAcceptExSockAddrs,
+		sizeof(m_pGetAcceptExSockAddrs),
+		&dwBytes,
+		NULL,
+		NULL)) {
+		return false;
 	}
 
-	return false;
-}
-
-bool _InitAcceptEx() {}
-
-bool _SERVER::_Start(int port, int max_connect = SOMAXCONN) {
-
-	HANDLE _CompletionPort;
-	_InitComplitionPort(&_CompletionPort);
-
-	_InitSock(port,max_connect);
-
-	_PER_SOCKET_CONTEXT *PerSocketContext = (_PER_SOCKET_CONTEXT *)GlobalAlloc(GPTR, sizeof(_PER_SOCKET_CONTEXT));
-	PerSocketContext->m_Socket = m_Sockid;
-
-	GUID GuidAcceptEx = WSAID_ACCEPTEX;
-	GUID GuidGetAcceptExSockAddrs = WSAID_GETACCEPTEXSOCKADDRS;
-
-	CreateIoCompletionPort((HANDLE)m_Sockid, _CompletionPort, (ULONG_PTR)PerSocketContext, 0);
-
-
-
-	_SERVER::m_Sockid = m_Sockid;
+	for (int i = 0; i < 3; ++i) {
+		PER_IO_CONTEXT *_pAcceptIoContext = new PER_IO_CONTEXT();
+		_PostAccept(_pAcceptIoContext);
+	}
 
 	return true;
 }
 
-void _SERVER::_Stop(SOCKET sockid) {
+bool network::Server::_Start(int port, int max_connect = SOMAXCONN) {
+
+	_InitComplitionPort();
+
+	_InitSock(port,max_connect);
+
+	return true;
+}
+
+void network::Server::_Stop(SOCKET sockid) {
 	closesocket(sockid);
 	WSACleanup();
 }
 
-bool _SERVER::_PostAccept(_PER_IO_CONTEXT *_PerIoContext) {
+bool network::Server::_PostAccept(_PER_IO_CONTEXT *_PerIoContext) {
 	DWORD _Flags = 0;
 
-	_PER_IO_CONTEXT *PerIoContext = (_PER_IO_CONTEXT *)GlobalAlloc(GPTR, sizeof(_PER_IO_CONTEXT));
-	memset(&(PerIoContext->m_Overlapped), 0, sizeof(OVERLAPPED));
-	PerIoContext->m_OpType = ACCEPT;
-	PerIoContext->m_wsaBuf.buf = PerIoContext->m_szBuffer;
-	PerIoContext->m_wsaBuf.len = BUFFER_LEN;
-	PerIoContext->m_sockAccept = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+	ZeroMemory(&(_PerIoContext->m_Overlapped), sizeof(OVERLAPPED));
+	ZeroMemory(&(_PerIoContext->m_szBuffer), BUFFER_LEN);
+	//memset(&(_PerIoContext->m_Overlapped), 0, sizeof(OVERLAPPED));
 
-	int rc = m_pAcceptEx(_PerIoContext->m_sockAccept,
-		PerIoContext->m_sockAccept,
-		PerIoContext->m_szBuffer,
-		PerIoContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
+	_PerIoContext->m_OpType = ACCEPT;
+	_PerIoContext->m_wsaBuf.buf = _PerIoContext->m_szBuffer;
+	_PerIoContext->m_wsaBuf.len = BUFFER_LEN;
+	_PerIoContext->m_sockAccept = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+
+	if (m_pAcceptEx(m_pListenContext->m_Socket,
+		_PerIoContext->m_sockAccept,
+		_PerIoContext->m_wsaBuf.buf,
+		_PerIoContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
 		sizeof(SOCKADDR_IN) + 16,
 		sizeof(SOCKADDR_IN) + 16,
 		&_Flags,
-		&(PerIoContext->m_Overlapped)
-	);
-	if (rc == 0) {
+		&(_PerIoContext->m_Overlapped)) == false) {
 		//TODO
+		if (WSAGetLastError() != WSA_IO_PENDING) {
+			return false;
+		}
 	}
+
+	return true;
 }
 
-bool _SERVER::_PostRecv() {}
+bool network::Server::_PostRecv(PER_IO_CONTEXT *_pIoContext) {
+	// 初始化变量
+	DWORD dwFlags = 0;
+	DWORD dwBytes = 0;
 
-bool _SERVER::_DoAccept() {}
+	_pIoContext->m_OpType = RECV;
 
-bool _SERVER::_DoRecv() {
+	// 初始化完成后，，投递WSARecv请求
+	int nBytesRecv = WSARecv(_pIoContext->m_sockAccept, &(_pIoContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_pIoContext->m_Overlapped), NULL);
 
+	// 如果返回值错误，并且错误的代码并非是Pending的话，那就说明这个重叠请求失败了
+	if ((SOCKET_ERROR == nBytesRecv) && (WSA_IO_PENDING != WSAGetLastError())){
+		return false;
+	}
+	return true;
 }
 
-DWORD WINAPI ServerWorkThread(LPVOID IpParam) {
-	HANDLE ComplitionPort = (HANDLE)IpParam;
-	DWORD BytesTransferred;
-	OVERLAPPED *Overlapped;
-	_PER_SOCKET_CONTEXT *PerSocketContext;
-	_PER_IO_CONTEXT *PerIoContext;
-	DWORD flags;
+bool network::Server::_DoAccept(PER_SOCKET_CONTEXT *pSocketContext, PER_IO_CONTEXT *pIoContext) {
+	SOCKADDR_IN *_ClientAddr, _LocalAddr;
+	int _ClientAddrLen = sizeof(SOCKADDR_IN), _LocalAddrLen = sizeof(SOCKADDR_IN);
+
+	m_pGetAcceptExSockAddrs(
+		pIoContext->m_wsaBuf.buf,
+		pIoContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
+		sizeof(SOCKADDR_IN) + 16,
+		sizeof(SOCKADDR_IN) + 16,
+		(LPSOCKADDR*)&_LocalAddr, &_LocalAddrLen,
+		(LPSOCKADDR*)&_ClientAddr, &_ClientAddrLen);
+
+	PER_SOCKET_CONTEXT *pNewSocketContex = new PER_SOCKET_CONTEXT();
+	pNewSocketContex->m_Socket = pIoContext->m_sockAccept;
+	memcpy(&(pNewSocketContex->m_ClientAddr), _ClientAddr, _ClientAddrLen);
+	if (CreateIoCompletionPort((HANDLE)pNewSocketContex->m_Socket, m_CompletionPort, (ULONG_PTR)pNewSocketContex, 0) == NULL) {
+		//TODO
+		return false;
+	}
+
+	PER_IO_CONTEXT *pNewIoContext = new PER_IO_CONTEXT();
+	pNewIoContext->m_OpType = RECV;
+	pNewIoContext->m_sockAccept = pNewSocketContex->m_Socket;
+	pNewIoContext->m_wsaBuf.buf = pNewIoContext->m_szBuffer;
+	pNewIoContext->m_wsaBuf.len = BUFFER_LEN;
+	ZeroMemory(&(pNewIoContext->m_Overlapped), sizeof(OVERLAPPED));
+
+	_DoSend(pSocketContext, pIoContext);
+
+	_PostRecv(pNewIoContext);
+
+	return _PostAccept(pIoContext);
+}
+
+bool network::Server::_DoRecv(PER_SOCKET_CONTEXT* _pSocketContext, PER_IO_CONTEXT* _pIoContext) {
+	//SOCKADDR_IN* ClientAddr = &_pSocketContext->m_ClientAddr;
+
+	_pIoContext->m_OpType = SEND;
+
+	return true;
+
+	//return _PostRecv(_pIoContext);
+}
+
+bool network::Server::_DoSend(PER_SOCKET_CONTEXT* _pSocketContext, PER_IO_CONTEXT* _pIoContext) {
+	//WSASend();
+
+	send(_pIoContext->m_sockAccept, "jfoaiwe", 8, 0);
+
+	closesocket(_pIoContext->m_sockAccept);
+
+	return true;
+}
+
+DWORD WINAPI network::Server::ServerWorkThread(LPVOID IpParam) {
+	WORKER_PARAMS *_WorkerParams = (WORKER_PARAMS*)IpParam;
+
+	DWORD _BytesTransferred;
+	OVERLAPPED *_Overlapped;
+	PER_SOCKET_CONTEXT *_pSocketContext;
+	PER_IO_CONTEXT *_pIoContext;
 
 	while (true) {
-		BytesTransferred = 0;
+		_BytesTransferred = 0;
 
-		if (GetQueuedCompletionStatus(ComplitionPort, &BytesTransferred, (PULONG_PTR)&PerSocketContext, (LPOVERLAPPED*)&Overlapped, INFINITE) == false) {
-			return -1;
-		}
-
-		PerIoContext = CONTAINING_RECORD(Overlapped, PER_IO_CONTEXT, m_Overlapped);
-
-		if (BytesTransferred == 0 && (PerIoContext->m_OpType == RECV || PerIoContext->m_OpType == SEND)) {
-			closesocket(PerSocketContext->m_Socket);
-			GlobalFree(PerSocketContext);
-			GlobalFree(PerIoContext);
+		if (GetQueuedCompletionStatus(_WorkerParams->m_Server->m_CompletionPort, &_BytesTransferred, (PULONG_PTR)&_pSocketContext, (LPOVERLAPPED*)&_Overlapped, INFINITE) == false) {
 			continue;
 		}
 
+		_pIoContext = CONTAINING_RECORD(_Overlapped, PER_IO_CONTEXT, m_Overlapped);
 
-		if (PerIoContext->m_OpType == ACCEPT) {
-			if (setsockopt(PerIoContext->m_sockAccept, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char *)&(PerSocketContext->m_Socket), sizeof(PerSocketContext->m_Socket)) == SOCKET_ERROR) {
-				//todo
-			}
-
-			PerSocketContext->m_Socket = PerIoContext->m_sockAccept;
-			CreateIoCompletionPort((HANDLE)PerSocketContext->m_Socket, ComplitionPort, (ULONG_PTR)PerSocketContext, 0);
-			memset(&PerIoContext->m_Overlapped, 0, sizeof(OVERLAPPED));
-			PerIoContext->m_OpType = RECV;
-
-			PerIoContext->m_wsaBuf.buf = PerIoContext->m_szBuffer;
-			PerIoContext->m_wsaBuf.len = BUFFER_LEN;
-
-			flags = 0;
-			if (WSARecv(PerSocketContext->m_Socket, &(PerIoContext->m_wsaBuf), 1, &BytesTransferred, &flags, &(PerIoContext->m_Overlapped), NULL) == SOCKET_ERROR) {
-				if (WSAGetLastError() == WSA_IO_PENDING) {
-					//todo
-				}
-			}
-
+		if (_BytesTransferred == 0 && (_pIoContext->m_OpType == RECV || _pIoContext->m_OpType == SEND)) {
+			closesocket(_pSocketContext->m_Socket);
+			//TODO
 			continue;
 		}
 
-		if (PerIoContext->m_OpType == RECV) {
-			std::cout << PerIoContext->m_wsaBuf.buf << std::endl;
+		switch (_pIoContext->m_OpType) {
+		case ACCEPT:
+			_WorkerParams->m_Server->_DoAccept(_pSocketContext, _pIoContext);
+			break;
+		case RECV:
+			_WorkerParams->m_Server->_DoRecv(_pSocketContext,_pIoContext);
+			break;
+		case SEND:
+			_WorkerParams->m_Server->_DoSend(_pSocketContext, _pIoContext);
+			break;
+		default:
+			break;
 		}
-
-		flags = 0;
-		PerIoContext->m_OpType = RECV;
-		memset(&(PerIoContext->m_Overlapped), 0, sizeof(OVERLAPPED));
-
-		WSARecv(PerSocketContext->m_Socket, &(PerIoContext->m_wsaBuf), 1, &BytesTransferred, &flags, &(PerIoContext->m_Overlapped), NULL);
 	}
 
 	return 0;
