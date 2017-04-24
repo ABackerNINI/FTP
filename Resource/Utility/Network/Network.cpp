@@ -67,9 +67,8 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 		return false;
 	}
 
-	m_pListenContext = new PER_SOCKET_CONTEXT();
-	m_pListenContext->m_Socket = m_Sockid;
-	if (CreateIoCompletionPort((HANDLE)m_Sockid, m_CompletionPort, (ULONG_PTR)m_pListenContext, 0) == NULL) {
+	PER_SOCKET_CONTEXT *_pSocketContext = new PER_SOCKET_CONTEXT();
+	if (CreateIoCompletionPort((HANDLE)m_Sockid, m_CompletionPort, (ULONG_PTR)_pSocketContext, 0) == NULL) {
 		//TODO
 		return false;
 	}
@@ -125,8 +124,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	}
 
 	for (int i = 0; i < 3; ++i) {
-		PER_IO_CONTEXT *_pAcceptIoContext = new PER_IO_CONTEXT();
-		_PostAccept(_pAcceptIoContext);
+		_PostAccept(_pSocketContext);
 	}
 
 	return true;
@@ -146,26 +144,24 @@ void network::Server::_Stop(SOCKET sockid) {
 	WSACleanup();
 }
 
-bool network::Server::_PostAccept(_PER_IO_CONTEXT *_PerIoContext) {
+bool network::Server::_PostAccept(PER_SOCKET_CONTEXT *_pSocketContext) {
 	DWORD _Flags = 0;
 
-	ZeroMemory(&(_PerIoContext->m_Overlapped), sizeof(OVERLAPPED));
-	ZeroMemory(&(_PerIoContext->m_szBuffer), BUFFER_LEN);
-	//memset(&(_PerIoContext->m_Overlapped), 0, sizeof(OVERLAPPED));
+	ZeroMemory(&(_pSocketContext->m_Overlapped), sizeof(OVERLAPPED));
 
-	_PerIoContext->m_OpType = ACCEPT;
-	_PerIoContext->m_wsaBuf.buf = _PerIoContext->m_szBuffer;
-	_PerIoContext->m_wsaBuf.len = BUFFER_LEN;
-	_PerIoContext->m_sockAccept = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+	_pSocketContext->m_OpType = ACCEPT;
+	_pSocketContext->m_wsaBuf.buf = _pSocketContext->m_szBuffer;
+	_pSocketContext->m_wsaBuf.len = BUFFER_LEN;
+	_pSocketContext->m_ClientSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
 
-	if (m_pAcceptEx(m_pListenContext->m_Socket,
-		_PerIoContext->m_sockAccept,
-		_PerIoContext->m_wsaBuf.buf,
-		_PerIoContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
+	if (m_pAcceptEx(m_Sockid,
+		_pSocketContext->m_ClientSocket,
+		_pSocketContext->m_wsaBuf.buf,
+		_pSocketContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
 		sizeof(SOCKADDR_IN) + 16,
 		sizeof(SOCKADDR_IN) + 16,
 		&_Flags,
-		&(_PerIoContext->m_Overlapped)) == false) {
+		&(_pSocketContext->m_Overlapped)) == false) {
 		//TODO
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 			return false;
@@ -175,15 +171,15 @@ bool network::Server::_PostAccept(_PER_IO_CONTEXT *_PerIoContext) {
 	return true;
 }
 
-bool network::Server::_PostRecv(PER_IO_CONTEXT *_pIoContext) {
+bool network::Server::_PostRecv(PER_SOCKET_CONTEXT *_pSocketContext) {
 	// 初始化变量
 	DWORD dwFlags = 0;
 	DWORD dwBytes = 0;
 
-	_pIoContext->m_OpType = RECV;
+	_pSocketContext->m_OpType = RECV;
 
 	// 初始化完成后，，投递WSARecv请求
-	int nBytesRecv = WSARecv(_pIoContext->m_sockAccept, &(_pIoContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_pIoContext->m_Overlapped), NULL);
+	int nBytesRecv = WSARecv(_pSocketContext->m_ClientSocket, &(_pSocketContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_pSocketContext->m_Overlapped), NULL);
 
 	// 如果返回值错误，并且错误的代码并非是Pending的话，那就说明这个重叠请求失败了
 	if ((SOCKET_ERROR == nBytesRecv) && (WSA_IO_PENDING != WSAGetLastError())){
@@ -192,56 +188,56 @@ bool network::Server::_PostRecv(PER_IO_CONTEXT *_pIoContext) {
 	return true;
 }
 
-bool network::Server::_DoAccept(PER_SOCKET_CONTEXT *pSocketContext, PER_IO_CONTEXT *pIoContext) {
+bool network::Server::_DoAccept(PER_SOCKET_CONTEXT *_pSocketContext) {
 	SOCKADDR_IN *_ClientAddr, _LocalAddr;
 	int _ClientAddrLen = sizeof(SOCKADDR_IN), _LocalAddrLen = sizeof(SOCKADDR_IN);
 
 	m_pGetAcceptExSockAddrs(
-		pIoContext->m_wsaBuf.buf,
-		pIoContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
+		_pSocketContext->m_wsaBuf.buf,
+		_pSocketContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
 		sizeof(SOCKADDR_IN) + 16,
 		sizeof(SOCKADDR_IN) + 16,
 		(LPSOCKADDR*)&_LocalAddr, &_LocalAddrLen,
 		(LPSOCKADDR*)&_ClientAddr, &_ClientAddrLen);
 
-	PER_SOCKET_CONTEXT *pNewSocketContex = new PER_SOCKET_CONTEXT();
-	pNewSocketContex->m_Socket = pIoContext->m_sockAccept;
-	memcpy(&(pNewSocketContex->m_ClientAddr), _ClientAddr, _ClientAddrLen);
-	if (CreateIoCompletionPort((HANDLE)pNewSocketContex->m_Socket, m_CompletionPort, (ULONG_PTR)pNewSocketContex, 0) == NULL) {
+	PER_SOCKET_CONTEXT *_pNewSocketContex = new PER_SOCKET_CONTEXT();
+	_pNewSocketContex->m_Socket = _pIoContext->m_sockAccept;
+	//memcpy(&(pNewSocketContex->m_ClientAddr), _ClientAddr, _ClientAddrLen);
+	if (CreateIoCompletionPort((HANDLE)_pNewSocketContex->m_Socket, m_CompletionPort, (ULONG_PTR)_pNewSocketContex, 0) == NULL) {
 		//TODO
 		return false;
 	}
 
-	PER_IO_CONTEXT *pNewIoContext = new PER_IO_CONTEXT();
-	pNewIoContext->m_OpType = RECV;
-	pNewIoContext->m_sockAccept = pNewSocketContex->m_Socket;
-	pNewIoContext->m_wsaBuf.buf = pNewIoContext->m_szBuffer;
-	pNewIoContext->m_wsaBuf.len = BUFFER_LEN;
-	ZeroMemory(&(pNewIoContext->m_Overlapped), sizeof(OVERLAPPED));
+	PER_IO_CONTEXT *_pNewIoContext = new PER_IO_CONTEXT();
+	_pNewIoContext->m_OpType = RECV;
+	_pNewIoContext->m_sockAccept = _pNewSocketContex->m_Socket;
+	_pNewIoContext->m_wsaBuf.buf = _pNewIoContext->m_szBuffer;
+	_pNewIoContext->m_wsaBuf.len = BUFFER_LEN;
+	ZeroMemory(&(_pNewIoContext->m_Overlapped), sizeof(OVERLAPPED));
 
-	_DoSend(pSocketContext, pIoContext);
+	_DoSend(_pSocketContext, _pIoContext);
 
-	_PostRecv(pNewIoContext);
+	_PostRecv(_pIoContext);
 
-	return _PostAccept(pIoContext);
+	return _PostAccept(_pNewSocketContex, _pNewIoContext);
 }
 
-bool network::Server::_DoRecv(PER_SOCKET_CONTEXT* _pSocketContext, PER_IO_CONTEXT* _pIoContext) {
+bool network::Server::_DoRecv(PER_SOCKET_CONTEXT *_pSocketContext) {
 	//SOCKADDR_IN* ClientAddr = &_pSocketContext->m_ClientAddr;
 
-	_pIoContext->m_OpType = SEND;
+	_pSocketContext->m_OpType = SEND;
 
 	return true;
 
 	//return _PostRecv(_pIoContext);
 }
 
-bool network::Server::_DoSend(PER_SOCKET_CONTEXT* _pSocketContext, PER_IO_CONTEXT* _pIoContext) {
+bool network::Server::_DoSend(PER_SOCKET_CONTEXT *_pSocketContext) {
 	//WSASend();
 
-	send(_pIoContext->m_sockAccept, "jfoaiwe", 8, 0);
+	send(_pSocketContext->m_ClientSocket, "jfoaiwe", 8, 0);
 
-	closesocket(_pIoContext->m_sockAccept);
+	closesocket(_pSocketContext->m_ClientSocket);
 
 	return true;
 }
