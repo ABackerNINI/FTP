@@ -63,8 +63,8 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 		return false;
 	}
 
-	PER_SOCKET_CONTEXT *_pSocketContext = new PER_SOCKET_CONTEXT();
-	if (CreateIoCompletionPort((HANDLE)m_Sockid, m_CompletionPort, (ULONG_PTR)_pSocketContext, 0) == NULL) {
+	//PER_SOCKET_CONTEXT *_pSocketContext = new PER_SOCKET_CONTEXT();
+	if (CreateIoCompletionPort((HANDLE)m_Sockid, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
 		//TODO
 		return false;
 	}
@@ -120,7 +120,8 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	}
 
 	//POST ACCEPT
-	for (int i = 0; i < 1/*MAX_POST_ACCEPT*/; ++i) {//here exists a hard-to-solve bug with this frame
+	for (int i = 0; i < MAX_POST_ACCEPT; ++i) {//here exists a hard-to-solve bug with this frame
+		PER_SOCKET_CONTEXT *_pSocketContext = new PER_SOCKET_CONTEXT();
 		_PostAccept(_pSocketContext);
 	}
 
@@ -208,7 +209,7 @@ bool network::Server::_DoAccept(PER_SOCKET_CONTEXT *_pSocketContext) {
 		(LPSOCKADDR*)&_ClientAddr, &_ClientAddrLen);//mark:?
 
 	//TODO save clientaddr
-	
+
 	if (CreateIoCompletionPort((HANDLE)_pNewSocketContex->m_ClientSocket, m_CompletionPort, (ULONG_PTR)_pNewSocketContex, 0) == NULL) {
 		//TODO
 		return false;
@@ -240,7 +241,7 @@ bool network::Server::_DoSend(PER_SOCKET_CONTEXT *_pSocketContext) {
 #endif
 	//TODO WSASend();
 
-	send(_pSocketContext->m_ClientSocket, _pSocketContext->m_szBuffer,_pSocketContext->m_BytesTransferred, 0);
+	send(_pSocketContext->m_ClientSocket, _pSocketContext->m_szBuffer, _pSocketContext->m_BytesTransferred, 0);
 
 	return true;
 }
@@ -256,13 +257,14 @@ bool network::Server::_DoClose(PER_SOCKET_CONTEXT* _pSocketContext) {
 
 void network::Server::_Commit(PER_SOCKET_CONTEXT* _pSocketContext) {
 #if(DEBUG&DEBUG_TRACE)
-	TRACE_PRINT("Commit DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+	TRACE_PRINT("Commit DEBUG_TRACE %d BytesTransferred:%u\n", _pSocketContext->_DEBUG_TRACE, _pSocketContext->m_BytesTransferred);
 #endif
 
-	if (_pSocketContext->m_wsaBuf.buf[0] != '\0') {
+	if (_pSocketContext->m_BytesTransferred > 0) {
 		//std::cout << _pSocketContext->m_szBuffer << std::endl;
+		_pSocketContext->m_szBuffer[_pSocketContext->m_BytesTransferred] = '\0';
 
-		printf("%s\n",_pSocketContext->m_szBuffer);
+		printf("%s\n", _pSocketContext->m_szBuffer);
 
 		_DoSend(_pSocketContext);
 
@@ -291,6 +293,8 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID IpParam) {
 		if (GetQueuedCompletionStatus(_WorkerParams->m_Server->m_CompletionPort, &_BytesTransferred, (PULONG_PTR)&_pSocketContext, (LPOVERLAPPED*)&_Overlapped, INFINITE) == false) {
 			continue;
 		}
+
+		_pSocketContext = CONTAINING_RECORD(_Overlapped, PER_SOCKET_CONTEXT, m_Overlapped);
 
 		if (_BytesTransferred == 0 && (_pSocketContext->m_OpType == RECVING || _pSocketContext->m_OpType == SENDING)) {
 			delete _pSocketContext;

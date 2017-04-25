@@ -9,7 +9,7 @@ int main() {
 
 	network::config_server config;
 	config.port = 80;
-	config.max_connect = 10;
+	config.max_connect = 100;
 	server.Start(&config, NULL);
 
 	_getch();

@@ -18,7 +18,7 @@
 #define DEBUG_TRACE 1
 
 #define MAX_BUFFER_LEN 100
-#define MAX_POST_ACCEPT 10
+#define MAX_POST_ACCEPT 100
 #define WORKER_THREADS_PER_PROCESSOR 2
 
 namespace network {
@@ -28,14 +28,14 @@ namespace network {
 	static CRITICAL_SECTION CRITICAL_PRINT;
 
 #define TRACE_PRINT _TRACE_PRINT
-	inline void SetColor(int ForgC){
+	inline void SetColor(int ForgC) {
 		WORD wColor;
 		//We will need this handle to get the current background attribute
 		HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
 		CONSOLE_SCREEN_BUFFER_INFO csbi;
 
 		//We use csbi for the wAttributes word.
-		if (GetConsoleScreenBufferInfo(hStdOut, &csbi)){
+		if (GetConsoleScreenBufferInfo(hStdOut, &csbi)) {
 			//Mask out all but the background attribute, and add in the forgournd color
 			wColor = (csbi.wAttributes & 0xF0) + (ForgC & 0x0F);
 			SetConsoleTextAttribute(hStdOut, wColor);
@@ -57,7 +57,7 @@ namespace network {
 #endif
 
 	enum OPERATION_TYPE {
-		ACCEPTED, RECVING, SENDING,CLOSED, UNDEFINED
+		ACCEPTED, RECVING, SENDING, CLOSED, UNDEFINED
 	};
 
 	struct PER_SOCKET_CONTEXT {
@@ -74,13 +74,13 @@ namespace network {
 #endif
 
 		PER_SOCKET_CONTEXT() {
-			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
 			m_ClientSocket = INVALID_SOCKET;
 			m_szBuffer = new char[MAX_BUFFER_LEN];
-			memset(m_szBuffer, 0, sizeof(char)*(MAX_BUFFER_LEN));
 			m_wsaBuf.buf = m_szBuffer;
 			m_wsaBuf.len = MAX_BUFFER_LEN - 1;//one for '\0'
 			m_OpType = UNDEFINED;
+
+			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
 
 #if(DEBUG&DEBUG_TRACE)
 			_DEBUG_TRACE = network::_DEBUG_TRACE++;
@@ -88,7 +88,9 @@ namespace network {
 		}
 
 		void RESET_BUFFER() {
-			memset(m_szBuffer, 0, sizeof(char)*(MAX_BUFFER_LEN));
+			m_szBuffer[0] = '\0';
+			m_BytesTransferred = 0;
+			//m_OpType = UNDEFINED;
 		}
 
 		~PER_SOCKET_CONTEXT() {
@@ -96,9 +98,13 @@ namespace network {
 			delete[] m_szBuffer;
 
 #if(DEBUG&DEBUG_TRACE)
-			TRACE_PRINT("PSC Dispose Socket:%lld DEBUG_TRACE:%d\n", m_ClientSocket, DEBUG_TRACE);
+			TRACE_PRINT("PSC Dispose Socket:%lld DEBUG_TRACE:%d\n", m_ClientSocket, _DEBUG_TRACE);
 #endif
 		}
+	};
+
+	struct LISTEN_CONTEXT {
+
 	};
 
 	class Server;
