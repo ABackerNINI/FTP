@@ -14,12 +14,13 @@
 #pragma comment(lib,"ws2_32.lib")
 #pragma comment(lib, "Kernel32.lib")
 
-#define BUFFER_LEN 1024
+#define DEBUG 1
 
+#define BUFFER_LEN 200
 
 namespace network {
 	enum OPERATION_TYPE {
-		ACCEPT, RECV, SEND, UNDEFINED
+		ACCEPTED, RECVING, SENDING,CLOSED, UNDEFINED
 	};
 
 	//struct PER_IO_CONTEXT {
@@ -31,8 +32,25 @@ namespace network {
 		SOCKET			m_ClientSocket;
 		SOCKADDR_IN		m_ClientAddr;
 		WSABUF			m_wsaBuf;
-		char			m_szBuffer[BUFFER_LEN];
+		char*			m_szBuffer;
 		OPERATION_TYPE  m_OpType;
+
+		PER_SOCKET_CONTEXT() {
+			ZeroMemory(&m_Overlapped, sizeof(OVERLAPPED));
+			m_ClientSocket = INVALID_SOCKET;
+			m_szBuffer = new char[BUFFER_LEN];
+			ZeroMemory(m_szBuffer, sizeof(char)*(BUFFER_LEN));
+			m_wsaBuf.buf = m_szBuffer;
+			m_wsaBuf.len = BUFFER_LEN;
+			m_OpType = UNDEFINED;
+		}
+
+		void RESET_BUFFER() {
+			//ZeroMemory(m_szBuffer, sizeof(char)*(BUFFER_LEN + 1));
+			memset(m_szBuffer, 0, sizeof(char)*(BUFFER_LEN));
+			m_wsaBuf.buf = m_szBuffer;
+			m_wsaBuf.len = BUFFER_LEN;
+		}
 	};
 
 	class Server;
@@ -75,6 +93,10 @@ namespace network {
 
 		bool _DoSend(PER_SOCKET_CONTEXT* _pSocketContext);
 
+		bool _DoClose(PER_SOCKET_CONTEXT* _pSocketContext);
+
+		void _Commit(PER_SOCKET_CONTEXT* _pSocketContext);
+
 		static DWORD WINAPI ServerWorkThread(LPVOID IpParam);
 
 	private:
@@ -85,6 +107,8 @@ namespace network {
 		LPFN_ACCEPTEX m_pAcceptEx;
 
 		LPFN_GETACCEPTEXSOCKADDRS m_pGetAcceptExSockAddrs;
+
+		CRITICAL_SECTION m_csContextList;
 	};
 
 	class Client {
