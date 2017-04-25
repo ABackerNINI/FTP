@@ -1,12 +1,10 @@
 
 #include "Network.h"
 
-DWORD WINAPI ServerWorkThread(LPVOID CompletionPortID);
-//DWORD WINAPI ServerSendThread(LPVOID IpParam);
-//HANDLE hMutex = CreateMutex(NULL, FALSE, NULL);
-
 network::Server::Server() {
-
+#if(DEBUG&DEBUG_TRACE)
+	InitializeCriticalSection(&CRITICAL_PRINT);
+#endif
 }
 
 bool network::Server::Start(config_server *cs, callback_server callback) {
@@ -26,14 +24,12 @@ bool network::Server::_InitComplitionPort() {
 		return false;
 	}
 
-	SYSTEM_INFO SysInfo;
-	GetSystemInfo(&SysInfo);
+	unsigned int _WorkerThreadsNum = _GetProcessorNum()*WORKER_THREADS_PER_PROCESSOR;
 
-	unsigned int _WorkerThreadsNum = SysInfo.dwNumberOfProcessors * 2;
 	HANDLE* _WorkerThreads = new HANDLE[_WorkerThreadsNum];
 	memset(_WorkerThreads, 0, sizeof(HANDLE)*_WorkerThreadsNum);
 	DWORD ThreadId;
-	for (unsigned int i = 0; i < 3; ++i) {
+	for (unsigned int i = 0; i < _WorkerThreadsNum; ++i) {
 		WORKER_PARAMS *_pWorkerParams = new WORKER_PARAMS();
 		_pWorkerParams->m_Server = this;
 		_pWorkerParams->m_ThreadNo = i;
@@ -93,7 +89,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 		return false;
 	}
 
-	//pACCEPTEX pACCEPTEXSOCKADDRS
+	//pACCEPTEX pGETACCEPTEXSOCKADDRS
 	GUID GuidAcceptEx = WSAID_ACCEPTEX;
 	GUID GuidGetAcceptExSockAddrs = WSAID_GETACCEPTEXSOCKADDRS;
 	DWORD dwBytes = 0;
@@ -123,7 +119,8 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 		return false;
 	}
 
-	for (int i = 0; i < 1; ++i) {
+	//POST ACCEPT
+	for (int i = 0; i < 1/*MAX_POST_ACCEPT*/; ++i) {//here exists a hard-to-solve bug with this frame
 		_PostAccept(_pSocketContext);
 	}
 
@@ -131,9 +128,6 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 }
 
 bool network::Server::_Start(int port, int max_connect = SOMAXCONN) {
-
-	InitializeCriticalSection(&m_csContextList);
-
 	_InitComplitionPort();
 
 	_InitSock(port, max_connect);
@@ -147,6 +141,10 @@ void network::Server::_Stop(SOCKET sockid) {
 }
 
 bool network::Server::_PostAccept(PER_SOCKET_CONTEXT *_pSocketContext) {
+#if(DEBUG&DEBUG_TRACE)
+	TRACE_PRINT("PostAccept DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+#endif
+
 	DWORD _Flags = 0;
 
 	_pSocketContext->m_OpType = ACCEPTED;
@@ -170,6 +168,10 @@ bool network::Server::_PostAccept(PER_SOCKET_CONTEXT *_pSocketContext) {
 }
 
 bool network::Server::_PostRecv(PER_SOCKET_CONTEXT *_pSocketContext) {
+#if(DEBUG&DEBUG_TRACE)
+	TRACE_PRINT("PostRecv DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+#endif
+
 	DWORD dwFlags = 0;
 	DWORD dwBytes = 0;
 
@@ -185,6 +187,9 @@ bool network::Server::_PostRecv(PER_SOCKET_CONTEXT *_pSocketContext) {
 }
 
 bool network::Server::_DoAccept(PER_SOCKET_CONTEXT *_pSocketContext) {
+#if(DEBUG&DEBUG_TRACE)
+	TRACE_PRINT("DoAccept DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+#endif
 
 	_Commit(_pSocketContext);
 
@@ -217,6 +222,9 @@ bool network::Server::_DoAccept(PER_SOCKET_CONTEXT *_pSocketContext) {
 }
 
 bool network::Server::_DoRecv(PER_SOCKET_CONTEXT *_pSocketContext) {
+#if(DEBUG&DEBUG_TRACE)
+	TRACE_PRINT("DoRecv DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+#endif
 	//SOCKADDR_IN* ClientAddr = &_pSocketContext->m_ClientAddr;
 
 	_Commit(_pSocketContext);
@@ -227,26 +235,34 @@ bool network::Server::_DoRecv(PER_SOCKET_CONTEXT *_pSocketContext) {
 }
 
 bool network::Server::_DoSend(PER_SOCKET_CONTEXT *_pSocketContext) {
+#if(DEBUG&DEBUG_TRACE)
+	TRACE_PRINT("DoSend DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+#endif
 	//TODO WSASend();
 
-	send(_pSocketContext->m_ClientSocket, _pSocketContext->m_szBuffer, strlen(_pSocketContext->m_szBuffer), 0);
+	send(_pSocketContext->m_ClientSocket, _pSocketContext->m_szBuffer,_pSocketContext->m_BytesTransferred, 0);
 
 	return true;
 }
 bool network::Server::_DoClose(PER_SOCKET_CONTEXT* _pSocketContext) {
+#if(DEBUG&DEBUG_TRACE)
+	TRACE_PRINT("DoClose DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+#endif
+
 	closesocket(_pSocketContext->m_ClientSocket);
 
 	return true;
 }
 
 void network::Server::_Commit(PER_SOCKET_CONTEXT* _pSocketContext) {
+#if(DEBUG&DEBUG_TRACE)
+	TRACE_PRINT("Commit DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+#endif
+
 	if (_pSocketContext->m_wsaBuf.buf[0] != '\0') {
-		//EnterCriticalSection(&m_csContextList);
-
 		//std::cout << _pSocketContext->m_szBuffer << std::endl;
-		printf("%s\n", _pSocketContext->m_szBuffer);
 
-		//LeaveCriticalSection(&m_csContextList);
+		printf("%s\n",_pSocketContext->m_szBuffer);
 
 		_DoSend(_pSocketContext);
 
@@ -261,6 +277,10 @@ void network::Server::_Commit(PER_SOCKET_CONTEXT* _pSocketContext) {
 DWORD WINAPI network::Server::ServerWorkThread(LPVOID IpParam) {
 	WORKER_PARAMS *_WorkerParams = (WORKER_PARAMS*)IpParam;
 
+#if(DEBUG&DEBUG_TRACE)
+	TRACE_PRINT("ServerWorkThread ThreadNo:%d\n", _WorkerParams->m_ThreadNo);
+#endif
+
 	DWORD _BytesTransferred;
 	OVERLAPPED *_Overlapped;
 	PER_SOCKET_CONTEXT *_pSocketContext;
@@ -273,12 +293,12 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID IpParam) {
 		}
 
 		if (_BytesTransferred == 0 && (_pSocketContext->m_OpType == RECVING || _pSocketContext->m_OpType == SENDING)) {
-			closesocket(_pSocketContext->m_ClientSocket);
-			//delete[] (_pSocketContext->m_szBuffer);
-			//delete _pSocketContext;
+			delete _pSocketContext;
 			//TODO
 			continue;
 		}
+
+		_pSocketContext->m_BytesTransferred = _BytesTransferred;
 
 		switch (_pSocketContext->m_OpType) {
 		case ACCEPTED:
@@ -296,4 +316,11 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID IpParam) {
 	}
 
 	return 0;
+}
+
+unsigned int network::Server::_GetProcessorNum() {
+	SYSTEM_INFO SysInfo;
+	GetSystemInfo(&SysInfo);
+
+	return SysInfo.dwNumberOfProcessors;
 }

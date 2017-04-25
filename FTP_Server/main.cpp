@@ -12,7 +12,7 @@ int main() {
 	config.max_connect = 10;
 	server.Start(&config, NULL);
 
-	getch();
+	_getch();
 
 	return 0;
 }

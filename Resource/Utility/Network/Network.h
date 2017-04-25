@@ -15,17 +15,50 @@
 #pragma comment(lib, "Kernel32.lib")
 
 #define DEBUG 1
+#define DEBUG_TRACE 1
 
-#define BUFFER_LEN 200
+#define MAX_BUFFER_LEN 100
+#define MAX_POST_ACCEPT 10
+#define WORKER_THREADS_PER_PROCESSOR 2
 
 namespace network {
+
+#if(DEBUG&DEBUG_TRACE)
+
+	static CRITICAL_SECTION CRITICAL_PRINT;
+
+#define TRACE_PRINT _TRACE_PRINT
+	inline void SetColor(int ForgC){
+		WORD wColor;
+		//We will need this handle to get the current background attribute
+		HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+		CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+		//We use csbi for the wAttributes word.
+		if (GetConsoleScreenBufferInfo(hStdOut, &csbi)){
+			//Mask out all but the background attribute, and add in the forgournd color
+			wColor = (csbi.wAttributes & 0xF0) + (ForgC & 0x0F);
+			SetConsoleTextAttribute(hStdOut, wColor);
+		}
+	}
+
+	template<class... T>
+	void _TRACE_PRINT(T&&... _Args) {
+		EnterCriticalSection(&CRITICAL_PRINT);
+
+		SetColor(14);
+		printf(std::forward<T>(_Args)...);
+		SetColor(15);
+
+		LeaveCriticalSection(&CRITICAL_PRINT);
+	}
+
+	static int _DEBUG_TRACE = 0;
+#endif
+
 	enum OPERATION_TYPE {
 		ACCEPTED, RECVING, SENDING,CLOSED, UNDEFINED
 	};
-
-	//struct PER_IO_CONTEXT {
-	//	SOCKET       m_sockAccept;          // 这个I/O操作所使用的Socket，每个连接的都是一样的  
-	//};
 
 	struct PER_SOCKET_CONTEXT {
 		OVERLAPPED		m_Overlapped;
@@ -33,23 +66,38 @@ namespace network {
 		SOCKADDR_IN		m_ClientAddr;
 		WSABUF			m_wsaBuf;
 		char*			m_szBuffer;
+		unsigned int	m_BytesTransferred;
 		OPERATION_TYPE  m_OpType;
 
+#if(DEBUG&DEBUG_TRACE)
+		int _DEBUG_TRACE;
+#endif
+
 		PER_SOCKET_CONTEXT() {
-			ZeroMemory(&m_Overlapped, sizeof(OVERLAPPED));
+			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
 			m_ClientSocket = INVALID_SOCKET;
-			m_szBuffer = new char[BUFFER_LEN];
-			ZeroMemory(m_szBuffer, sizeof(char)*(BUFFER_LEN));
+			m_szBuffer = new char[MAX_BUFFER_LEN];
+			memset(m_szBuffer, 0, sizeof(char)*(MAX_BUFFER_LEN));
 			m_wsaBuf.buf = m_szBuffer;
-			m_wsaBuf.len = BUFFER_LEN;
+			m_wsaBuf.len = MAX_BUFFER_LEN - 1;//one for '\0'
 			m_OpType = UNDEFINED;
+
+#if(DEBUG&DEBUG_TRACE)
+			_DEBUG_TRACE = network::_DEBUG_TRACE++;
+#endif
 		}
 
 		void RESET_BUFFER() {
-			//ZeroMemory(m_szBuffer, sizeof(char)*(BUFFER_LEN + 1));
-			memset(m_szBuffer, 0, sizeof(char)*(BUFFER_LEN));
-			m_wsaBuf.buf = m_szBuffer;
-			m_wsaBuf.len = BUFFER_LEN;
+			memset(m_szBuffer, 0, sizeof(char)*(MAX_BUFFER_LEN));
+		}
+
+		~PER_SOCKET_CONTEXT() {
+			closesocket(m_ClientSocket);
+			delete[] m_szBuffer;
+
+#if(DEBUG&DEBUG_TRACE)
+			TRACE_PRINT("PSC Dispose Socket:%lld DEBUG_TRACE:%d\n", m_ClientSocket, DEBUG_TRACE);
+#endif
 		}
 	};
 
@@ -97,6 +145,8 @@ namespace network {
 
 		void _Commit(PER_SOCKET_CONTEXT* _pSocketContext);
 
+		unsigned int _GetProcessorNum();
+
 		static DWORD WINAPI ServerWorkThread(LPVOID IpParam);
 
 	private:
@@ -107,8 +157,6 @@ namespace network {
 		LPFN_ACCEPTEX m_pAcceptEx;
 
 		LPFN_GETACCEPTEXSOCKADDRS m_pGetAcceptExSockAddrs;
-
-		CRITICAL_SECTION m_csContextList;
 	};
 
 	class Client {
