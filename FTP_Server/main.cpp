@@ -5,12 +5,12 @@
 
 
 int main() {
-	network::Server server;
+	network::ServerConfig config;
+	config.M_Port = 80;
+	config.O_MaxConnect = 10;
 
-	network::config_server config;
-	config.port = 80;
-	config.max_connect = 100;
-	server.Start(&config, NULL);
+	network::Server server(config);
+	server.Start();
 
 	_getch();
 

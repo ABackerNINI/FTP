@@ -1,18 +1,22 @@
 
 #include "Network.h"
 
-network::Server::Server() {
+/*------------------------------Server Section-------------------------------------*/
+
+network::Server::Server(const ServerConfig &_ServerConfig) {
 #if(DEBUG&DEBUG_TRACE)
 	InitializeCriticalSection(&CRITICAL_PRINT);
 #endif
+
+	m_ServerConfig = _ServerConfig;
 }
 
-bool network::Server::Start(config_server *cs, callback_server callback) {
-	return _Start(cs->port, cs->max_connect);
+bool network::Server::Start() {
+	return _Start(m_ServerConfig.M_Port, m_ServerConfig.O_MaxConnect);
 }
 
 bool network::Server::Stop() {
-	_Stop(m_Sockid);
+	_Stop(m_Socket);
 
 	return true;
 }
@@ -24,14 +28,14 @@ bool network::Server::_InitComplitionPort() {
 		return false;
 	}
 
-	unsigned int _WorkerThreadsNum = _GetProcessorNum()*WORKER_THREADS_PER_PROCESSOR;
+	unsigned int _WorkerThreadsNum = _GetProcessorNum()*m_ServerConfig.O_WorkerThreadsPerProcessor;
 
 	HANDLE* _WorkerThreads = new HANDLE[_WorkerThreadsNum];
 	memset(_WorkerThreads, 0, sizeof(HANDLE)*_WorkerThreadsNum);
 	DWORD ThreadId;
 	for (unsigned int i = 0; i < _WorkerThreadsNum; ++i) {
-		WORKER_PARAMS *_pWorkerParams = new WORKER_PARAMS();
-		_pWorkerParams->m_Server = this;
+		WORKER_PARAMS<Server> *_pWorkerParams = new WORKER_PARAMS<Server>();
+		_pWorkerParams->m_Instance = this;
 		_pWorkerParams->m_ThreadNo = i;
 
 		_WorkerThreads[i] = CreateThread(NULL, 0, ServerWorkThread, _pWorkerParams, 0, &ThreadId);
@@ -52,20 +56,12 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 		return false;
 	}
 	if (LOBYTE(Wsadata.wVersion) != 2 || HIBYTE(Wsadata.wVersion) != 2) {
-		WSACleanup();
 		return false;
 	}
 
 	//SOCKET
-	m_Sockid = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-	if (m_Sockid == INVALID_SOCKET) {
-		WSACleanup();
-		return false;
-	}
-
-	//PER_SOCKET_CONTEXT *_pSocketContext = new PER_SOCKET_CONTEXT();
-	if (CreateIoCompletionPort((HANDLE)m_Sockid, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
-		//TODO
+	m_Socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (m_Socket == INVALID_SOCKET) {
 		return false;
 	}
 
@@ -76,16 +72,16 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	_Addr.sin_port = htons(_Port);
 
 	//BIND
-	if (bind(m_Sockid, (SOCKADDR*)&_Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
-		closesocket(m_Sockid);
-		WSACleanup();
+	if (bind(m_Socket, (SOCKADDR*)&_Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 		return false;
 	}
 
 	//LISTEN
-	if (listen(m_Sockid, _Max_Connect) == SOCKET_ERROR) {
-		closesocket(m_Sockid);
-		WSACleanup();
+	if (listen(m_Socket, _Max_Connect) == SOCKET_ERROR) {
+		return false;
+	}
+
+	if (CreateIoCompletionPort((HANDLE)m_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
 		return false;
 	}
 
@@ -94,7 +90,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	GUID GuidGetAcceptExSockAddrs = WSAID_GETACCEPTEXSOCKADDRS;
 	DWORD dwBytes = 0;
 	if (SOCKET_ERROR == WSAIoctl(
-		m_Sockid,
+		m_Socket,
 		SIO_GET_EXTENSION_FUNCTION_POINTER,
 		&GuidAcceptEx,
 		sizeof(GuidAcceptEx),
@@ -107,7 +103,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	}
 
 	if (SOCKET_ERROR == WSAIoctl(
-		m_Sockid,
+		m_Socket,
 		SIO_GET_EXTENSION_FUNCTION_POINTER,
 		&GuidGetAcceptExSockAddrs,
 		sizeof(GuidGetAcceptExSockAddrs),
@@ -120,45 +116,45 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	}
 
 	//POST ACCEPT
-	for (int i = 0; i < MAX_POST_ACCEPT; ++i) {//here exists a hard-to-solve bug with this frame
-		PER_SOCKET_CONTEXT *_pSocketContext = new PER_SOCKET_CONTEXT();
-		_PostAccept(_pSocketContext);
+	for (int i = 0; i < m_ServerConfig.O_MaxPostAccept; ++i) {
+		PER_SOCKET_CONTEXT *_SocketContext = new PER_SOCKET_CONTEXT();
+		_PostAccept(_SocketContext);
 	}
 
 	return true;
 }
 
-bool network::Server::_Start(int port, int max_connect = SOMAXCONN) {
+bool network::Server::_Start(int _Port, int _MaxConnect = SOMAXCONN) {
 	_InitComplitionPort();
 
-	_InitSock(port, max_connect);
+	_InitSock(_Port, _MaxConnect);
 
 	return true;
 }
 
-void network::Server::_Stop(SOCKET sockid) {
-	closesocket(sockid);
+void network::Server::_Stop(SOCKET _Sockid) {
+	closesocket(_Sockid);
 	WSACleanup();
 }
 
-bool network::Server::_PostAccept(PER_SOCKET_CONTEXT *_pSocketContext) {
+bool network::Server::_PostAccept(PER_SOCKET_CONTEXT *_SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
-	TRACE_PRINT("PostAccept DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+	TRACE_PRINT("PostAccept DEBUG_TRACE %d\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
 	DWORD _Flags = 0;
 
-	_pSocketContext->m_OpType = ACCEPTED;
-	_pSocketContext->m_ClientSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+	_SocketContext->m_OpType = ACCEPTED;
+	_SocketContext->m_ClientSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
 
-	if (m_pAcceptEx(m_Sockid,
-		_pSocketContext->m_ClientSocket,
-		_pSocketContext->m_wsaBuf.buf,
-		_pSocketContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
+	if (m_pAcceptEx(m_Socket,
+		_SocketContext->m_ClientSocket,
+		_SocketContext->m_wsaBuf.buf,
+		_SocketContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
 		sizeof(SOCKADDR_IN) + 16,
 		sizeof(SOCKADDR_IN) + 16,
 		&_Flags,
-		&(_pSocketContext->m_Overlapped)) == false) {
+		&(_SocketContext->m_Overlapped)) == false) {
 		//TODO
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 			return false;
@@ -168,17 +164,17 @@ bool network::Server::_PostAccept(PER_SOCKET_CONTEXT *_pSocketContext) {
 	return true;
 }
 
-bool network::Server::_PostRecv(PER_SOCKET_CONTEXT *_pSocketContext) {
+bool network::Server::_PostRecv(PER_SOCKET_CONTEXT *_SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
-	TRACE_PRINT("PostRecv DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+	TRACE_PRINT("PostRecv DEBUG_TRACE %d\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
 	DWORD dwFlags = 0;
 	DWORD dwBytes = 0;
 
-	_pSocketContext->m_OpType = RECVING;
+	_SocketContext->m_OpType = RECVING;
 
-	int nBytesRecv = WSARecv(_pSocketContext->m_ClientSocket, &(_pSocketContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_pSocketContext->m_Overlapped), NULL);
+	int nBytesRecv = WSARecv(_SocketContext->m_ClientSocket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_SocketContext->m_Overlapped), NULL);
 
 	if ((SOCKET_ERROR == nBytesRecv) && (WSA_IO_PENDING != WSAGetLastError())) {
 		return false;
@@ -187,22 +183,22 @@ bool network::Server::_PostRecv(PER_SOCKET_CONTEXT *_pSocketContext) {
 	return true;
 }
 
-bool network::Server::_DoAccept(PER_SOCKET_CONTEXT *_pSocketContext) {
+bool network::Server::_DoAccept(PER_SOCKET_CONTEXT *_SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
-	TRACE_PRINT("DoAccept DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+	TRACE_PRINT("DoAccept DEBUG_TRACE %d\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
-	_Commit(_pSocketContext);
+	_Commit(_SocketContext);
 
-	PER_SOCKET_CONTEXT *_pNewSocketContex = new PER_SOCKET_CONTEXT();
-	_pNewSocketContex->m_OpType = RECVING;
-	_pNewSocketContex->m_ClientSocket = _pSocketContext->m_ClientSocket;
+	PER_SOCKET_CONTEXT *_NewSocketContex = new PER_SOCKET_CONTEXT();
+	_NewSocketContex->m_OpType = RECVING;
+	_NewSocketContex->m_ClientSocket = _SocketContext->m_ClientSocket;
 	SOCKADDR_IN *_ClientAddr, *_LocalAddr;//mark:need to delete?
 	int _ClientAddrLen = sizeof(SOCKADDR_IN), _LocalAddrLen = sizeof(SOCKADDR_IN);
 
 	m_pGetAcceptExSockAddrs(
-		_pNewSocketContex->m_wsaBuf.buf,
-		_pNewSocketContex->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
+		_NewSocketContex->m_wsaBuf.buf,
+		_NewSocketContex->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
 		sizeof(SOCKADDR_IN) + 16,
 		sizeof(SOCKADDR_IN) + 16,
 		(LPSOCKADDR*)&_LocalAddr, &_LocalAddrLen,
@@ -210,74 +206,73 @@ bool network::Server::_DoAccept(PER_SOCKET_CONTEXT *_pSocketContext) {
 
 	//TODO save clientaddr
 
-	if (CreateIoCompletionPort((HANDLE)_pNewSocketContex->m_ClientSocket, m_CompletionPort, (ULONG_PTR)_pNewSocketContex, 0) == NULL) {
+	if (CreateIoCompletionPort((HANDLE)_NewSocketContex->m_ClientSocket, m_CompletionPort, (ULONG_PTR)_NewSocketContex, 0) == NULL) {
 		//TODO
 		return false;
 	}
 
 	//_DoSend(_pNewSocketContex);
 
-	_PostRecv(_pNewSocketContex);
+	_PostRecv(_NewSocketContex);
 
-	return _PostAccept(_pSocketContext);
+	return _PostAccept(_SocketContext);
 }
 
-bool network::Server::_DoRecv(PER_SOCKET_CONTEXT *_pSocketContext) {
+bool network::Server::_DoRecv(PER_SOCKET_CONTEXT *_SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
-	TRACE_PRINT("DoRecv DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+	TRACE_PRINT("DoRecv DEBUG_TRACE %d\n", _SocketContext->_DEBUG_TRACE);
 #endif
 	//SOCKADDR_IN* ClientAddr = &_pSocketContext->m_ClientAddr;
 
-	_Commit(_pSocketContext);
+	_Commit(_SocketContext);
 
-	_pSocketContext->m_OpType = RECVING;
+	_SocketContext->m_OpType = RECVING;
 
-	return _PostRecv(_pSocketContext);
+	return _PostRecv(_SocketContext);
 }
 
-bool network::Server::_DoSend(PER_SOCKET_CONTEXT *_pSocketContext) {
+bool network::Server::_DoSend(PER_SOCKET_CONTEXT *_SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
-	TRACE_PRINT("DoSend DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+	TRACE_PRINT("DoSend DEBUG_TRACE %d\n", _SocketContext->_DEBUG_TRACE);
 #endif
 	//TODO WSASend();
 
-	send(_pSocketContext->m_ClientSocket, _pSocketContext->m_szBuffer, _pSocketContext->m_BytesTransferred, 0);
+	send(_SocketContext->m_ClientSocket, _SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred, 0);
 
 	return true;
 }
-bool network::Server::_DoClose(PER_SOCKET_CONTEXT* _pSocketContext) {
+bool network::Server::_DoClose(PER_SOCKET_CONTEXT* _SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
-	TRACE_PRINT("DoClose DEBUG_TRACE %d\n", _pSocketContext->_DEBUG_TRACE);
+	TRACE_PRINT("DoClose DEBUG_TRACE %d\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
-	closesocket(_pSocketContext->m_ClientSocket);
+	closesocket(_SocketContext->m_ClientSocket);
 
 	return true;
 }
 
-void network::Server::_Commit(PER_SOCKET_CONTEXT* _pSocketContext) {
+void network::Server::_Commit(PER_SOCKET_CONTEXT* _SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
-	TRACE_PRINT("Commit DEBUG_TRACE %d BytesTransferred:%u\n", _pSocketContext->_DEBUG_TRACE, _pSocketContext->m_BytesTransferred);
+	TRACE_PRINT("Commit DEBUG_TRACE %d BytesTransferred:%u\n", _SocketContext->_DEBUG_TRACE, _SocketContext->m_BytesTransferred);
 #endif
 
-	if (_pSocketContext->m_BytesTransferred > 0) {
-		//std::cout << _pSocketContext->m_szBuffer << std::endl;
-		_pSocketContext->m_szBuffer[_pSocketContext->m_BytesTransferred] = '\0';
+	if (_SocketContext->m_BytesTransferred > 0) {
+		_SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
 
-		printf("%s\n", _pSocketContext->m_szBuffer);
+		printf("%s\n", _SocketContext->m_szBuffer);
 
-		_DoSend(_pSocketContext);
+		_DoSend(_SocketContext);
 
 		//Sleep(5000);
 
 		//_DoClose(_pSocketContext);
 
-		_pSocketContext->RESET_BUFFER();
+		_SocketContext->RESET_BUFFER();
 	}
 }
 
-DWORD WINAPI network::Server::ServerWorkThread(LPVOID IpParam) {
-	WORKER_PARAMS *_WorkerParams = (WORKER_PARAMS*)IpParam;
+DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
+	WORKER_PARAMS<Server> *_WorkerParams = (WORKER_PARAMS<Server>*)_LpParam;
 
 #if(DEBUG&DEBUG_TRACE)
 	TRACE_PRINT("ServerWorkThread ThreadNo:%d\n", _WorkerParams->m_ThreadNo);
@@ -285,34 +280,34 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID IpParam) {
 
 	DWORD _BytesTransferred;
 	OVERLAPPED *_Overlapped;
-	PER_SOCKET_CONTEXT *_pSocketContext;
+	PER_SOCKET_CONTEXT *_SocketContext;
 
 	while (true) {
 		_BytesTransferred = 0;
 
-		if (GetQueuedCompletionStatus(_WorkerParams->m_Server->m_CompletionPort, &_BytesTransferred, (PULONG_PTR)&_pSocketContext, (LPOVERLAPPED*)&_Overlapped, INFINITE) == false) {
+		if (GetQueuedCompletionStatus(_WorkerParams->m_Instance->m_CompletionPort, &_BytesTransferred, (PULONG_PTR)&_SocketContext, (LPOVERLAPPED*)&_Overlapped, INFINITE) == false) {
 			continue;
 		}
 
-		_pSocketContext = CONTAINING_RECORD(_Overlapped, PER_SOCKET_CONTEXT, m_Overlapped);
+		_SocketContext = CONTAINING_RECORD(_Overlapped, PER_SOCKET_CONTEXT, m_Overlapped);
 
-		if (_BytesTransferred == 0 && (_pSocketContext->m_OpType == RECVING || _pSocketContext->m_OpType == SENDING)) {
-			delete _pSocketContext;
+		if (_BytesTransferred == 0 && (_SocketContext->m_OpType == RECVING || _SocketContext->m_OpType == SENDING)) {
+			delete _SocketContext;
 			//TODO
 			continue;
 		}
 
-		_pSocketContext->m_BytesTransferred = _BytesTransferred;
+		_SocketContext->m_BytesTransferred = _BytesTransferred;
 
-		switch (_pSocketContext->m_OpType) {
+		switch (_SocketContext->m_OpType) {
 		case ACCEPTED:
-			_WorkerParams->m_Server->_DoAccept(_pSocketContext);
+			_WorkerParams->m_Instance->_DoAccept(_SocketContext);
 			break;
 		case RECVING:
-			_WorkerParams->m_Server->_DoRecv(_pSocketContext);
+			_WorkerParams->m_Instance->_DoRecv(_SocketContext);
 			break;
 		case SENDING:
-			_WorkerParams->m_Server->_DoSend(_pSocketContext);
+			_WorkerParams->m_Instance->_DoSend(_SocketContext);
 			break;
 		default:
 			break;
@@ -327,4 +322,101 @@ unsigned int network::Server::_GetProcessorNum() {
 	GetSystemInfo(&SysInfo);
 
 	return SysInfo.dwNumberOfProcessors;
+}
+
+/*------------------------------Client Section-------------------------------------*/
+
+bool network::Client::_InitSock() {
+	m_CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, (ULONG_PTR)NULL, 0);
+	if (m_CompletionPort == NULL) {
+		return false;
+	}
+
+	unsigned int _WorkerThreadsNum = 1;
+
+	HANDLE* _WorkerThreads = new HANDLE[_WorkerThreadsNum];
+	memset(_WorkerThreads, 0, sizeof(HANDLE)*_WorkerThreadsNum);
+	DWORD ThreadId;
+	for (unsigned int i = 0; i < _WorkerThreadsNum; ++i) {
+		WORKER_PARAMS<Client> *_WorkerParams = new WORKER_PARAMS<Client>();
+		_WorkerParams->m_Instance = this;
+		_WorkerParams->m_ThreadNo = i;
+
+		_WorkerThreads[i] = CreateThread(NULL, 0, ServerWorkThread, _WorkerParams, 0, &ThreadId);
+		if (_WorkerThreads[i] == NULL) {
+			//TODO CloseHandle
+			return false;
+		}
+	}
+	return true;
+}
+
+
+bool network::Client::_InitSock() {
+	//WSADATA
+	WSADATA Wsadata;
+	WORD wVersionRequested = MAKEWORD(2, 2);
+	if (WSAStartup(wVersionRequested, &Wsadata) != 0) {
+		return false;
+	}
+	if (LOBYTE(Wsadata.wVersion) != 2 || HIBYTE(Wsadata.wVersion) != 2) {
+		return false;
+	}
+
+	//SOCKET
+	m_Socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (m_Socket == INVALID_SOCKET) {
+		return false;
+	}
+
+	SOCKADDR_IN _LocalAddr;
+	memset(&_LocalAddr, 0, sizeof(_LocalAddr));
+	_LocalAddr.sin_family = AF_INET;
+
+	//BIND
+	if (bind(m_Socket, (SOCKADDR*)&_LocalAddr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
+		return false;
+	}
+
+	if (CreateIoCompletionPort((HANDLE)m_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
+		//TODO
+		return false;
+	}
+
+	//pACCEPTEX pGETACCEPTEXSOCKADDRS
+	GUID GuidConnectEx = WSAID_CONNECTEX;
+	DWORD dwBytes = 0;
+	if (SOCKET_ERROR == WSAIoctl(
+		m_Socket,
+		SIO_GET_EXTENSION_FUNCTION_POINTER,
+		&GuidConnectEx,
+		sizeof(GuidConnectEx),
+		&m_ConnectEx,
+		sizeof(m_ConnectEx),
+		&dwBytes,
+		NULL,
+		NULL)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool network::Client::_PostConnect() {
+	SOCKADDR_IN _Addr;
+	memset(&_Addr, 0, sizeof(SOCKADDR_IN));
+	_Addr.sin_family = AF_INET;
+	_Addr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+	_Addr.sin_port = htons(80);
+
+	DWORD dwBytes;
+	if (m_ConnectEx(m_Socket,(SOCKADDR*)&_Addr,sizeof(SOCKADDR_IN),NULL,0,&dwBytes,(LPOVERLAPPED)NULL) == false) {
+		return false;
+	}
+
+	return true;
+}
+
+DWORD network::Client::ServerWorkThread(LPVOID _LpParam) {
+
 }

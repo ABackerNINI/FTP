@@ -17,9 +17,10 @@
 #define DEBUG 1
 #define DEBUG_TRACE 1
 
-#define MAX_BUFFER_LEN 100
-#define MAX_POST_ACCEPT 100
-#define WORKER_THREADS_PER_PROCESSOR 2
+#define DEFAULT_MAX_CONNECT 30
+#define DEFAULT_MAX_BUFFER_LEN 100
+#define DEFAULT_MAX_POST_ACCEPT 100
+#define DEFAULT_WORKER_THREADS_PER_PROCESSOR 2
 
 namespace network {
 
@@ -27,21 +28,19 @@ namespace network {
 
 	static CRITICAL_SECTION CRITICAL_PRINT;
 
-#define TRACE_PRINT _TRACE_PRINT
 	inline void SetColor(int ForgC) {
 		WORD wColor;
-		//We will need this handle to get the current background attribute
+
 		HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
 		CONSOLE_SCREEN_BUFFER_INFO csbi;
 
-		//We use csbi for the wAttributes word.
 		if (GetConsoleScreenBufferInfo(hStdOut, &csbi)) {
-			//Mask out all but the background attribute, and add in the forgournd color
 			wColor = (csbi.wAttributes & 0xF0) + (ForgC & 0x0F);
 			SetConsoleTextAttribute(hStdOut, wColor);
 		}
 	}
 
+#define TRACE_PRINT _TRACE_PRINT
 	template<class... T>
 	void _TRACE_PRINT(T&&... _Args) {
 		EnterCriticalSection(&CRITICAL_PRINT);
@@ -73,11 +72,11 @@ namespace network {
 		int _DEBUG_TRACE;
 #endif
 
-		PER_SOCKET_CONTEXT() {
+		PER_SOCKET_CONTEXT(int _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) {
 			m_ClientSocket = INVALID_SOCKET;
-			m_szBuffer = new char[MAX_BUFFER_LEN];
+			m_szBuffer = new char[_MaxBufferLen];
 			m_wsaBuf.buf = m_szBuffer;
-			m_wsaBuf.len = MAX_BUFFER_LEN - 1;//one for '\0'
+			m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'
 			m_OpType = UNDEFINED;
 
 			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
@@ -90,12 +89,14 @@ namespace network {
 		void RESET_BUFFER() {
 			m_szBuffer[0] = '\0';
 			m_BytesTransferred = 0;
-			//m_OpType = UNDEFINED;
 		}
 
 		~PER_SOCKET_CONTEXT() {
-			closesocket(m_ClientSocket);
-			delete[] m_szBuffer;
+			if (m_ClientSocket != INVALID_SOCKET)
+				closesocket(m_ClientSocket);
+
+			if (m_szBuffer)
+				delete[] m_szBuffer;
 
 #if(DEBUG&DEBUG_TRACE)
 			TRACE_PRINT("PSC Dispose Socket:%lld DEBUG_TRACE:%d\n", m_ClientSocket, _DEBUG_TRACE);
@@ -103,60 +104,75 @@ namespace network {
 		}
 	};
 
-	struct LISTEN_CONTEXT {
-
-	};
-
 	class Server;
+	class Client;
 
+	template<typename _Type>
 	struct WORKER_PARAMS {
-		Server *m_Server;
+		_Type *m_Instance;
 		unsigned int m_ThreadNo;
 	};
-	struct config_server {
-		int port;
-		int max_connect;
-	};
 
-	typedef void(*callback_server)(int ev, void *data);
+	typedef void(*ServerCallback)(int ev, void *data);
+
+	struct ServerConfig {
+		/* M:Mandatory
+		   O:Optional
+		 */
+		int M_Port;
+		int O_MaxConnect;
+		int O_MaxPostAccept;
+		int O_MaxBufferLen;
+		int O_WorkerThreadsPerProcessor;
+
+		ServerConfig(int _Port = -1) :
+			M_Port(_Port),
+			O_MaxConnect(DEFAULT_MAX_CONNECT),
+			O_MaxPostAccept(DEFAULT_MAX_POST_ACCEPT),
+			O_MaxBufferLen(DEFAULT_MAX_BUFFER_LEN),
+			O_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR) {
+		}
+	};
 
 	class Server {
 	public:
-		Server();
+		Server(const ServerConfig &_ServerConfig);
 
-		bool Start(config_server *cs, callback_server callback);
+		bool Start();
 
 		bool Stop();
 
 	protected:
-		bool _Start(int port, int max_connect);
+		bool _Start(int _Port, int _MaxConnect);
 
-		void _Stop(SOCKET sockid);
+		void _Stop(SOCKET _Sockid);
 
 		bool _InitSock(int _Port, unsigned int _Max_Connect);
 
 		bool _InitComplitionPort();
 
-		bool _PostAccept(PER_SOCKET_CONTEXT *_pSocketContext);
+		bool _PostAccept(PER_SOCKET_CONTEXT *_SocketContext);
 
-		bool _PostRecv(PER_SOCKET_CONTEXT *_pSocketContext);
+		bool _PostRecv(PER_SOCKET_CONTEXT *_SocketContext);
 
-		bool _DoAccept(PER_SOCKET_CONTEXT *_pSocketContext);
+		bool _DoAccept(PER_SOCKET_CONTEXT *_SocketContext);
 
-		bool _DoRecv(PER_SOCKET_CONTEXT* _pSocketContext);
+		bool _DoRecv(PER_SOCKET_CONTEXT* _SocketContext);
 
-		bool _DoSend(PER_SOCKET_CONTEXT* _pSocketContext);
+		bool _DoSend(PER_SOCKET_CONTEXT* _SocketContext);
 
-		bool _DoClose(PER_SOCKET_CONTEXT* _pSocketContext);
+		bool _DoClose(PER_SOCKET_CONTEXT* _SocketContext);
 
-		void _Commit(PER_SOCKET_CONTEXT* _pSocketContext);
+		void _Commit(PER_SOCKET_CONTEXT* _SocketContext);
 
-		unsigned int _GetProcessorNum();
+		static unsigned int _GetProcessorNum();
 
-		static DWORD WINAPI ServerWorkThread(LPVOID IpParam);
+		static DWORD WINAPI ServerWorkThread(LPVOID _LpParam);
 
-	private:
-		SOCKET m_Sockid;
+	protected:
+		ServerConfig m_ServerConfig;
+
+		SOCKET m_Socket;
 
 		HANDLE m_CompletionPort;
 
@@ -165,12 +181,47 @@ namespace network {
 		LPFN_GETACCEPTEXSOCKADDRS m_pGetAcceptExSockAddrs;
 	};
 
+	struct ClientConfig {
+		
+	};
+
 	class Client {
 	public:
+		Client(const ClientConfig &_ClientConfig);
+
+		bool Connect();
+
 		bool Send();
 
-	private:
+		bool Disconnect();
 
+	protected:
+		bool _InitSock();
+
+		bool _InitComplitionPort();
+
+		bool _PostConnect();
+
+		bool _PostSend();
+
+		bool _Disconnect();
+
+		bool _DoConnect();
+
+		bool _DoSend();
+
+		bool _DoRecv();
+
+		static DWORD WINAPI ServerWorkThread(LPVOID _LpParam);
+
+	protected:
+		SOCKET m_Socket;
+
+		HANDLE m_CompletionPort;
+
+		LPFN_CONNECTEX m_ConnectEx;
+
+		ClientConfig m_ClientConfig;
 	};
 }
 #endif //NINI_FTP_NETWORK_H
