@@ -42,12 +42,12 @@ namespace network {
 
 #define TRACE_PRINT _TRACE_PRINT
 	template<class... T>
-	void _TRACE_PRINT(T&&... _Args) {
+	inline void _TRACE_PRINT(T&&... _Args) {
 		EnterCriticalSection(&CRITICAL_PRINT);
 
-		//SetColor(14);
+		SetColor(14);
 		printf(std::forward<T>(_Args)...);
-		//SetColor(15);
+		SetColor(15);
 		fflush(stdout);
 
 		LeaveCriticalSection(&CRITICAL_PRINT);
@@ -65,7 +65,78 @@ namespace network {
 		unsigned int m_ThreadNo;
 	};
 
-	typedef void(*ServerCallback)(SOCKET _Socket,int _Ev, void *_Data);
+	enum SVR_OP {
+		SVROP_ACCEPTED,
+		SVROP_RECVING,
+		SVROP_SENDING,
+		SVROP_CLOSED,
+		SVROP_UNDEFINED
+	};
+
+	struct SVR_SOCKET_CONTEXT {
+		OVERLAPPED		m_Overlapped;
+		SOCKET			m_ClientSocket;
+		//SOCKADDR_IN		m_ClientAddr;
+		WSABUF			m_wsaBuf;
+		char*			m_szBuffer;
+		unsigned int	m_BytesTransferred;
+		SVR_OP			m_OpType;
+		void*			m_Extra;
+
+#if(DEBUG&DEBUG_TRACE)
+		unsigned int _DEBUG_TRACE;
+#endif
+
+		SVR_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, unsigned int _BufferLen) :
+			m_ClientSocket(_Socket),
+			m_OpType(SVR_OP::SVROP_UNDEFINED),
+			m_Extra(NULL){
+			m_szBuffer = new char[_BufferLen + 1];
+			memcpy(m_szBuffer, _Buffer, sizeof(char)*(_BufferLen + 1));
+			m_wsaBuf.buf = m_szBuffer;
+			m_wsaBuf.len = _BufferLen;//one for '\0'
+
+			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+
+#if(DEBUG&DEBUG_TRACE)
+			_DEBUG_TRACE = network::_DEBUG_TRACE++;
+#endif
+		}
+
+		SVR_SOCKET_CONTEXT(int _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) :
+			m_ClientSocket(INVALID_SOCKET),
+			m_OpType(SVR_OP::SVROP_UNDEFINED) {
+			m_szBuffer = new char[_MaxBufferLen];//TODO user-defined(upper layer) buffer len
+			m_wsaBuf.buf = m_szBuffer;
+			m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'
+
+			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+
+#if(DEBUG&DEBUG_TRACE)
+			_DEBUG_TRACE = network::_DEBUG_TRACE++;
+#endif
+		}
+
+		void RESET_BUFFER() {
+			m_szBuffer[0] = '\0';
+			m_BytesTransferred = 0;
+		}
+
+		~SVR_SOCKET_CONTEXT() {
+			//if (m_ClientSocket != INVALID_SOCKET)
+			//	closesocket(m_ClientSocket);
+
+			if (m_szBuffer)
+				delete[] m_szBuffer;
+
+#if(DEBUG&DEBUG_TRACE)
+			TRACE_PRINT("PSC Dispose DEBUG_TRACE:%u Socket:%lld OP:%d\n", _DEBUG_TRACE, m_ClientSocket, m_OpType);
+#endif
+		}
+	};
+
+	typedef void(*ServerCallback)(SVR_SOCKET_CONTEXT *_SocketContext, int _Ev, void *_Data);
+	typedef void(*CommitHandler)(SVR_SOCKET_CONTEXT *_SocketContext, ServerCallback _ServerCallback);
 
 	struct ServerConfig {
 		/* M:Mandatory
@@ -77,97 +148,40 @@ namespace network {
 		int O_MaxBufferLen;
 		int O_WorkerThreadsPerProcessor;
 		ServerCallback M_ServerCallback;
+		CommitHandler O_CommitHandler;
 
-		ServerConfig(int _Port = -1, ServerCallback _ServerCallback = NULL) :
+		ServerConfig(int _Port = -1, ServerCallback _ServerCallback = NULL, CommitHandler _CommitHandler = NULL) :
 			M_Port(_Port),
 			O_MaxConnect(DEFAULT_MAX_CONNECT),
 			O_MaxPostAccept(DEFAULT_MAX_POST_ACCEPT),
 			O_MaxBufferLen(DEFAULT_MAX_BUFFER_LEN),
 			O_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
-			M_ServerCallback(_ServerCallback) {
+			M_ServerCallback(_ServerCallback),
+			O_CommitHandler(_CommitHandler) {
 		}
 	};
 
-	enum ServerEv {
-		ACCEPTED,
-		RECVD,
-		SENT,
-		CLOSED
+	enum SVR_EV {
+		SVREV_ACCEPTED,
+		SVREV_RECVD,
+		SVREV_SENT,
+		SVREV_CLOSED,
+		SVREV_COMMIT
 	};
 
 	class Server {
 	public:
-		enum OPERATION_TYPE {
-			ACCEPTED, RECVING, SENDING, CLOSED, UNDEFINED
-		};
+		Server();
 
-		struct PER_SOCKET_CONTEXT {
-			OVERLAPPED		m_Overlapped;
-			SOCKET			m_ClientSocket;
-			//SOCKADDR_IN		m_ClientAddr;
-			WSABUF			m_wsaBuf;
-			char*			m_szBuffer;
-			unsigned int	m_BytesTransferred;
-			OPERATION_TYPE  m_OpType;
-
-#if(DEBUG&DEBUG_TRACE)
-			unsigned int _DEBUG_TRACE;
-#endif
-
-			PER_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, unsigned int _BufferLen) {
-				m_ClientSocket = _Socket;
-				m_szBuffer = new char[_BufferLen + 1];
-				memcpy(m_szBuffer, _Buffer, sizeof(char)*(_BufferLen + 1));
-				m_wsaBuf.buf = m_szBuffer;
-				m_wsaBuf.len = _BufferLen;//one for '\0'
-
-				m_OpType = UNDEFINED;
-				memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
-
-#if(DEBUG&DEBUG_TRACE)
-				_DEBUG_TRACE = network::_DEBUG_TRACE++;
-#endif
-			}
-
-			PER_SOCKET_CONTEXT(int _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) {
-				m_ClientSocket = INVALID_SOCKET;
-				m_szBuffer = new char[_MaxBufferLen];
-				m_wsaBuf.buf = m_szBuffer;
-				m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'
-				m_OpType = UNDEFINED;
-
-				memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
-
-#if(DEBUG&DEBUG_TRACE)
-				_DEBUG_TRACE = network::_DEBUG_TRACE++;
-#endif
-			}
-
-			void RESET_BUFFER() {
-				m_szBuffer[0] = '\0';
-				m_BytesTransferred = 0;
-			}
-
-			~PER_SOCKET_CONTEXT() {
-				if (m_ClientSocket != INVALID_SOCKET)
-					closesocket(m_ClientSocket);
-
-				if (m_szBuffer)
-					delete[] m_szBuffer;
-
-#if(DEBUG&DEBUG_TRACE)
-				TRACE_PRINT("PSC Dispose DEBUG_TRACE:%u Socket:%lld OP:%d\n", _DEBUG_TRACE, m_ClientSocket, m_OpType);
-#endif
-			}
-		};
-	public:
 		Server(const ServerConfig &_ServerConfig);
+
+		void SetConfig(const ServerConfig &_ServerConfig);
 
 		bool Start();
 
-		bool Send(SOCKET _Socket,const char *_SendBuffer,unsigned int _BufferLen);
+		static bool Send(SOCKET _Socket, const char *_SendBuffer, unsigned int _BufferLen);
 
-		bool Close(SOCKET _Socket);
+		static bool Close(SOCKET _Socket);
 
 		bool Stop();
 
@@ -180,21 +194,21 @@ namespace network {
 
 		bool _InitComplitionPort();
 
-		bool _PostAccept(PER_SOCKET_CONTEXT *_SocketContext);
+		bool _PostAccept(SVR_SOCKET_CONTEXT *_SocketContext);
 
-		bool _PostRecv(PER_SOCKET_CONTEXT *_SocketContext);
+		bool _PostRecv(SVR_SOCKET_CONTEXT *_SocketContext);
 
-		bool _PostSend(PER_SOCKET_CONTEXT *_SocketContext);
+		bool _PostSend(SVR_SOCKET_CONTEXT *_SocketContext);
 
-		bool _DoAccept(PER_SOCKET_CONTEXT *_SocketContext);
+		bool _DoAccept(SVR_SOCKET_CONTEXT *_SocketContext);
 
-		bool _DoRecv(PER_SOCKET_CONTEXT* _SocketContext);
+		bool _DoRecv(SVR_SOCKET_CONTEXT* _SocketContext);
 
-		bool _DoSend(PER_SOCKET_CONTEXT* _SocketContext);
+		bool _DoSend(SVR_SOCKET_CONTEXT* _SocketContext);
 
 		//bool _DoClose(PER_SOCKET_CONTEXT* _SocketContext);
 
-		void _Commit(PER_SOCKET_CONTEXT* _SocketContext);
+		void _Commit(SVR_SOCKET_CONTEXT* _SocketContext);
 
 		void _Call(SOCKET _Socket, int _Ev, void *_Data);
 
@@ -203,6 +217,8 @@ namespace network {
 		static DWORD WINAPI ServerWorkThread(LPVOID _LpParam);
 
 	protected:
+		//TODO Event Register
+
 		ServerConfig m_ServerConfig;
 
 		SOCKET m_Socket;
@@ -218,51 +234,54 @@ namespace network {
 
 	};
 
+	enum CLT_OP {
+		CLTOP_CONNECTED,
+		CLTOP_SENDING,
+		CLTOP_RECVING,
+		CLTOP_CLOSED,
+		CLTOP_UNDEFINED
+	};
+
+	struct CLT_SOCKET_CONTEXT {
+		OVERLAPPED		m_Overlapped;
+		WSABUF			m_wsaBuf;
+		char*			m_szBuffer;
+		unsigned int	m_BytesTransferred;
+		CLT_OP  m_OpType;
+
+#if(DEBUG&DEBUG_TRACE)
+		int _DEBUG_TRACE;
+#endif
+
+		CLT_SOCKET_CONTEXT(int _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) {
+			m_szBuffer = new char[_MaxBufferLen];
+			m_wsaBuf.buf = m_szBuffer;
+			m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'
+			m_OpType = CLT_OP::CLTOP_UNDEFINED;
+
+			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+
+#if(DEBUG&DEBUG_TRACE)
+			_DEBUG_TRACE = network::_DEBUG_TRACE++;
+#endif
+		}
+
+		void RESET_BUFFER() {
+			m_szBuffer[0] = '\0';
+			m_BytesTransferred = 0;
+		}
+
+		~CLT_SOCKET_CONTEXT() {
+			if (m_szBuffer)
+				delete[] m_szBuffer;
+
+#if(DEBUG&DEBUG_TRACE)
+			TRACE_PRINT("PSC Dispose DEBUG_TRACE:%d\n", _DEBUG_TRACE);
+#endif
+		}
+	};
+
 	class Client {
-	public:
-		enum OPERATION_TYPE {
-			CONNECTED, SENDING, RECVING, CLOSED, UNDEFINED
-		};
-
-		struct PER_SOCKET_CONTEXT {
-			OVERLAPPED		m_Overlapped;
-			WSABUF			m_wsaBuf;
-			char*			m_szBuffer;
-			unsigned int	m_BytesTransferred;
-			OPERATION_TYPE  m_OpType;
-
-#if(DEBUG&DEBUG_TRACE)
-			int _DEBUG_TRACE;
-#endif
-
-			PER_SOCKET_CONTEXT(int _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) {
-				m_szBuffer = new char[_MaxBufferLen];
-				m_wsaBuf.buf = m_szBuffer;
-				m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'
-				m_OpType = UNDEFINED;
-
-				memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
-
-#if(DEBUG&DEBUG_TRACE)
-				_DEBUG_TRACE = network::_DEBUG_TRACE++;
-#endif
-			}
-
-			void RESET_BUFFER() {
-				m_szBuffer[0] = '\0';
-				m_BytesTransferred = 0;
-			}
-
-			~PER_SOCKET_CONTEXT() {
-				if (m_szBuffer)
-					delete[] m_szBuffer;
-
-#if(DEBUG&DEBUG_TRACE)
-				TRACE_PRINT("PSC Dispose DEBUG_TRACE:%d\n", _DEBUG_TRACE);
-#endif
-			}
-		};
-
 	public:
 		Client();
 
