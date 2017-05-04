@@ -88,7 +88,7 @@ namespace network {
 		}
 	};
 
-	enum ServerEv {
+	enum ServerEvent {
 		ACCEPTED,
 		RECVD,
 		SENT,
@@ -121,7 +121,7 @@ namespace network {
 				m_wsaBuf.buf = m_szBuffer;
 				m_wsaBuf.len = _BufferLen;//one for '\0'
 
-				m_OpType = UNDEFINED;
+				m_OpType = OPERATION_TYPE::UNDEFINED;
 				memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
 
 #if(DEBUG&DEBUG_TRACE)
@@ -134,7 +134,7 @@ namespace network {
 				m_szBuffer = new char[_MaxBufferLen];
 				m_wsaBuf.buf = m_szBuffer;
 				m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'
-				m_OpType = UNDEFINED;
+				m_OpType = OPERATION_TYPE::UNDEFINED;
 
 				memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
 
@@ -214,6 +214,10 @@ namespace network {
 		LPFN_GETACCEPTEXSOCKADDRS m_pGetAcceptExSockAddrs;
 	};
 
+	enum ClientEvent {
+
+	};
+
 	struct ClientConfig {
 
 	};
@@ -239,7 +243,7 @@ namespace network {
 				m_szBuffer = new char[_MaxBufferLen];
 				m_wsaBuf.buf = m_szBuffer;
 				m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'
-				m_OpType = UNDEFINED;
+				m_OpType = OPERATION_TYPE::UNDEFINED;
 
 				memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
 

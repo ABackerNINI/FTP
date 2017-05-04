@@ -215,7 +215,7 @@ bool network::Server::_DoAccept(PER_SOCKET_CONTEXT *_SocketContext) {
 	TRACE_PRINT("DoAccept DEBUG_TRACE %u Socket:%d\n", _SocketContext->_DEBUG_TRACE, _SocketContext->m_ClientSocket);
 #endif
 
-	_Call(_SocketContext->m_ClientSocket, ServerEv::ACCEPTED, (void *)_SocketContext);
+	_Call(_SocketContext->m_ClientSocket, ServerEvent::ACCEPTED, (void *)_SocketContext);
 
 	_Commit(_SocketContext);
 
@@ -253,7 +253,7 @@ bool network::Server::_DoRecv(PER_SOCKET_CONTEXT *_SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
 	TRACE_PRINT("DoRecv DEBUG_TRACE %u\n", _SocketContext->_DEBUG_TRACE);
 #endif
-	_Call(_SocketContext->m_ClientSocket, ServerEv::RECVD, (void *)_SocketContext);
+	_Call(_SocketContext->m_ClientSocket, ServerEvent::RECVD, (void *)_SocketContext);
 
 	_Commit(_SocketContext);
 
@@ -266,7 +266,7 @@ bool network::Server::_DoSend(PER_SOCKET_CONTEXT *_SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
 	TRACE_PRINT("DoSend DEBUG_TRACE %u\n", _SocketContext->_DEBUG_TRACE);
 #endif
-	_Call(_SocketContext->m_ClientSocket, ServerEv::SENT, (void *)_SocketContext);
+	_Call(_SocketContext->m_ClientSocket, ServerEvent::SENT, (void *)_SocketContext);
 
 	delete _SocketContext;
 
