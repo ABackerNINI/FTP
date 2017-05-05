@@ -143,12 +143,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Resource\Utility\Network\Network.cpp" />
-    <ClCompile Include="FtpServerHandler.cpp" />
+    <ClCompile Include="FtpServer.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Resource\Utility\Network\Network.h" />
-    <ClInclude Include="FtpServerHandler.h" />
+    <ClInclude Include="FtpServer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

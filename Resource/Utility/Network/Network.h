@@ -123,9 +123,6 @@ namespace network {
 		}
 
 		~SVR_SOCKET_CONTEXT() {
-			//if (m_ClientSocket != INVALID_SOCKET)
-			//	closesocket(m_ClientSocket);
-
 			if (m_szBuffer)
 				delete[] m_szBuffer;
 
@@ -134,9 +131,6 @@ namespace network {
 #endif
 		}
 	};
-
-	typedef void(*ServerCallback)(SVR_SOCKET_CONTEXT *_SocketContext, int _Ev, void *_Data);
-	typedef void(*CommitHandler)(SVR_SOCKET_CONTEXT *_SocketContext, ServerCallback _ServerCallback);
 
 	struct ServerConfig {
 		/* M:Mandatory
@@ -147,17 +141,13 @@ namespace network {
 		int O_MaxPostAccept;
 		int O_MaxBufferLen;
 		int O_WorkerThreadsPerProcessor;
-		ServerCallback M_ServerCallback;
-		CommitHandler O_CommitHandler;
 
-		ServerConfig(int _Port = -1, ServerCallback _ServerCallback = NULL, CommitHandler _CommitHandler = NULL) :
+		ServerConfig(int _Port = -1) :
 			M_Port(_Port),
 			O_MaxConnect(DEFAULT_MAX_CONNECT),
 			O_MaxPostAccept(DEFAULT_MAX_POST_ACCEPT),
 			O_MaxBufferLen(DEFAULT_MAX_BUFFER_LEN),
-			O_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
-			M_ServerCallback(_ServerCallback),
-			O_CommitHandler(_CommitHandler) {
+			O_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR) {
 		}
 	};
 
@@ -166,7 +156,7 @@ namespace network {
 		SVREV_RECVD,
 		SVREV_SENT,
 		SVREV_CLOSED,
-		SVREV_COMMIT
+		SVREV_TIMEOUT
 	};
 
 	class Server {
@@ -179,11 +169,21 @@ namespace network {
 
 		bool Start();
 
-		static bool Send(SOCKET _Socket, const char *_SendBuffer, unsigned int _BufferLen);
+		bool Send(SOCKET _Socket, const char *_SendBuffer, unsigned int _BufferLen);
 
-		static bool Close(SOCKET _Socket);
+		bool Close(SOCKET _Socket);
 
 		bool Stop();
+
+		virtual void OnAccepted(SVR_SOCKET_CONTEXT *_SocketContext);
+
+		virtual void OnRecvd(SVR_SOCKET_CONTEXT *_SocketContext);
+
+		virtual void OnSent(SVR_SOCKET_CONTEXT *_SocketContext);
+
+		virtual void OnClosed(SVR_SOCKET_CONTEXT *_SocketContext);
+
+		//virtual void OnCommit(SVR_SOCKET_CONTEXT *_SocketContext);
 
 	protected:
 		bool _Start(int _Port, int _MaxConnect);
@@ -200,15 +200,11 @@ namespace network {
 
 		bool _PostSend(SVR_SOCKET_CONTEXT *_SocketContext);
 
-		bool _DoAccept(SVR_SOCKET_CONTEXT *_SocketContext);
+		bool _DoAccepted(SVR_SOCKET_CONTEXT *_SocketContext);
 
-		bool _DoRecv(SVR_SOCKET_CONTEXT* _SocketContext);
+		bool _DoRecvd(SVR_SOCKET_CONTEXT* _SocketContext);
 
-		bool _DoSend(SVR_SOCKET_CONTEXT* _SocketContext);
-
-		void _Commit(SVR_SOCKET_CONTEXT* _SocketContext);
-
-		void _Call(SVR_SOCKET_CONTEXT *_SocketContext, int _Ev, void *_Data);
+		bool _DoSent(SVR_SOCKET_CONTEXT* _SocketContext);
 
 		static unsigned int _GetProcessorNum();
 
@@ -242,6 +238,14 @@ namespace network {
 		CLTOP_RECVING,
 		CLTOP_CLOSED,
 		CLTOP_UNDEFINED
+	};
+
+	enum CLT_EV {
+		CLTEV_CONNECTED,
+		CLTEV_SENT,
+		CLTEV_RECVD,
+		CLTEV_CLOSED,
+		CLTEV_TIMEOUT
 	};
 
 	struct CLT_SOCKET_CONTEXT {
@@ -293,9 +297,17 @@ namespace network {
 
 		bool Connect();
 
-		bool Send();
+		bool Send(const char *_SendBuffer, unsigned int _BufferLen);
 
-		bool Disconnect();
+		bool Close();
+
+		virtual void OnConnected(CLT_SOCKET_CONTEXT *_SocketContext);
+
+		virtual void OnSent(CLT_SOCKET_CONTEXT *_SocketContext);
+
+		virtual void OnRecvd(CLT_SOCKET_CONTEXT *_SocketContext);
+
+		virtual void OnClosed(CLT_SOCKET_CONTEXT *_SocketContext);
 
 		~Client();
 
@@ -306,15 +318,15 @@ namespace network {
 
 		bool _PostConnect();
 
-		bool _PostSend();
+		bool _PostSend(CLT_SOCKET_CONTEXT *_SocketContext);
 
-		bool _Disconnect();
+		bool _PostRecv(CLT_SOCKET_CONTEXT *_SocketContext);
 
-		bool _DoConnect();
+		bool _DoConnected(CLT_SOCKET_CONTEXT *_SocketContext);
 
-		bool _DoSend();
+		bool _DoSent(CLT_SOCKET_CONTEXT *_SocketContext);
 
-		bool _DoRecv();
+		bool _DoRecvd(CLT_SOCKET_CONTEXT *_SocketContext);
 
 		static DWORD WINAPI ServerWorkThread(LPVOID _LpParam);
 
