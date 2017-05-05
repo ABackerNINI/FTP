@@ -24,9 +24,15 @@
     <ClCompile Include="..\Resource\Utility\Network\Network.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="FtpServerHandler.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Resource\Utility\Network\Network.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FtpServerHandler.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
