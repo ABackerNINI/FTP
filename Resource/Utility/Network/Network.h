@@ -66,10 +66,10 @@ namespace network {
 	};
 
 	enum SVR_OP {
-		SVROP_ACCEPTED,
+		SVROP_ACCEPTING,
 		SVROP_RECVING,
 		SVROP_SENDING,
-		SVROP_CLOSED,
+		SVROP_CLOSING,
 		SVROP_UNDEFINED
 	};
 
@@ -224,19 +224,15 @@ namespace network {
 		LPFN_GETACCEPTEXSOCKADDRS m_pGetAcceptExSockAddrs;
 	};
 
-	enum ClientEvent {
-
-	};
-
 	struct ClientConfig {
 
 	};
 
 	enum CLT_OP {
-		CLTOP_CONNECTED,
+		CLTOP_CONNECTING,
 		CLTOP_SENDING,
 		CLTOP_RECVING,
-		CLTOP_CLOSED,
+		CLTOP_CLOSING,
 		CLTOP_UNDEFINED
 	};
 
@@ -264,6 +260,20 @@ namespace network {
 			m_wsaBuf.buf = m_szBuffer;
 			m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'
 			m_OpType = CLT_OP::CLTOP_UNDEFINED;
+
+			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+
+#if(DEBUG&DEBUG_TRACE)
+			_DEBUG_TRACE = network::_DEBUG_TRACE++;
+#endif
+		}
+
+		CLT_SOCKET_CONTEXT(const char *_Buffer, unsigned int _BufferLen) :
+			m_OpType(CLT_OP::CLTOP_UNDEFINED) {
+			m_szBuffer = new char[_BufferLen + 1];
+			memcpy(m_szBuffer, _Buffer, sizeof(char)*(_BufferLen + 1));
+			m_wsaBuf.buf = m_szBuffer;
+			m_wsaBuf.len = _BufferLen;//one for '\0'
 
 			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
 
@@ -328,7 +338,7 @@ namespace network {
 
 		bool _DoRecvd(CLT_SOCKET_CONTEXT *_SocketContext);
 
-		static DWORD WINAPI ServerWorkThread(LPVOID _LpParam);
+		static DWORD WINAPI ClientWorkThread(LPVOID _LpParam);
 
 	protected:
 		SOCKET m_Socket;

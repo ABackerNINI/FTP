@@ -28,6 +28,18 @@ int main() {
 	_Client.SetConfig(_ClientConfig);
 	_Client.Connect();
 
+	char _Cmd[100];
+	while (true) {
+		scanf("%s", _Cmd);
+
+		if (strcmp(_Cmd, "quit") == 0) {
+			_Client.Close();
+			break;
+		}
+
+		_Client.Send(_Cmd, strlen(_Cmd));
+	}
+
 	_getch();
 
 	return 0;
