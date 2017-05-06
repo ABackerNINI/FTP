@@ -15,18 +15,26 @@
 #pragma comment(lib, "Kernel32.lib")
 
 #define DEBUG 1
-#define DEBUG_TRACE 1
+#define DEBUG_TRACE 0
+#define DEBUG_LOG 1
 
 #define DEFAULT_MAX_CONNECT 30
 #define DEFAULT_MAX_BUFFER_LEN 100
-#define DEFAULT_MAX_POST_ACCEPT 1
+#define DEFAULT_MAX_POST_ACCEPT 10
 #define DEFAULT_WORKER_THREADS_PER_PROCESSOR 2
 
 namespace network {
 
-#if(DEBUG&DEBUG_TRACE)
-
-	static CRITICAL_SECTION CRITICAL_PRINT;
+#if(DEBUG&(DEBUG_TRACE|DEBUG_LOG))
+	enum CONSOLE_COLOR {
+		BLACK = 0,
+		BLUE = 9,
+		GREEN = 10,
+		RED = 12,
+		PINK = 13,
+		YELLOW = 14,
+		WHITE = 15
+	};
 
 	inline void SetColor(int ForgC) {
 		WORD wColor;
@@ -39,25 +47,48 @@ namespace network {
 			SetConsoleTextAttribute(hStdOut, wColor);
 		}
 	}
+#endif
+
+#if(DEBUG&DEBUG_TRACE)
+
+	//static CRITICAL_SECTION CRITICAL_PRINT;
+
+
 
 #define TRACE_PRINT _TRACE_PRINT
 	template<class... T>
 	inline void _TRACE_PRINT(T&&... _Args) {
-		EnterCriticalSection(&CRITICAL_PRINT);
+		//EnterCriticalSection(&CRITICAL_PRINT);
 
-		SetColor(14);
+		SetColor(GREEN);
 		printf(std::forward<T>(_Args)...);
-		SetColor(15);
+		SetColor(WHITE);
 		fflush(stdout);
 
-		LeaveCriticalSection(&CRITICAL_PRINT);
+		//LeaveCriticalSection(&CRITICAL_PRINT);
 	}
 
 	static unsigned int _DEBUG_TRACE = 0;
 #endif
 
+#if(DEBUG&DEBUG_LOG)
+#define LOG _LOG
+
+	template<class... T>
+	inline void _LOG(CONSOLE_COLOR _Color, T&&... _Args) {
+		SetColor(_Color);
+		printf(std::forward<T>(_Args)...);
+		SetColor(WHITE);
+		fflush(stdout);
+	}
+#endif
 	class Server;
 	class Client;
+
+	template<typename dst_type, typename src_type>
+	dst_type pointer_cast(src_type src) {
+		return *static_cast<dst_type*>(static_cast<void*>(&src));
+	}
 
 	template<typename _Type>
 	struct WORKER_PARAMS {
@@ -90,7 +121,7 @@ namespace network {
 		SVR_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, unsigned int _BufferLen) :
 			m_ClientSocket(_Socket),
 			m_OpType(SVR_OP::SVROP_UNDEFINED),
-			m_Extra(NULL){
+			m_Extra(NULL) {
 			m_szBuffer = new char[_BufferLen + 1];
 			memcpy(m_szBuffer, _Buffer, sizeof(char)*(_BufferLen + 1));
 			m_wsaBuf.buf = m_szBuffer;
@@ -225,7 +256,16 @@ namespace network {
 	};
 
 	struct ClientConfig {
+		const char *O_Address;
+		struct IP_PORT {
+			const char *M_Ip;
+			int M_Port;
+		}O_IpPort;
 
+		ClientConfig() :
+			O_Address(NULL),
+			O_IpPort({ NULL,-1 }) {
+		}
 	};
 
 	enum CLT_OP {
@@ -326,7 +366,7 @@ namespace network {
 
 		bool _InitCompletionPort();
 
-		bool _PostConnect();
+		bool _PostConnect(unsigned long _Ip, int _Port);
 
 		bool _PostSend(CLT_SOCKET_CONTEXT *_SocketContext);
 
