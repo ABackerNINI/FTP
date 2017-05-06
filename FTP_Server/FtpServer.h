@@ -19,7 +19,7 @@ public:
 
 	void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
 protected:
-
+	
 };
 
 #endif //NINI_FTP_FTP_SERVER_HANDLER_H

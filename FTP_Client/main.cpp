@@ -25,16 +25,19 @@ BOOL CALLBACK ConsoleHandler(DWORD _Ev) {
 int main() {
 	SetConsoleCtrlHandler(ConsoleHandler, true);
 
+	_ClientConfig.O_IpPort.M_Ip = "192.168.1.102";//192.168.10.132
+	_ClientConfig.O_IpPort.M_Port = 80;
+
 	_Client.SetConfig(_ClientConfig);
 	_Client.Connect();
 
 	char _Cmd[10000+1];
-	/*for (int i = 0; i < 100; ++i) {
-		_Cmd[i] = 'a' + (i % 26);
-		_Client.Send(_Cmd, i);
-	}
+	//for (int i = 0; i < 10000; ++i) {
+	//	_Cmd[i] = 'a' + (i % 26);
+	//	_Client.Send(_Cmd, i);
+	//}
 
-	printf("over\n");*/
+	//printf("over\n");
 
 	while (true) {
 		scanf("%s", _Cmd);
@@ -44,7 +47,7 @@ int main() {
 			continue;
 		}
 
-		_Client.Send(_Cmd, strlen(_Cmd));
+		_Client.Send(_Cmd, (unsigned int)strlen(_Cmd));
 	}
 
 	_getch();
