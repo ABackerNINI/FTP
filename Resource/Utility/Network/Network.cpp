@@ -32,6 +32,10 @@ bool network::Server::Send(SOCKET _Socket, const char * _SendBuffer, unsigned in
 }
 
 bool network::Server::Close(SOCKET _Socket) {
+#if(DEBUG&DEBUG_TRACE)
+	TRACE_PRINT("Close Socket:%lld\n", _Socket);
+#endif
+
 	closesocket(_Socket);
 
 	return true;
@@ -48,7 +52,10 @@ void network::Server::OnAccepted(SVR_SOCKET_CONTEXT * _SocketContext) {
 	TRACE_PRINT("OnAccepted DEBUG_TRACE %u BytesTransferred:%u\n", _SocketContext->_DEBUG_TRACE, _SocketContext->m_BytesTransferred);
 #endif
 
-	printf("%s\n", _SocketContext->m_szBuffer);
+	if (_SocketContext->m_BytesTransferred) {
+		printf("%s\n", _SocketContext->m_szBuffer);
+		Send(_SocketContext->m_ClientSocket, _SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
+	}
 }
 
 void network::Server::OnRecvd(SVR_SOCKET_CONTEXT * _SocketContext) {
@@ -57,6 +64,10 @@ void network::Server::OnRecvd(SVR_SOCKET_CONTEXT * _SocketContext) {
 #endif
 
 	printf("%s\n", _SocketContext->m_szBuffer);
+
+	if (_SocketContext->m_BytesTransferred) {
+		Send(_SocketContext->m_ClientSocket, _SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
+	}
 }
 
 void network::Server::OnSent(SVR_SOCKET_CONTEXT * _SocketContext) {
@@ -237,6 +248,10 @@ bool network::Server::_PostSend(SVR_SOCKET_CONTEXT *_SocketContext) {
 	TRACE_PRINT("PostSend DEBUG_TRACE %u\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
+	if (_SocketContext->m_wsaBuf.len == 0) {
+		return true;
+	}
+
 	DWORD dwFlags = 0;
 	DWORD dwBytes = 0;
 
@@ -317,6 +332,11 @@ bool network::Server::_DoSent(SVR_SOCKET_CONTEXT *_SocketContext) {
 	return true;
 }
 
+template<typename dst_type, typename src_type>
+dst_type pointer_cast(src_type src) {
+	return *static_cast<dst_type*>(static_cast<void*>(&src));
+}
+
 DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 	WORKER_PARAMS<Server> *_WorkerParams = (WORKER_PARAMS<Server>*)_LpParam;
 
@@ -327,17 +347,38 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 	DWORD _BytesTransferred;
 	OVERLAPPED *_Overlapped;
 	SVR_SOCKET_CONTEXT *_SocketContext;
+	HANDLE _CompletionPort = _WorkerParams->m_Instance->m_CompletionPort;
+	Server *_Server = _WorkerParams->m_Instance;
+
+	typedef bool(*DoEvent)(Server*, SVR_SOCKET_CONTEXT*);
+
+	DoEvent _DoAccepted = pointer_cast<DoEvent>(&(Server::_DoAccepted));
+	DoEvent _DoRecvd = pointer_cast<DoEvent>(&(Server::_DoRecvd));
+	DoEvent _DoSent = pointer_cast<DoEvent>(&(Server::_DoSent));
+
+	BOOL _Ret;
 
 	while (true) {
 		_BytesTransferred = 0;
 
-		if (GetQueuedCompletionStatus(_WorkerParams->m_Instance->m_CompletionPort, &_BytesTransferred, (PULONG_PTR)&_SocketContext, (LPOVERLAPPED*)&_Overlapped, INFINITE) == false) {
+		_Ret = GetQueuedCompletionStatus(_CompletionPort, &_BytesTransferred, (PULONG_PTR)&_SocketContext, (LPOVERLAPPED*)&_Overlapped, INFINITE);
+
+		if (_Ret == false && _Overlapped == NULL) {
+
+#if(DEBUG&DEBUG_TRACE)
+			TRACE_PRINT("GetQueuedCompletionStatus Failed\n");
+#endif
 			continue;
 		}
 
 		_SocketContext = CONTAINING_RECORD(_Overlapped, SVR_SOCKET_CONTEXT, m_Overlapped);
 
-		if (_BytesTransferred == 0 && _SocketContext->m_OpType != SVR_OP::SVROP_ACCEPTING) {
+		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED) || (_BytesTransferred == 0 && _SocketContext->m_OpType != SVR_OP::SVROP_ACCEPTING)) {
+
+#if(DEBUG&DEBUG_TRACE)
+			TRACE_PRINT("Client Offline Socket:%lld\n", _SocketContext->m_ClientSocket);
+#endif
+
 			closesocket(_SocketContext->m_ClientSocket);
 
 			delete _SocketContext;
@@ -349,13 +390,13 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 
 		switch (_SocketContext->m_OpType) {
 		case SVR_OP::SVROP_ACCEPTING:
-			_WorkerParams->m_Instance->_DoAccepted(_SocketContext);
+			_DoAccepted(_Server, _SocketContext);
 			break;
 		case SVR_OP::SVROP_RECVING:
-			_WorkerParams->m_Instance->_DoRecvd(_SocketContext);
+			_DoRecvd(_Server, _SocketContext);
 			break;
 		case SVR_OP::SVROP_SENDING:
-			_WorkerParams->m_Instance->_DoSent(_SocketContext);
+			_DoSent(_Server, _SocketContext);
 			break;
 		default:
 			break;
@@ -412,6 +453,16 @@ bool network::Client::Send(const char * _SendBuffer, unsigned int _BufferLen) {
 }
 
 bool network::Client::Close() {
+#if(DEBUG&DEBUG_TRACE)
+	TRACE_PRINT("Close Socket:%lld\n", m_Socket);
+#endif
+
+	//shutdown(m_Socket, SD_BOTH);
+
+	LINGER _Linger = { 1,0 };
+	//_Linger.l_onoff = 0;
+	setsockopt(m_Socket, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
+
 	closesocket(m_Socket);
 
 	return true;
@@ -421,6 +472,10 @@ void network::Client::OnConnected(CLT_SOCKET_CONTEXT * _SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
 	TRACE_PRINT("OnConnected DEBUG_TRACE %u BytesTransferred:%u\n", _SocketContext->_DEBUG_TRACE, _SocketContext->m_BytesTransferred);
 #endif
+
+	if (_SocketContext->m_BytesTransferred) {
+		printf("%s\n", _SocketContext->m_szBuffer);
+	}
 }
 
 void network::Client::OnSent(CLT_SOCKET_CONTEXT * _SocketContext) {
@@ -433,6 +488,8 @@ void network::Client::OnRecvd(CLT_SOCKET_CONTEXT * _SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
 	TRACE_PRINT("OnRecvd DEBUG_TRACE %u BytesTransferred:%u\n", _SocketContext->_DEBUG_TRACE, _SocketContext->m_BytesTransferred);
 #endif
+
+	printf("%s\n", _SocketContext->m_szBuffer);
 }
 
 void network::Client::OnClosed(CLT_SOCKET_CONTEXT * _SocketContext) {
@@ -547,6 +604,10 @@ bool network::Client::_PostSend(CLT_SOCKET_CONTEXT * _SocketContext) {
 	TRACE_PRINT("PostSend DEBUG_TRACE %u\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
+	if (_SocketContext->m_wsaBuf.len == 0) {
+		return true;
+	}
+
 	DWORD dwBytes = 0;
 	DWORD dwFlags = 0;
 
@@ -585,6 +646,8 @@ bool network::Client::_DoConnected(CLT_SOCKET_CONTEXT * _SocketContext) {
 	TRACE_PRINT("DoConnected DEBUG_TRACE %u\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
+	_SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
+
 	OnConnected(_SocketContext);
 
 	_SocketContext->RESET_BUFFER();
@@ -611,6 +674,8 @@ bool network::Client::_DoRecvd(CLT_SOCKET_CONTEXT * _SocketContext) {
 	TRACE_PRINT("DoRecvd DEBUG_TRACE %u\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
+	_SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
+
 	OnRecvd(_SocketContext);
 
 	_PostRecv(_SocketContext);
@@ -628,20 +693,39 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
 	DWORD _BytesTransferred;
 	OVERLAPPED *_Overlapped;
 	CLT_SOCKET_CONTEXT *_SocketContext;
+	HANDLE _CompletionPort = _WorkerParams->m_Instance->m_CompletionPort;
+	Client *_Client = _WorkerParams->m_Instance;
+
+	typedef void(*DoEvent)(Client*, CLT_SOCKET_CONTEXT*);
+
+	DoEvent _DoConnected = pointer_cast<DoEvent>(&(Client::_DoConnected));
+	DoEvent _DoSent = pointer_cast<DoEvent>(&(Client::_DoSent));
+	DoEvent _DoRecvd = pointer_cast<DoEvent>(&(Client::_DoRecvd));
+
+	BOOL _Ret;
 
 	while (true) {
 		_BytesTransferred = 0;
 
-		if (GetQueuedCompletionStatus(_WorkerParams->m_Instance->m_CompletionPort, &_BytesTransferred, (PULONG_PTR)&_SocketContext, (LPOVERLAPPED*)&_Overlapped, INFINITE) == false) {
+		_Ret = GetQueuedCompletionStatus(_CompletionPort, &_BytesTransferred, (PULONG_PTR)&_SocketContext, (LPOVERLAPPED*)&_Overlapped, INFINITE);
+
+		if (_Ret == false && _Overlapped == NULL) {
+#if(DEBUG&DEBUG_TRACE)
+			TRACE_PRINT("GetQueuedCompletionStatus Failed\n");
+#endif
 			continue;
 		}
 
 		_SocketContext = CONTAINING_RECORD(_Overlapped, CLT_SOCKET_CONTEXT, m_Overlapped);
 
-		if (_BytesTransferred == 0 && _SocketContext->m_OpType != CLT_OP::CLTOP_CONNECTING) {
+		if ((_Ret==false&&GetLastError()==ERROR_NETNAME_DELETED)||(_BytesTransferred == 0 && _SocketContext->m_OpType != CLT_OP::CLTOP_CONNECTING)) {
+#if(DEBUG&DEBUG_TRACE)
+			TRACE_PRINT("Server Offline Socket:%lld\n", _WorkerParams->m_Instance->m_Socket);
+#endif
 			closesocket(_WorkerParams->m_Instance->m_Socket);
 
 			delete _SocketContext;
+
 			continue;
 		}
 
@@ -649,13 +733,13 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
 
 		switch (_SocketContext->m_OpType) {
 		case CLT_OP::CLTOP_CONNECTING:
-			_WorkerParams->m_Instance->_DoConnected(_SocketContext);
+			_DoConnected(_Client, _SocketContext);
 			break;
 		case CLT_OP::CLTOP_SENDING:
-			_WorkerParams->m_Instance->_DoSent(_SocketContext);
+			_DoSent(_Client, _SocketContext);
 			break;
 		case CLT_OP::CLTOP_RECVING:
-			_WorkerParams->m_Instance->_DoRecvd(_SocketContext);
+			_DoRecvd(_Client, _SocketContext);
 			break;
 		default:
 			break;
