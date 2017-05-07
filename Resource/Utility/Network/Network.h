@@ -53,8 +53,6 @@ namespace network {
 
 	//static CRITICAL_SECTION CRITICAL_PRINT;
 
-
-
 #define TRACE_PRINT _TRACE_PRINT
 	template<class... T>
 	inline void _TRACE_PRINT(T&&... _Args) {

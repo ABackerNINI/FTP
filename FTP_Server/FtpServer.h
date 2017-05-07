@@ -5,8 +5,26 @@
 
 #include "../Resource/Utility/Network/Network.h"
 
-struct Client {
+#define DEFAULT_BUFFER_LEN 1024
 
+struct Client {
+	char *m_Buffer;
+	int m_PosFront, m_PosEnd, m_BufferLen;
+
+	Client() :
+		m_Buffer(new char[DEFAULT_BUFFER_LEN]),
+		m_PosFront(0),
+		m_PosEnd(DEFAULT_BUFFER_LEN),
+		m_BufferLen(DEFAULT_BUFFER_LEN){
+	}
+
+	void Push(const char *_Buffer,unsigned int _Count) {
+		
+	}
+
+	char *Pop() {
+	
+	}
 };
 
 class FtpServer :network::Server {

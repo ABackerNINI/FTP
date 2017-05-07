@@ -331,6 +331,7 @@ bool network::Server::_DoAccepted(SVR_SOCKET_CONTEXT *_SocketContext) {
 	SVR_SOCKET_CONTEXT *_NewSocketContex = new SVR_SOCKET_CONTEXT();
 	_NewSocketContex->m_OpType = SVR_OP::SVROP_RECVING;
 	_NewSocketContex->m_ClientSocket = _SocketContext->m_ClientSocket;
+	_NewSocketContex->m_Extra = _SocketContext->m_Extra;
 	SOCKADDR_IN *_ClientAddr, *_LocalAddr;//mark:need to delete?
 	int _ClientAddrLen = sizeof(SOCKADDR_IN), _LocalAddrLen = sizeof(SOCKADDR_IN);
 
