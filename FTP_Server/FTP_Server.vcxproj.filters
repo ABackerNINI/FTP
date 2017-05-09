@@ -27,12 +27,21 @@
     <ClCompile Include="FtpServer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\Resource\Common\Common.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Resource\Utility\Network\Network.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="FtpServer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Resource\Common\Common.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FtpCmd.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

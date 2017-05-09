@@ -142,12 +142,15 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Resource\Common\Common.cpp" />
     <ClCompile Include="..\Resource\Utility\Network\Network.cpp" />
     <ClCompile Include="FtpServer.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Resource\Common\Common.h" />
     <ClInclude Include="..\Resource\Utility\Network\Network.h" />
+    <ClInclude Include="FtpCmd.h" />
     <ClInclude Include="FtpServer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
