@@ -2,11 +2,11 @@
 #include <iostream>
 #include <conio.h>
 
-#include "../Resource/Utility/Network/Network.h"
+#include "FtpClient.h"
 
 network::ClientConfig _ClientConfig;
 
-network::Client _Client;
+FtpClient _Client;
 
 BOOL CALLBACK ConsoleHandler(DWORD _Ev) {
 	BOOL bRet = FALSE;
@@ -31,28 +31,26 @@ int main() {
 	_Client.SetConfig(_ClientConfig);
 	_Client.Connect();
 
-	char _Cmd[10000+1];
+	char _Cmd[1000+1];
 	int _Strlen;
-	//for (int i = 0; i < 10000; ++i) {
-	//	_Cmd[i] = 'a' + (i % 26);
-	//	_Client.Send(_Cmd, i);
-	//}
-
-	//printf("over\n");
-
 
 	while (true) {
-		fgets(_Cmd, 10000, stdin);
+		printf(">");
+		fgets(_Cmd, 1000, stdin);
 
-		if (strcmp(_Cmd, "quit") == 0) {
+		if (stricmp(_Cmd, "quit\n") == 0) {
 			_Client.Close();
 			continue;
+		} else if (stricmp(_Cmd, "reconn\n") == 0) {
+			_Client.Connect();
+			continue;
 		}
+
 		_Strlen = strlen(_Cmd);
 		if (_Strlen > 1) {
 			_Cmd[_Strlen - 1] = '\r';
 			_Cmd[_Strlen++] = '\n';
-			_Client.Send(_Cmd, _Strlen);
+			_Client.FtpSend(_Cmd, _Strlen);
 		}
 	}
 

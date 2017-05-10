@@ -27,13 +27,13 @@ namespace network {
 
 #if(DEBUG&(DEBUG_TRACE|DEBUG_LOG))
 	enum CONSOLE_COLOR {
-		BLACK = 0,
-		BLUE = 9,
-		GREEN = 10,
-		RED = 12,
-		PINK = 13,
-		YELLOW = 14,
-		WHITE = 15
+		CC_BLACK = 0,
+		CC_BLUE = 9,
+		CC_GREEN = 10,
+		CC_RED = 12,
+		CC_PINK = 13,
+		CC_YELLOW = 14,
+		CC_WHITE = 15
 	};
 
 	inline void SetColor(int ForgC) {
@@ -76,7 +76,7 @@ namespace network {
 	inline void _LOG(CONSOLE_COLOR _Color, T&&... _Args) {
 		SetColor(_Color);
 		printf(std::forward<T>(_Args)...);
-		SetColor(WHITE);
+		SetColor(CC_WHITE);
 		fflush(stdout);
 	}
 #endif
@@ -242,15 +242,15 @@ namespace network {
 	protected:
 		//TODO Event Register
 
-		ServerConfig m_ServerConfig;
+		ServerConfig				m_ServerConfig;
 
-		SOCKET m_Socket;
+		SOCKET						m_Socket;
 
-		HANDLE m_CompletionPort;
+		HANDLE						m_CompletionPort;
 
-		LPFN_ACCEPTEX m_pAcceptEx;
+		LPFN_ACCEPTEX				m_pAcceptEx;
 
-		LPFN_GETACCEPTEXSOCKADDRS m_pGetAcceptExSockAddrs;
+		LPFN_GETACCEPTEXSOCKADDRS	m_pGetAcceptExSockAddrs;
 	};
 
 	struct ClientConfig {
@@ -379,13 +379,13 @@ namespace network {
 		static DWORD WINAPI ClientWorkThread(LPVOID _LpParam);
 
 	protected:
-		SOCKET m_Socket;
+		SOCKET				m_Socket;
 
-		HANDLE m_CompletionPort;
+		HANDLE				m_CompletionPort;
 
-		LPFN_CONNECTEX m_ConnectEx;
+		LPFN_CONNECTEX		m_ConnectEx;
 
-		ClientConfig m_ClientConfig;
+		ClientConfig		m_ClientConfig;
 	};
 }
 #endif //NINI_FTP_NETWORK_H

@@ -1,13 +1,15 @@
 #include "FtpServer.h"
-#include "../Resource/Common/Common.h"
 #include "FtpCmd.h"
+#include <assert.h>
 
 void FtpServer::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 	ClientInf *_ClientInf = new ClientInf();
 
-	_ClientInf->Push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
+	if (_SocketContext->m_BytesTransferred > 0) {
+		_ClientInf->Push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
 
-	_Handle(_SocketContext->m_ClientSocket, _ClientInf);
+		_Handle(_SocketContext->m_ClientSocket, _ClientInf);
+	}
 
 	_SocketContext->m_Extra = _ClientInf;
 }
@@ -30,17 +32,61 @@ void FtpServer::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 bool FtpServer::_Handle(SOCKET _Socket, ClientInf * _ClientInf) {
 	char *_Str;
 	char *_Args;
-	int _CmdType;
-	bool _Cut;
+	int _Cmd;
 	while (_Str = _ClientInf->Pop(), _Str) {
 		printf("%s\n", _Str);
 		_Args = _Str;
-		_CmdType= _Dispatch(&_Args);
+		_Cmd = _Dispatch(&_Args);
 
-		switch (_CmdType) {
+		if (_Cmd == FTP_CMD_ERR) {
+			_FtpSend(_Socket, "501 Syntax error:Command not understood.\r\n");
+			continue;
+		}
+
+		if (FTP_CMDS_INF[_Cmd].m_NeedArgs&&_Args == NULL) {
+			_FtpSend(_Socket, "501 Syntax error:Invalid number of parameters.\r\n");
+			continue;
+		}
+
+		if ((_Cmd != FTP_CMD_USER&&_Cmd != FTP_CMD_PASS) && _ClientInf->m_Status == CLTSTA_CONNECTED) {
+			_FtpSend(_Socket, "530 Please login with USER and PASS.\r\n");
+			continue;
+		}
+
+		switch (_Cmd) {
 		case FTP_CMD_USER:
+			switch (_ClientInf->m_Status) {
+			case CLTSTA_CONNECTED:
+				_ClientInf->m_Status = CLTSTA_USRNAME_SPECIFIED;
+				_FtpSend(_Socket, "331 User name ok,need password.\r\n");
+				break;
+			case CLTSTA_USRNAME_SPECIFIED:
+				break;
+			case CLTSTA_PASSWORD_SPECIFIED:
+				break;
+			default:
+				assert(false);
+				break;
+			}
 			break;
 		case FTP_CMD_PASS:
+			switch (_ClientInf->m_Status) {
+			case CLTSTA_CONNECTED:
+				_FtpSend(_Socket, "503 Login with USER first.\r\n");
+				break;
+			case CLTSTA_USRNAME_SPECIFIED:
+				_ClientInf->m_Status = CLTSTA_PASSWORD_SPECIFIED;
+				_FtpSend(_Socket, "230 User sucessfully logged in.\r\n");
+				break;
+			case CLTSTA_PASSWORD_SPECIFIED:
+				break;
+			default:
+				assert(false);
+				break;
+			}
+			break;
+		default:
+			assert(false);
 			break;
 		}
 	}
@@ -48,21 +94,27 @@ bool FtpServer::_Handle(SOCKET _Socket, ClientInf * _ClientInf) {
 	return false;
 }
 
-int FtpServer::_Dispatch(char **_Str) {
+enum FTP_CMDS FtpServer::_Dispatch(char **_Str) {
 	char *p = *_Str;
-	int _Ret = FTP_CMD_ERR;
+	FTP_CMDS _Ret = FTP_CMD_ERR;
 
 	while (*p == ' ')++p;
 
-	if (stricmp_n_1("USER", p) == 0) {
-		_Ret = FTP_CMD_USER;
-	} else if (stricmp_n_1("PASS", p) == 0) {
-		_Ret = FTP_CMD_PASS;
+	for (int i = 0; i < FTP_CMDS_NUM; ++i) {
+		if (stricmp_n_1(FTP_CMDS_INF[i].m_Cmd, p) == 0) {
+			_Ret = (FTP_CMDS)i;
+		}
 	}
 
 	*_Str += 4;
 
 	while (**_Str == ' ')++(*_Str);
 
+	if (**_Str == '\0')*_Str = NULL;
+
 	return _Ret;
+}
+
+bool FtpServer::_FtpSend(SOCKET _Socket, const char * _Buffer) {
+	return Send(_Socket, _Buffer, strlen(_Buffer));
 }

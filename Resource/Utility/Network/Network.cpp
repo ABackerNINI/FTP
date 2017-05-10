@@ -83,7 +83,7 @@ bool network::Server::_InitComplitionPort() {
 	m_CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 	if (m_CompletionPort == NULL) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Create ComplitionPort @_InitComplitionPort\n");
+		LOG(CC_RED, "Faild to Create ComplitionPort @_InitComplitionPort\n");
 #endif
 		return false;
 	}
@@ -101,7 +101,7 @@ bool network::Server::_InitComplitionPort() {
 		_WorkerThreads[i] = CreateThread(NULL, 0, ServerWorkThread, _pWorkerParams, 0, &ThreadId);
 		if (_WorkerThreads[i] == NULL) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(RED, "Failed to Start Thread%u @_InitComplitionPort\n", i);
+			LOG(CC_RED, "Failed to Start Thread%u @_InitComplitionPort\n", i);
 #endif
 		}
 	}
@@ -115,14 +115,14 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	WORD wVersionRequested = MAKEWORD(2, 2);
 	if (WSAStartup(wVersionRequested, &Wsadata) != 0) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Load WSAStartup @_InitSock\n");
+		LOG(CC_RED, "Faild to Load WSAStartup @_InitSock\n");
 #endif
 		return false;
 	}
 
 	if (LOBYTE(Wsadata.wVersion) != 2 || HIBYTE(Wsadata.wVersion) != 2) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Wrong WSA Version(!2.2) @_InitSock\n");
+		LOG(CC_RED, "Wrong WSA Version(!2.2) @_InitSock\n");
 #endif
 		return false;
 	}
@@ -131,7 +131,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	m_Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (m_Socket == INVALID_SOCKET) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Create Socket @_InitSock\n");
+		LOG(CC_RED, "Faild to Create Socket @_InitSock\n");
 #endif
 		return false;
 	}
@@ -145,7 +145,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	//BIND
 	if (bind(m_Socket, (SOCKADDR*)&_Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Bind Socket @_InitSock\n");
+		LOG(CC_RED, "Faild to Bind Socket @_InitSock\n");
 #endif
 		return false;
 	}
@@ -153,7 +153,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	//LISTEN
 	if (listen(m_Socket, _Max_Connect) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Listen Port %d @_InitSock\n", _Port);
+		LOG(CC_RED, "Faild to Listen Port %d @_InitSock\n", _Port);
 #endif
 		return false;
 	}
@@ -161,7 +161,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	//COMPLETIONPORT
 	if (CreateIoCompletionPort((HANDLE)m_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Bind Socket with CompletionPort @_InitSock\n");
+		LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_InitSock\n");
 #endif
 		return false;
 	}
@@ -181,7 +181,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 		NULL,
 		NULL)) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Get AcceptEx @_InitSock\n");
+		LOG(CC_RED, "Faild to Get AcceptEx @_InitSock\n");
 #endif
 		return false;
 	}
@@ -197,7 +197,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 		NULL,
 		NULL)) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Get GetAcceptExSockAddrs @_InitSock\n");
+		LOG(CC_RED, "Faild to Get GetAcceptExSockAddrs @_InitSock\n");
 #endif
 		return false;
 	}
@@ -207,7 +207,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 		SVR_SOCKET_CONTEXT *_SocketContext = new SVR_SOCKET_CONTEXT();
 		if (_PostAccept(_SocketContext) == false) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(RED, "Faild to Post Accept%d @_InitSock\n", i);
+			LOG(CC_RED, "Faild to Post Accept%d @_InitSock\n", i);
 #endif
 		}
 	}
@@ -218,14 +218,14 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 bool network::Server::_Start(int _Port, int _MaxConnect = SOMAXCONN) {
 	if (_InitComplitionPort() == false) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Init ComplitionPort @_Start\n");
+		LOG(CC_RED, "Faild to Init ComplitionPort @_Start\n");
 #endif
 		return false;
 	}
 
 	if (_InitSock(_Port, _MaxConnect) == false) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Init Sock @_Start\n");
+		LOG(CC_RED, "Faild to Init Sock @_Start\n");
 #endif
 		return false;
 	}
@@ -258,7 +258,7 @@ bool network::Server::_PostAccept(SVR_SOCKET_CONTEXT *_SocketContext) {
 		&(_SocketContext->m_Overlapped)) == false) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(RED, "Faild to Post Accept Socket:%lld @PostAccept\n", _SocketContext->m_ClientSocket);
+			LOG(CC_RED, "Faild to Post Accept Socket:%lld @PostAccept\n", _SocketContext->m_ClientSocket);
 #endif
 			return false;
 		}
@@ -280,7 +280,7 @@ bool network::Server::_PostRecv(SVR_SOCKET_CONTEXT *_SocketContext) {
 	if (WSARecv(_SocketContext->m_ClientSocket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR &&
 		WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Post Recv Socket:%lld @_PostRecv\n", _SocketContext->m_ClientSocket);
+		LOG(CC_RED, "Faild to Post Recv Socket:%lld @_PostRecv\n", _SocketContext->m_ClientSocket);
 #endif
 		return false;
 	}
@@ -305,7 +305,7 @@ bool network::Server::_PostSend(SVR_SOCKET_CONTEXT *_SocketContext) {
 	if (WSASend(_SocketContext->m_ClientSocket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR &&
 		WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Post Send Socket:%lld @_PostSend\n", _SocketContext->m_ClientSocket);
+		LOG(CC_RED, "Faild to Post Send Socket:%lld @_PostSend\n", _SocketContext->m_ClientSocket);
 #endif
 		return false;
 	}
@@ -319,7 +319,7 @@ bool network::Server::_DoAccepted(SVR_SOCKET_CONTEXT *_SocketContext) {
 #endif
 
 #if(DEBUG&DEBUG_LOG)
-	LOG(YELLOW, "Accepted a Client Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
+	LOG(CC_YELLOW, "Accepted a Client Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
 #endif
 
 	_SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
@@ -347,21 +347,21 @@ bool network::Server::_DoAccepted(SVR_SOCKET_CONTEXT *_SocketContext) {
 
 	if (CreateIoCompletionPort((HANDLE)_NewSocketContex->m_ClientSocket, m_CompletionPort, (ULONG_PTR)_NewSocketContex, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Bind Socket with CompletionPort Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
+		LOG(CC_RED, "Faild to Bind Socket with CompletionPort Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
 #endif
 		return false;
 	}
 
 	if (_PostRecv(_NewSocketContex) == false) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Post Recv Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
+		LOG(CC_RED, "Faild to Post Recv Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
 #endif
 		return false;
 	}
 
 	if (_PostAccept(_SocketContext) == false) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Post Accept Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
+		LOG(CC_RED, "Faild to Post Accept Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
 #endif
 		return false;
 	}
@@ -384,7 +384,7 @@ bool network::Server::_DoRecvd(SVR_SOCKET_CONTEXT *_SocketContext) {
 
 	if (_PostRecv(_SocketContext) == false) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Post Recv Socket:%lld @_DoRecvd\n", _SocketContext->m_ClientSocket);
+		LOG(CC_RED, "Faild to Post Recv Socket:%lld @_DoRecvd\n", _SocketContext->m_ClientSocket);
 #endif
 		return false;
 	}
@@ -435,7 +435,7 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 
 		if (_Ret == false && _Overlapped == NULL) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(RED, "GetQueuedCompletionStatus Failed @ServerWorkThread\n");
+			LOG(CC_RED, "GetQueuedCompletionStatus Failed @ServerWorkThread\n");
 #endif
 			continue;
 		}
@@ -444,7 +444,7 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 
 		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED) || (_BytesTransferred == 0 && _SocketContext->m_OpType != SVR_OP::SVROP_ACCEPTING)) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(YELLOW, "Client Offline Socket:%lld @ServerWorkThread\n", _SocketContext->m_ClientSocket);
+			LOG(CC_YELLOW, "Client Offline Socket:%lld @ServerWorkThread\n", _SocketContext->m_ClientSocket);
 #endif
 			_OnClosed(_Server, _SocketContext);
 
@@ -498,14 +498,14 @@ void network::Client::SetConfig(const ClientConfig &_ClientConfig) {
 bool network::Client::Connect() {
 	if (_InitCompletionPort() == false) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Init ComplitionPort @Connect\n");
+		LOG(CC_RED, "Faild to Init ComplitionPort @Connect\n");
 #endif
 		return false;
 	}
 
 	if (_InitSock() == false) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Init Sock @Connect\n");
+		LOG(CC_RED, "Faild to Init Sock @Connect\n");
 #endif
 		return false;
 	}
@@ -516,7 +516,7 @@ bool network::Client::Connect() {
 
 	if (_PostConnect(inet_addr(m_ClientConfig.O_IpPort.M_Ip), m_ClientConfig.O_IpPort.M_Port) == false) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Post Connect @Connect\n");
+		LOG(CC_RED, "Faild to Post Connect @Connect\n");
 #endif
 		return false;
 	}
@@ -580,7 +580,7 @@ bool network::Client::_InitCompletionPort() {
 	m_CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, (ULONG_PTR)NULL, 0);
 	if (m_CompletionPort == NULL) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Create CompletionPort @_InitCompletionPort\n");
+		LOG(CC_RED, "Faild to Create CompletionPort @_InitCompletionPort\n");
 #endif
 		return false;
 	}
@@ -598,7 +598,7 @@ bool network::Client::_InitCompletionPort() {
 		_WorkerThreads[i] = CreateThread(NULL, 0, ClientWorkThread, _WorkerParams, 0, &ThreadId);
 		if (_WorkerThreads[i] == NULL) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(RED, "Faild to Start Thread%u @_InitCompletionPort\n", i);
+			LOG(CC_RED, "Faild to Start Thread%u @_InitCompletionPort\n", i);
 #endif
 		}
 	}
@@ -611,14 +611,14 @@ bool network::Client::_InitSock() {
 	WORD wVersionRequested = MAKEWORD(2, 2);
 	if (WSAStartup(wVersionRequested, &Wsadata) != 0) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Load WSAStartup @_InitSock\n");
+		LOG(CC_RED, "Faild to Load WSAStartup @_InitSock\n");
 #endif
 		return false;
 	}
 
 	if (LOBYTE(Wsadata.wVersion) != 2 || HIBYTE(Wsadata.wVersion) != 2) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Wrong WSA Version(!2.2) @_InitSock\n");
+		LOG(CC_RED, "Wrong WSA Version(!2.2) @_InitSock\n");
 #endif
 		return false;
 	}
@@ -627,7 +627,7 @@ bool network::Client::_InitSock() {
 	m_Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (m_Socket == INVALID_SOCKET) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Create Socket @_InitSock\n");
+		LOG(CC_RED, "Faild to Create Socket @_InitSock\n");
 #endif
 		return false;
 	}
@@ -639,14 +639,14 @@ bool network::Client::_InitSock() {
 	//BIND
 	if (bind(m_Socket, (SOCKADDR*)&_LocalAddr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Bind Socket @_InitSock\n");
+		LOG(CC_RED, "Faild to Bind Socket @_InitSock\n");
 #endif
 		return false;
 	}
 
 	if (CreateIoCompletionPort((HANDLE)m_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Bind Socket with CompletionPort @_InitSock\n");
+		LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_InitSock\n");
 #endif
 		return false;
 	}
@@ -665,7 +665,7 @@ bool network::Client::_InitSock() {
 		NULL,
 		NULL)) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Get ConnectEx @_InitSock\n");
+		LOG(CC_RED, "Faild to Get ConnectEx @_InitSock\n");
 #endif
 		return false;
 	}
@@ -692,7 +692,7 @@ bool network::Client::_PostConnect(unsigned long _Ip, int _Port) {
 	if (m_ConnectEx(m_Socket, (SOCKADDR*)&_Addr, sizeof(_Addr), NULL, 0, &dwBytes, (LPOVERLAPPED)_SocketContext) == false) {
 		if (WSAGetLastError() != ERROR_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(RED, "Faild to Post Connect%d @_PostConnect\n");
+			LOG(CC_RED, "Faild to Post Connect%d @_PostConnect\n");
 #endif
 			return false;
 		}
@@ -718,7 +718,7 @@ bool network::Client::_PostSend(CLT_SOCKET_CONTEXT * _SocketContext) {
 	if (WSASend(m_Socket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(RED, "Faild to Post Send @_PostSend\n");
+			LOG(CC_RED, "Faild to Post Send @_PostSend\n");
 #endif
 			return false;
 		}
@@ -740,7 +740,7 @@ bool network::Client::_PostRecv(CLT_SOCKET_CONTEXT * _SocketContext) {
 	if (WSARecv(m_Socket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(RED, "Faild to Post Recv @_PostRecv\n");
+			LOG(CC_RED, "Faild to Post Recv @_PostRecv\n");
 #endif
 			return false;
 		}
@@ -762,7 +762,7 @@ bool network::Client::_DoConnected(CLT_SOCKET_CONTEXT * _SocketContext) {
 
 	if (_PostRecv(_SocketContext) == false) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(RED, "Faild to Post Recv @_DoConnected\n");
+		LOG(CC_RED, "Faild to Post Recv @_DoConnected\n");
 #endif
 		return false;
 	}
@@ -827,7 +827,7 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
 
 		if (_Ret == false && _Overlapped == NULL) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(RED, "GetQueuedCompletionStatus Failed @ClientWorkThread\n");
+			LOG(CC_RED, "GetQueuedCompletionStatus Failed @ClientWorkThread\n");
 #endif
 			continue;
 		}
@@ -836,7 +836,7 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
 
 		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED) || (_BytesTransferred == 0 && _SocketContext->m_OpType != CLT_OP::CLTOP_CONNECTING)) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(YELLOW, "Server Offline Socket:%lld @ClientWorkThread\n", _WorkerParams->m_Instance->m_Socket);
+			LOG(CC_YELLOW, "Server Offline Socket:%lld @ClientWorkThread\n", _WorkerParams->m_Instance->m_Socket);
 #endif
 			_OnClosed(_Client, _SocketContext);
 

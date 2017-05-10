@@ -1,17 +1,20 @@
 #pragma once
 
-#ifndef NINI_FTP_FTP_SERVER_H
-#define NINI_FTP_FTP_SERVER_H
+#ifndef NINI_FTP_FTP_CLIENT_H
+#define NINI_FTP_FTP_CLIENT_H
 
 #include "../Resource/Utility/Network/Network.h"
-#include "../Resource/Common/Common.h"
 
 #define DEFAULT_BUFFER_LEN 1024
 
 enum CLIENT_STATUS {
+	CLTSTA_CONNECTING,
 	CLTSTA_CONNECTED,
-	CLTSTA_USRNAME_SPECIFIED,
-	CLTSTA_PASSWORD_SPECIFIED
+	CLTSTA_SENDING,
+	CLTSTA_SENT,
+	CLTSTA_RECVD,
+	CLTSTA_RSP_HANDLED,
+	CLTSTA_CLOSED
 };
 
 struct ClientInf {
@@ -21,22 +24,12 @@ struct ClientInf {
 	int		m_PosFront;
 	int		m_PosEnd;
 
-	char	m_Usrname[100];
-	char	m_Passwd[100];
-	char	m_Dir[100];
-	CLIENT_STATUS m_Status;
-
 	ClientInf() :
 		m_Buffer(NULL),
 		m_pBuffer(NULL),
 		m_FlagUsingBuffer(false),
 		m_PosFront(0),
-		m_PosEnd(DEFAULT_BUFFER_LEN),
-		m_Status(CLTSTA_CONNECTED) {
-		m_Usrname[0] = '\0';
-		m_Passwd[0] = '\0';
-		m_Dir[0] = '/';
-		m_Dir[1] = '\0';
+		m_PosEnd(DEFAULT_BUFFER_LEN) {
 	}
 
 	void Push(char *_Buffer, unsigned int _Count) {
@@ -81,22 +74,27 @@ struct ClientInf {
 	}
 };
 
-class FtpServer :public network::Server {
+class FtpClient :public network::Client {
 public:
-	void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+	bool FtpSend(const char *_Buffer,int _Count);
 
-	void OnRecvd(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+	void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
 
-	void OnSent(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+	void OnSent(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
 
-	void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+	void OnRecvd(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
+
+	void OnClosed(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
 
 protected:
-	bool _Handle(SOCKET _Socket, ClientInf *_ClientInf);
+	void _HandleResponse();
 
-	enum FTP_CMDS _Dispatch(char **_Str);
+protected:
+	//FTP_CMDS		m_LastCmd;
 
-	bool _FtpSend(SOCKET _Socket, const char *_Buffer);
+	ClientInf		m_ClientInf;
+
+	CLIENT_STATUS	m_ClientStatus;
 };
 
-#endif //NINI_FTP_FTP_SERVER_H
+#endif//NINI_FTP_FTP_CLIENT_H
