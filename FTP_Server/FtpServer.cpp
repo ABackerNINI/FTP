@@ -1,6 +1,18 @@
 #include "FtpServer.h"
 #include <assert.h>
 
+void FtpServerData::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerData::OnRecvd(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerData::OnSent(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerData::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
 void FtpServer::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 	ClientInf *_ClientInf = new ClientInf();
 
@@ -35,7 +47,7 @@ bool FtpServer::_Handle(SOCKET _Socket, ClientInf * _ClientInf) {
 	while (_Str = _ClientInf->Pop(), _Str) {
 		printf("%s\n", _Str);
 		_Args = _Str;
-		_Cmd = _Dispatch(&_Args);
+		_Cmd = CmdDispatch(&_Args);
 
 		if (FTP_CMDS_INF[_Cmd].m_NeedArgs&&_Args == NULL) {
 			_FtpSend(_Socket, "501 Syntax error in parameters or arguments.\r\n");
@@ -94,27 +106,6 @@ bool FtpServer::_Handle(SOCKET _Socket, ClientInf * _ClientInf) {
 	}
 
 	return false;
-}
-
-enum FTP_CMDS FtpServer::_Dispatch(char **_Str) {
-	char *p = *_Str;
-	FTP_CMDS _Ret = FTP_CMD_ERR;
-
-	while (*p == ' ')++p;
-
-	for (int i = 0; i < FTP_CMDS_NUM; ++i) {
-		if (stricmp_n_1(FTP_CMDS_INF[i].m_Cmd, p) == 0) {
-			_Ret = (FTP_CMDS)i;
-		}
-	}
-
-	*_Str += 4;
-
-	while (**_Str == ' ')++(*_Str);
-
-	if (**_Str == '\0')*_Str = NULL;
-
-	return _Ret;
 }
 
 bool FtpServer::_FtpSend(SOCKET _Socket, const char * _Buffer) {
@@ -182,16 +173,4 @@ void FtpServer::_CmdHandler_ERR(SOCKET _Socket, ClientInf *, char * _Args) {
 
 void FtpServer::_CmdHandler_NOT_IMPLEMENTED(SOCKET _Socket, ClientInf *, char * _Args) {
 	_FtpSend(_Socket, "502 Command not implemented.\r\n");
-}
-
-void FtpServerData::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
-}
-
-void FtpServerData::OnRecvd(network::SVR_SOCKET_CONTEXT * _SocketContext) {
-}
-
-void FtpServerData::OnSent(network::SVR_SOCKET_CONTEXT * _SocketContext) {
-}
-
-void FtpServerData::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 }

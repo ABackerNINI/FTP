@@ -149,8 +149,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Resource\Common\Common.h" />
+    <ClInclude Include="..\Resource\FtpCmds\FtpCmds.h" />
     <ClInclude Include="..\Resource\Utility\Network\Network.h" />
-    <ClInclude Include="FtpCmd.h" />
     <ClInclude Include="FtpServer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

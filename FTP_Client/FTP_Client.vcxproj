@@ -147,6 +147,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Resource\FtpCmds\FtpCmds.h" />
     <ClInclude Include="..\Resource\Utility\Network\Network.h" />
     <ClInclude Include="FtpClient.h" />
   </ItemGroup>

@@ -41,7 +41,7 @@
     <ClInclude Include="..\Resource\Common\Common.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="FtpCmd.h">
+    <ClInclude Include="..\Resource\FtpCmds\FtpCmds.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

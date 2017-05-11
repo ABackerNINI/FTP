@@ -3,7 +3,7 @@
 #ifndef NINI_FTP_FTP_SERVER_H
 #define NINI_FTP_FTP_SERVER_H
 
-#include "FtpCmd.h"
+#include "../Resource/FtpCmds/FtpCmds.h"
 #include "../Resource/Utility/Network/Network.h"
 #include "../Resource/Common/Common.h"
 
@@ -111,8 +111,6 @@ public:
 
 protected:
 	bool _Handle(SOCKET _Socket, ClientInf *_ClientInf);
-
-	enum FTP_CMDS _Dispatch(char **_Str);
 
 	bool _FtpSend(SOCKET _Socket, const char *_Buffer);
 

@@ -3,6 +3,7 @@
 #ifndef NINI_FTP_FTP_CLIENT_H
 #define NINI_FTP_FTP_CLIENT_H
 
+#include "../Resource/FtpCmds/FtpCmds.h"
 #include "../Resource/Utility/Network/Network.h"
 
 #define DEFAULT_BUFFER_LEN 1024
@@ -134,8 +135,9 @@ protected:
 	void _HandleResponse();
 
 protected:
-	//FTP_CMDS			m_LastCmd;
 	int					m_Port;
+
+	FTP_CMDS			m_LastCmd;
 
 	ClientInf			m_ClientInf;
 

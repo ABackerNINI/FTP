@@ -35,5 +35,8 @@
     <ClInclude Include="FtpClient.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\Resource\FtpCmds\FtpCmds.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
