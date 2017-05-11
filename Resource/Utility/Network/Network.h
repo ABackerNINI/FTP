@@ -58,9 +58,9 @@ namespace network {
 	inline void _TRACE_PRINT(T&&... _Args) {
 		//EnterCriticalSection(&CRITICAL_PRINT);
 
-		SetColor(GREEN);
+		SetColor(CC_GREEN);
 		printf(std::forward<T>(_Args)...);
-		SetColor(WHITE);
+		SetColor(CC_WHITE);
 		fflush(stdout);
 
 		//LeaveCriticalSection(&CRITICAL_PRINT);
