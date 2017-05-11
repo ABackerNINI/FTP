@@ -80,12 +80,21 @@ namespace network {
 		fflush(stdout);
 	}
 #endif
+
+
 	class Server;
 	class Client;
 
 	template<typename dst_type, typename src_type>
 	dst_type pointer_cast(src_type src) {
 		return *static_cast<dst_type*>(static_cast<void*>(&src));
+	}
+
+	inline unsigned int _GetProcessorNum() {
+		SYSTEM_INFO SysInfo;
+		GetSystemInfo(&SysInfo);
+
+		return SysInfo.dwNumberOfProcessors;
 	}
 
 	template<typename _Type>
@@ -235,8 +244,6 @@ namespace network {
 
 		bool _DoSent(SVR_SOCKET_CONTEXT* _SocketContext);
 
-		static unsigned int _GetProcessorNum();
-
 		static DWORD WINAPI ServerWorkThread(LPVOID _LpParam);
 
 	protected:
@@ -253,16 +260,24 @@ namespace network {
 		LPFN_GETACCEPTEXSOCKADDRS	m_pGetAcceptExSockAddrs;
 	};
 
+	struct IP_PORT {
+		const char *M_Ip;
+		int M_Port;
+	};
+
 	struct ClientConfig {
-		const char *O_Address;
-		struct IP_PORT {
-			const char *M_Ip;
-			int M_Port;
-		}O_IpPort;
+		/*	M:Mandatory
+			O:Optional
+			A[n]:Alternative Set [n]
+		*/
+		const char *	A0_Address;
+		IP_PORT			A0_IpPort;
+		int				O_WorkerThreadsPerProcessor;
 
 		ClientConfig() :
-			O_Address(NULL),
-			O_IpPort({ NULL,-1 }) {
+			A0_Address(NULL),
+			A0_IpPort({ NULL,-1 }),
+			O_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR) {
 		}
 	};
 

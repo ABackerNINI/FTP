@@ -475,13 +475,6 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 	return 0;
 }
 
-unsigned int network::Server::_GetProcessorNum() {
-	SYSTEM_INFO SysInfo;
-	GetSystemInfo(&SysInfo);
-
-	return SysInfo.dwNumberOfProcessors;
-}
-
 /*-----------------------------------------------------------Client Section-----------------------------------------------------------*/
 
 network::Client::Client() {
@@ -510,11 +503,11 @@ bool network::Client::Connect() {
 		return false;
 	}
 
-	if (m_ClientConfig.O_IpPort.M_Ip == NULL) {
+	if (m_ClientConfig.A0_IpPort.M_Ip == NULL) {
 		//TODO parse address and call gethostbyname
 	}
 
-	if (_PostConnect(inet_addr(m_ClientConfig.O_IpPort.M_Ip), m_ClientConfig.O_IpPort.M_Port) == false) {
+	if (_PostConnect(inet_addr(m_ClientConfig.A0_IpPort.M_Ip), m_ClientConfig.A0_IpPort.M_Port) == false) {
 #if(DEBUG&DEBUG_LOG)
 		LOG(CC_RED, "Faild to Post Connect @Connect\n");
 #endif
@@ -585,7 +578,7 @@ bool network::Client::_InitCompletionPort() {
 		return false;
 	}
 
-	unsigned int _WorkerThreadsNum = 1;
+	unsigned int _WorkerThreadsNum = m_ClientConfig.O_WorkerThreadsPerProcessor * _GetProcessorNum();
 
 	HANDLE* _WorkerThreads = new HANDLE[_WorkerThreadsNum];
 	memset(_WorkerThreads, 0, sizeof(HANDLE)*_WorkerThreadsNum);
