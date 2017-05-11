@@ -3,6 +3,8 @@
 #ifndef NINI_FTP_FTP_CMD_H
 #define NINI_FTP_FTP_CMD_H
 
+#include <stdio.h>
+
 //#define FTP_CMD_USER 1
 //#define FTP_CMD_PASS 2
 //#define FTP_CMD_ACCT 3
@@ -81,44 +83,42 @@ struct _FTP_CMDS_INF {
 	const char *	m_HelpMsg;
 };
 
-void _CmdHandle_USER(char *_Args);
-
 static const int FTP_CMDS_NUM = 34 - 1;//FTP_CMD_ERR Is Not a CMD
 
 static const _FTP_CMDS_INF FTP_CMDS_INF[] = {
-	{ "USER", TRUE,  "Supply a username: USER username" },
-	{ "PASS", TRUE,  "Supply a user password: PASS password" },
-	{ "ACCT", FALSE, ""},
-	{ "CWD",  TRUE,	 "Change working directory: CWD [directory-name]" },
-	{ "CDUP", FALSE, ""},
-	{ "SMNT", FALSE, "" },
-	{ "QUIT", FALSE, "Logout or break the connection: QUIT" },
-	{ "REIN", FALSE, "" },
-	{ "PORT", TRUE,	 "Specify the client port number: PORT a0,a1,a2,a3,a4,a5" },
-	{ "PASV", FALSE, "Set server in passive mode: PASV" },
-	{ "TYPE", TRUE,	 "Set filetype: TYPE [A | I]" },
-	{ "STRU", FALSE, "" },
-	{ "MODE", FALSE, "" },
-	{ "RETR", TRUE,	 "Get file: RETR file-name" },
-	{ "STOR", TRUE,	 "Store file: STOR file-name" },
-	{ "STOU", FALSE, "" },
-	{ "APPE", FALSE, "" },
-	{ "ALLO", FALSE, "" },
-	{ "REST", TRUE,	 "Set restart transfer marker: REST marker" },
-	{ "RNFR", TRUE,  "Specify old path name of file to be renamed: RNFR file-name" },
-	{ "RNTO", TRUE,	 "Specify new path name of file to be renamed: RNTO file-name" },
-	{ "ABOR", FALSE, "Abort transfer: ABOR" },
-	{ "DELE", TRUE , "Delete file: DELE file-name" },
-	{ "RMD",  TRUE,	 "Remove directory: RMD path-name" },
-	{ "MKD",  TRUE,	 "Make directory: MKD path-name" },
-	{ "PWD",  FALSE, "Get current directory: PWD" },
-	{ "LIST", FALSE, "Get directory listing: LIST [path-name]" },
-	{ "NLST", FALSE, ""},
-	{ "SITE", FALSE, ""},
-	{ "SYST", FALSE, "Get operating system type: SYST" } ,
-	{ "STAT", FALSE, "" },
-	{ "HELP", FALSE, "Show help: HELP [command]" },
-	{ "NOOP", FALSE, "Do nothing: NOOP" }
+	{ "USER", true,  "Supply a username: USER username" },
+	{ "PASS", true,  "Supply a user password: PASS password" },
+	{ "ACCT", false, ""},
+	{ "CWD",  true,	 "Change working directory: CWD [directory-name]" },
+	{ "CDUP", false, ""},
+	{ "SMNT", false, "" },
+	{ "QUIT", false, "Logout or break the connection: QUIT" },
+	{ "REIN", false, "" },
+	{ "PORT", true,	 "Specify the client port number: PORT a0,a1,a2,a3,a4,a5" },
+	{ "PASV", false, "Set server in passive mode: PASV" },
+	{ "TYPE", true,	 "Set filetype: TYPE [A | I]" },
+	{ "STRU", false, "" },
+	{ "MODE", false, "" },
+	{ "RETR", true,	 "Get file: RETR file-name" },
+	{ "STOR", true,	 "Store file: STOR file-name" },
+	{ "STOU", false, "" },
+	{ "APPE", false, "" },
+	{ "ALLO", false, "" },
+	{ "REST", true,	 "Set restart transfer marker: REST marker" },
+	{ "RNFR", true,  "Specify old path name of file to be renamed: RNFR file-name" },
+	{ "RNTO", true,	 "Specify new path name of file to be renamed: RNTO file-name" },
+	{ "ABOR", false, "Abort transfer: ABOR" },
+	{ "DELE", true , "Delete file: DELE file-name" },
+	{ "RMD",  true,	 "Remove directory: RMD path-name" },
+	{ "MKD",  true,	 "Make directory: MKD path-name" },
+	{ "PWD",  false, "Get current directory: PWD" },
+	{ "LIST", false, "Get directory listing: LIST [path-name]" },
+	{ "NLST", false, ""},
+	{ "SITE", false, ""},
+	{ "SYST", false, "Get operating system type: SYST" } ,
+	{ "STAT", false, "" },
+	{ "HELP", false, "Show help: HELP [command]" },
+	{ "NOOP", false, "Do nothing: NOOP" }
 };
 
 #endif//NINI_FTP_FTP_CMD_H

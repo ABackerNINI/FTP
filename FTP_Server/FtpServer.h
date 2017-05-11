@@ -3,36 +3,38 @@
 #ifndef NINI_FTP_FTP_SERVER_H
 #define NINI_FTP_FTP_SERVER_H
 
+#include "FtpCmd.h"
 #include "../Resource/Utility/Network/Network.h"
 #include "../Resource/Common/Common.h"
 
 #define DEFAULT_BUFFER_LEN 1024
+#define _CMD(X)  network::pointer_cast<_CmdHandler>(&FtpServer::_CmdHandler##X)
 
-enum CLIENT_STATUS {
-	CLTSTA_CONNECTED,
-	CLTSTA_USRNAME_SPECIFIED,
-	CLTSTA_PASSWORD_SPECIFIED
+enum CLIENT_LOGIN_STATUS {
+	CLS_CONNECTED,
+	CLS_USRNAME_SPECIFIED,
+	CLS_PASSWORD_SPECIFIED //Login Successfully
 };
 
 struct ClientInf {
 	char*	m_Buffer;
 	char*	m_pBuffer;
-	bool	m_FlagUsingBuffer;
 	int		m_PosFront;
 	int		m_PosEnd;
+	bool	m_FlagUsingBuffer;
 
 	char	m_Usrname[100];
 	char	m_Passwd[100];
 	char	m_Dir[100];
-	CLIENT_STATUS m_Status;
+	CLIENT_LOGIN_STATUS m_Status;
 
 	ClientInf() :
 		m_Buffer(NULL),
 		m_pBuffer(NULL),
-		m_FlagUsingBuffer(false),
 		m_PosFront(0),
 		m_PosEnd(DEFAULT_BUFFER_LEN),
-		m_Status(CLTSTA_CONNECTED) {
+		m_FlagUsingBuffer(false),
+		m_Status(CLS_CONNECTED) {
 		m_Usrname[0] = '\0';
 		m_Passwd[0] = '\0';
 		m_Dir[0] = '/';
@@ -83,6 +85,7 @@ struct ClientInf {
 
 class FtpServer :public network::Server {
 public:
+
 	void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
 
 	void OnRecvd(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
@@ -97,6 +100,60 @@ protected:
 	enum FTP_CMDS _Dispatch(char **_Str);
 
 	bool _FtpSend(SOCKET _Socket, const char *_Buffer);
+
+protected:
+	typedef void(*_CmdHandler)(FtpServer*, SOCKET, ClientInf*, char *);
+
+	const _CmdHandler m_CmdHandler[FTP_CMDS_NUM + 1] = {//Need to Handle FTP_CMD_ERR
+		{ _CMD(_USER)},
+		{ _CMD(_PASS)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_CWD)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_RETR)},
+		{ _CMD(_STOR)},//14
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_ERR)}
+	};
+
+	void _CmdHandler_USER(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_PASS(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_CWD(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_RETR(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_STOR(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_ERR(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_NOT_IMPLEMENTED(SOCKET _Socket, ClientInf*, char *_Args);
 };
 
 #endif //NINI_FTP_FTP_SERVER_H
