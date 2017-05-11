@@ -26,6 +26,10 @@ enum CLIENT_LOGIN_STATUS {
 	CLS_DISCONNECTED
 };
 
+struct FtpClientConfig :network::ClientConfig {
+	int M_Port;
+};
+
 struct ClientInf {
 	char*	m_Buffer;
 	char*	m_pBuffer;
@@ -83,8 +87,39 @@ struct ClientInf {
 	}
 };
 
+class FtpClientData :public network::Client {
+public:
+	FtpClientData();
+
+	FtpClientData(const FtpClientConfig &_FtpClientConfig);
+
+	void SetConfig(const FtpClientConfig &_FtpClientConfig);
+
+	bool FtpSend(const char *_Buffer, int _Count);
+
+	void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnSent(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
+
+	void OnRecvd(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
+
+	void OnClosed(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
+
+protected:
+	void _HandleResponse();
+
+protected:
+	int	m_Port;
+};
+
 class FtpClient :public network::Client {
 public:
+	FtpClient();
+
+	FtpClient(const FtpClientConfig &_FtpClientConfig);
+
+	void SetConfig(const FtpClientConfig &_FtpClientConfig);
+
 	bool FtpSend(const char *_Buffer,int _Count);
 
 	void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
@@ -99,11 +134,14 @@ protected:
 	void _HandleResponse();
 
 protected:
-	//FTP_CMDS		m_LastCmd;
+	//FTP_CMDS			m_LastCmd;
+	int					m_Port;
 
-	ClientInf		m_ClientInf;
+	ClientInf			m_ClientInf;
 
 	CLIENT_IO_STATUS	m_ClientStatus;
+
+	FtpClientData		m_FtpClientData;
 };
 
 #endif//NINI_FTP_FTP_CLIENT_H

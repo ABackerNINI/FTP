@@ -160,6 +160,14 @@ void FtpServer::_CmdHandler_CWD(SOCKET _Socket, ClientInf *, char * _Args) {
 	_FtpSend(_Socket, "500 CWD.\r\n");
 }
 
+void FtpServer::_CmdHandler_PORT(SOCKET _Socket, ClientInf *, char * _Args) {
+	_FtpSend(_Socket, "500 PORT.\r\n");
+}
+
+void FtpServer::_CmdHandler_PASV(SOCKET _Socket, ClientInf *, char * _Args) {
+	_FtpSend(_Socket, "500 PASV.\r\n");
+}
+
 void FtpServer::_CmdHandler_RETR(SOCKET _Socket, ClientInf *, char * _Args) {
 	_FtpSend(_Socket, "500 RETR.\r\n");
 }
@@ -174,4 +182,16 @@ void FtpServer::_CmdHandler_ERR(SOCKET _Socket, ClientInf *, char * _Args) {
 
 void FtpServer::_CmdHandler_NOT_IMPLEMENTED(SOCKET _Socket, ClientInf *, char * _Args) {
 	_FtpSend(_Socket, "502 Command not implemented.\r\n");
+}
+
+void FtpServerData::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerData::OnRecvd(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerData::OnSent(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerData::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 }

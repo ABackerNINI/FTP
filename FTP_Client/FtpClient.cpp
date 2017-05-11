@@ -1,5 +1,48 @@
 #include "FtpClient.h"
 
+FtpClientData::FtpClientData() {
+}
+
+FtpClientData::FtpClientData(const FtpClientConfig & _FtpClientConfig) :network::Client(_FtpClientConfig), m_Port(_FtpClientConfig.M_Port) {
+}
+
+void FtpClientData::SetConfig(const FtpClientConfig & _FtpClientConfig) {
+	network::Client::SetConfig(_FtpClientConfig);
+
+	m_Port = _FtpClientConfig.M_Port;
+}
+
+bool FtpClientData::FtpSend(const char * _Buffer, int _Count) {
+	return false;
+}
+
+void FtpClientData::OnConnected(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpClientData::OnSent(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpClientData::OnRecvd(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpClientData::OnClosed(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpClientData::_HandleResponse() {
+}
+
+FtpClient::FtpClient() {
+}
+
+FtpClient::FtpClient(const FtpClientConfig & _FtpClientConfig) :network::Client(_FtpClientConfig), m_Port(_FtpClientConfig.M_Port), m_FtpClientData(_FtpClientConfig) {
+}
+
+void FtpClient::SetConfig(const FtpClientConfig & _FtpClientConfig) {
+	network::Client::SetConfig(_FtpClientConfig);
+
+	m_Port = _FtpClientConfig.M_Port;
+}
+
 bool FtpClient::FtpSend(const char * _Buffer, int _Count) {
 
 	bool _Sending = false;

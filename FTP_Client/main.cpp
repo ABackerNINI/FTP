@@ -4,7 +4,7 @@
 
 #include "FtpClient.h"
 
-network::ClientConfig _ClientConfig;
+FtpClientConfig _ClientConfig;
 
 FtpClient _Client;
 
@@ -27,6 +27,7 @@ int main() {
 
 	_ClientConfig.A0_IpPort.M_Ip = "192.168.10.132";//"192.168.1.102";
 	_ClientConfig.A0_IpPort.M_Port = 21;
+	_ClientConfig.M_Port = 1024;
 
 	_Client.SetConfig(_ClientConfig);
 	_Client.Connect();

@@ -8,7 +8,7 @@
 #include "../Resource/Common/Common.h"
 
 #define DEFAULT_BUFFER_LEN 1024
-#define _CMD(X)  network::pointer_cast<_CmdHandler>(&FtpServer::_CmdHandler##X)
+#define _CMD(CMD)  network::pointer_cast<_CmdHandler>(&FtpServer::_CmdHandler##CMD)
 
 enum CLIENT_LOGIN_STATUS {
 	CLS_CONNECTED,
@@ -26,6 +26,7 @@ struct ClientInf {
 	char	m_Usrname[100];
 	char	m_Passwd[100];
 	char	m_Dir[100];
+	bool	m_IsPasv;
 	CLIENT_LOGIN_STATUS m_Status;
 
 	ClientInf() :
@@ -34,6 +35,7 @@ struct ClientInf {
 		m_PosFront(0),
 		m_PosEnd(DEFAULT_BUFFER_LEN),
 		m_FlagUsingBuffer(false),
+		m_IsPasv(false),
 		m_Status(CLS_CONNECTED) {
 		m_Usrname[0] = '\0';
 		m_Passwd[0] = '\0';
@@ -83,6 +85,19 @@ struct ClientInf {
 	}
 };
 
+class FtpServerData :public network::Server {
+public:
+	void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnRecvd(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnSent(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+
+protected:
+};
+
 class FtpServer :public network::Server {
 public:
 
@@ -113,8 +128,8 @@ protected:
 		{ _CMD(_NOT_IMPLEMENTED)},
 		{ _CMD(_NOT_IMPLEMENTED)},
 		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_PORT)},
+		{ _CMD(_PASV)},
 		{ _CMD(_NOT_IMPLEMENTED)},
 		{ _CMD(_NOT_IMPLEMENTED)},
 		{ _CMD(_NOT_IMPLEMENTED)},
@@ -146,6 +161,10 @@ protected:
 	void _CmdHandler_PASS(SOCKET _Socket, ClientInf*, char *_Args);
 
 	void _CmdHandler_CWD(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_PORT(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_PASV(SOCKET _Socket, ClientInf*, char *_Args);
 
 	void _CmdHandler_RETR(SOCKET _Socket, ClientInf*, char *_Args);
 
