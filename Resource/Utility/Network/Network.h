@@ -81,7 +81,6 @@ namespace network {
 	}
 #endif
 
-
 	class Server;
 	class Client;
 
@@ -211,6 +210,10 @@ namespace network {
 
 		bool Close(SOCKET _Socket);
 
+		bool AddListenPort(int _Port,int _Max_Connect);
+
+		//bool Connect();
+
 		bool Stop();
 
 		virtual void OnAccepted(SVR_SOCKET_CONTEXT *_SocketContext);
@@ -231,6 +234,8 @@ namespace network {
 		bool _InitSock(int _Port, unsigned int _Max_Connect);
 
 		bool _InitComplitionPort();
+
+		bool _AddListenPort(int _Port,int _Max_Connect);
 
 		bool _PostAccept(SVR_SOCKET_CONTEXT *_SocketContext);
 
@@ -398,9 +403,9 @@ namespace network {
 
 		HANDLE				m_CompletionPort;
 
-		LPFN_CONNECTEX		m_ConnectEx;
-
 		ClientConfig		m_ClientConfig;
+
+		LPFN_CONNECTEX		m_ConnectEx;
 	};
 }
 #endif //NINI_FTP_NETWORK_H
