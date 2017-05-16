@@ -18,6 +18,10 @@
 #define DEBUG_TRACE 0
 #define DEBUG_LOG 1
 
+#define FEATURE_RECV_ON_ACCEPT 0		//Recv Data on Accept.
+										//This may arise a problem that when the client does not send data on connect,
+										//the server won't get the event OnAccepted immediately until the client sends data.
+
 #define DEFAULT_MAX_CONNECT 30
 #define DEFAULT_MAX_BUFFER_LEN 100
 #define DEFAULT_MAX_POST_ACCEPT 10
@@ -142,7 +146,8 @@ namespace network {
 
 		SVR_SOCKET_CONTEXT(int _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) :
 			m_ClientSocket(INVALID_SOCKET),
-			m_OpType(SVR_OP::SVROP_UNDEFINED) {
+			m_OpType(SVR_OP::SVROP_UNDEFINED),
+			m_Extra(NULL) {
 			m_szBuffer = new char[_MaxBufferLen];//TODO user-defined(upper layer) buffer len
 			m_wsaBuf.buf = m_szBuffer;
 			m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'

@@ -314,7 +314,12 @@ bool network::Server::_PostAccept(SVR_SOCKET_CONTEXT *_SocketContext) {
 	if (m_pAcceptEx(m_Socket,
 		_SocketContext->m_ClientSocket,
 		_SocketContext->m_wsaBuf.buf,
-		_SocketContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
+#if(FEATURE_RECV_ON_ACCEPT)
+		_SocketContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2)
+#else
+		0
+#endif
+		,
 		sizeof(SOCKADDR_IN) + 16,
 		sizeof(SOCKADDR_IN) + 16,
 		&_Flags,
@@ -505,7 +510,7 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 
 		_SocketContext = CONTAINING_RECORD(_Overlapped, SVR_SOCKET_CONTEXT, m_Overlapped);
 
-		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED) || (_BytesTransferred == 0 && _SocketContext->m_OpType != SVR_OP::SVROP_ACCEPTING)) {
+		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED)/* || (_BytesTransferred == 0 && _SocketContext->m_OpType != SVR_OP::SVROP_ACCEPTING)*/) {
 #if(DEBUG&DEBUG_LOG)
 			LOG(CC_YELLOW, "Client Offline Socket:%lld @ServerWorkThread\n", _SocketContext->m_ClientSocket);
 #endif
@@ -699,6 +704,8 @@ bool network::Client::_InitSock() {
 	SOCKADDR_IN _LocalAddr;
 	memset(&_LocalAddr, 0, sizeof(_LocalAddr));
 	_LocalAddr.sin_family = AF_INET;
+	_LocalAddr.sin_addr.S_un.S_addr = INADDR_ANY;
+	_LocalAddr.sin_port = htons((short)0);
 
 	//BIND
 	if (bind(m_Socket, (SOCKADDR*)&_LocalAddr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
@@ -770,9 +777,9 @@ bool network::Client::_PostSend(CLT_SOCKET_CONTEXT * _SocketContext) {
 	TRACE_PRINT("PostSend DEBUG_TRACE %u @_PostSend\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
-	if (_SocketContext->m_wsaBuf.len == 0) {
+	/*if (_SocketContext->m_wsaBuf.len == 0) {
 		return true;
-	}
+	}*/
 
 	DWORD dwFlags = 0;
 	DWORD dwBytes = 0;
@@ -898,7 +905,7 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
 
 		_SocketContext = CONTAINING_RECORD(_Overlapped, CLT_SOCKET_CONTEXT, m_Overlapped);
 
-		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED) || (_BytesTransferred == 0 && _SocketContext->m_OpType != CLT_OP::CLTOP_CONNECTING)) {
+		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED)/* || (_BytesTransferred == 0 && _SocketContext->m_OpType != CLT_OP::CLTOP_CONNECTING)*/) {
 #if(DEBUG&DEBUG_LOG)
 			LOG(CC_YELLOW, "Server Offline Socket:%lld @ClientWorkThread\n", _WorkerParams->m_Instance->m_Socket);
 #endif
