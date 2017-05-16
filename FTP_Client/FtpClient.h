@@ -121,7 +121,11 @@ public:
 
 	void SetConfig(const FtpClientConfig &_FtpClientConfig);
 
+	bool FtpConnect();
+
 	bool FtpSend(const char *_Buffer,int _Count);
+
+	CLIENT_IO_STATUS GetIoStatus();
 
 	void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
 

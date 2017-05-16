@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <conio.h>
-#include "../Resource/Utility/Network/Network.h"
+//#include "../Resource/Utility/Network/Network.h"
 #include "FtpServer.h"
 
 FtpServer _Server;

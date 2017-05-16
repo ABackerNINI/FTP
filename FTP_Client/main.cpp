@@ -22,18 +22,42 @@ BOOL CALLBACK ConsoleHandler(DWORD _Ev) {
 	return _Ret;
 }
 
+bool Connect(FtpClient *_FtpClient) {
+	if (_Client.Connect()) {
+		for (int i = 0; i < 10; ++i) {
+			printf(".");
+			if (_FtpClient->GetIoStatus() != CLIENT_IO_STATUS::CIS_CONNECTING) {
+				printf("\n");
+
+				return true;
+			} else if (i == 9) {
+				printf("\n");
+
+				break;
+			}
+			Sleep(500);
+		}
+	} else {
+	}
+
+	printf("Connect Error,Please Check Your Network.\n");
+
+	return false;
+}
+
 int main() {
 	SetConsoleCtrlHandler(ConsoleHandler, true);
 
-	_ClientConfig.A0_IpPort.M_Ip = "192.168.1.102";//"192.168.10.132";
+	_ClientConfig.A0_IpPort.M_Ip = "192.168.10.113";//"192.168.1.102";
 	_ClientConfig.A0_IpPort.M_Port = 21;
 	_ClientConfig.M_Port = 1024;
 
 	_Client.SetConfig(_ClientConfig);
-	_Client.Connect();
 
-	char _Cmd[1000+1];
+	char _Cmd[1000 + 1];
 	int _Strlen;
+
+	_Client.FtpConnect();
 
 	while (true) {
 		printf(">");
@@ -41,9 +65,9 @@ int main() {
 
 		if (stricmp(_Cmd, "QUIT\n") == 0) {
 			_Client.Close();
-			continue;
+			break;
 		} else if (stricmp(_Cmd, "RECONN\n") == 0) {
-			_Client.Connect();
+			_Client.FtpConnect();
 			continue;
 		}
 

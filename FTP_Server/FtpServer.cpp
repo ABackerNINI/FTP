@@ -16,6 +16,8 @@ void FtpServerData::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 void FtpServer::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 	ClientInf *_ClientInf = new ClientInf();
 
+	_FtpSend(_SocketContext->m_ClientSocket, "220 Welcome to NINI's FTP service.\r\n");
+
 	if (_SocketContext->m_BytesTransferred > 0) {
 		_ClientInf->Push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
 
@@ -75,10 +77,10 @@ bool FtpServer::_Handle(SOCKET _Socket, ClientInf * _ClientInf) {
 			continue;
 		}
 
-		if ((_Cmd != FTP_CMD_USER&&_Cmd != FTP_CMD_PASS) && _ClientInf->m_Status == CLS_CONNECTED) {
-			_FtpSend(_Socket, "530 Please login with USER and PASS.\r\n");
-			continue;
-		}
+		//if ((_Cmd != FTP_CMD_USER&&_Cmd != FTP_CMD_PASS) && _ClientInf->m_Status == CLS_CONNECTED) {
+		//	_FtpSend(_Socket, "530 Please login with USER and PASS.\r\n");
+		//	continue;
+		//}
 
 		m_CmdHandler[_Cmd](this, _Socket, _ClientInf, _Args);
 	}
