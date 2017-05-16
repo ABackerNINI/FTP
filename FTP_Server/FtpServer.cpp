@@ -40,6 +40,27 @@ void FtpServer::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 	delete (ClientInf *)(_SocketContext->m_Extra);
 }
 
+enum FTP_CMDS FtpServer::CmdDispatch(char **_Str) {
+	char *p = *_Str;
+	FTP_CMDS _Ret = FTP_CMD_ERR;
+
+	while (*p == ' ')++p;
+
+	for (int i = 0; i < FTP_CMDS_NUM; ++i) {
+		if (stricmp_n_1(FTP_CMDS_INF[i].m_Cmd, p) == 0) {
+			_Ret = (FTP_CMDS)i;
+		}
+	}
+
+	*_Str += 4;
+
+	while (**_Str == ' ')++(*_Str);
+
+	if (**_Str == '\0')*_Str = NULL;
+
+	return _Ret;
+}
+
 bool FtpServer::_Handle(SOCKET _Socket, ClientInf * _ClientInf) {
 	char *_Str;
 	char *_Args;
@@ -54,55 +75,12 @@ bool FtpServer::_Handle(SOCKET _Socket, ClientInf * _ClientInf) {
 			continue;
 		}
 
-		m_CmdHandler[_Cmd](this, _Socket, _ClientInf, _Args);
-
-		/*if (_Cmd == FTP_CMD_ERR) {
-			_FtpSend(_Socket, "501 Syntax error:Command not understood.\r\n");
-			continue;
-		}
-
-
 		if ((_Cmd != FTP_CMD_USER&&_Cmd != FTP_CMD_PASS) && _ClientInf->m_Status == CLS_CONNECTED) {
 			_FtpSend(_Socket, "530 Please login with USER and PASS.\r\n");
 			continue;
 		}
 
-		switch (_Cmd) {
-		case FTP_CMD_USER:
-			switch (_ClientInf->m_Status) {
-			case CLS_CONNECTED:
-				_ClientInf->m_Status = CLS_USRNAME_SPECIFIED;
-				_FtpSend(_Socket, "331 User name ok,need password.\r\n");
-				break;
-			case CLS_USRNAME_SPECIFIED:
-				break;
-			case CLS_PASSWORD_SPECIFIED:
-				break;
-			default:
-				assert(false);
-				break;
-			}
-			break;
-		case FTP_CMD_PASS:
-			switch (_ClientInf->m_Status) {
-			case CLS_CONNECTED:
-				_FtpSend(_Socket, "503 Login with USER first.\r\n");
-				break;
-			case CLS_USRNAME_SPECIFIED:
-				_ClientInf->m_Status = CLS_PASSWORD_SPECIFIED;
-				_FtpSend(_Socket, "230 User sucessfully logged in.\r\n");
-				break;
-			case CLS_PASSWORD_SPECIFIED:
-				break;
-			default:
-				assert(false);
-				break;
-			}
-			break;
-		default:
-			assert(false);
-			break;
-		}*/
+		m_CmdHandler[_Cmd](this, _Socket, _ClientInf, _Args);
 	}
 
 	return false;
@@ -122,6 +100,7 @@ void FtpServer::_CmdHandler_USER(SOCKET _Socket, ClientInf *_ClientInf, char * _
 		_FtpSend(_Socket, "331 User name ok,need password.\r\n");
 		break;
 	case CLS_PASSWORD_SPECIFIED:
+		_ClientInf->m_Status = CLS_USRNAME_SPECIFIED;
 		_FtpSend(_Socket, "331 User name ok,need password.\r\n");//TODO
 		break;
 	default:
@@ -140,6 +119,7 @@ void FtpServer::_CmdHandler_PASS(SOCKET _Socket, ClientInf *_ClientInf, char * _
 		_FtpSend(_Socket, "230 User logged in, proceed.\r\n");
 		break;
 	case CLS_PASSWORD_SPECIFIED:
+		_FtpSend(_Socket, "230 User logged in, proceed.\r\n");
 		break;
 	default:
 		assert(false);

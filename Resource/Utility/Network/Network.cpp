@@ -37,9 +37,9 @@ bool network::Server::Close(SOCKET _Socket) {
 	return true;
 }
 
-bool network::Server::AddListenPort(int _Port, int _Max_Connect = 1) {
-	return _AddListenPort(_Port, _Max_Connect);
-}
+//bool network::Server::AddListenPort(int _Port, int _Max_Connect = 1) {
+//	return _AddListenPort(_Port, _Max_Connect);
+//}
 
 bool network::Server::Stop() {
 	_Stop(m_Socket);
@@ -92,7 +92,13 @@ bool network::Server::_InitComplitionPort() {
 		return false;
 	}
 
-	unsigned int _WorkerThreadsNum = _GetProcessorNum()*m_ServerConfig.O_WorkerThreadsPerProcessor;
+	unsigned int _WorkerThreadsNum = m_ServerConfig.O0_WorkerThreads > 0 ? m_ServerConfig.O0_WorkerThreads : (_GetProcessorNum()*m_ServerConfig.O0_WorkerThreadsPerProcessor);
+	if (_WorkerThreadsNum <= 0) {
+#if(DEBUG&DEBUG_LOG)
+		LOG(CC_RED, "Invalid Worker Threads Number @_InitComplitionPort\n");
+#endif
+		return false;
+	}
 
 	HANDLE* _WorkerThreads = new HANDLE[_WorkerThreadsNum];
 	memset(_WorkerThreads, 0, sizeof(HANDLE)*_WorkerThreadsNum);
@@ -113,58 +119,58 @@ bool network::Server::_InitComplitionPort() {
 	return true;
 }
 
-bool network::Server::_AddListenPort(int _Port, int _Max_Connect) {
-	//SOCKET
-	m_Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-	if (m_Socket == INVALID_SOCKET) {
-#if(DEBUG&DEBUG_LOG)
-		LOG(CC_RED, "Faild to Create Socket @_AddListenPort\n");
-#endif
-		return false;
-	}
-
-	SOCKADDR_IN _Addr;
-	memset(&_Addr, 0, sizeof(_Addr));
-	_Addr.sin_family = AF_INET;
-	_Addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
-	_Addr.sin_port = htons(_Port);
-
-	//BIND
-	if (bind(m_Socket, (SOCKADDR*)&_Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
-#if(DEBUG&DEBUG_LOG)
-		LOG(CC_RED, "Faild to Bind Socket @_AddListenPort\n");
-#endif
-		return false;
-	}
-
-	//LISTEN
-	if (listen(m_Socket, _Max_Connect) == SOCKET_ERROR) {
-#if(DEBUG&DEBUG_LOG)
-		LOG(CC_RED, "Faild to Listen Port %d @_AddListenPort\n", _Port);
-#endif
-		return false;
-	}
-
-	//COMPLETIONPORT
-	if (CreateIoCompletionPort((HANDLE)m_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
-#if(DEBUG&DEBUG_LOG)
-		LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_AddListenPort\n");
-#endif
-		return false;
-	}
-
-	//POST ACCEPT
-	for (int i = 0; i < m_ServerConfig.O_MaxPostAccept; ++i) {
-		SVR_SOCKET_CONTEXT *_SocketContext = new SVR_SOCKET_CONTEXT();
-		if (_PostAccept(_SocketContext) == false) {
-#if(DEBUG&DEBUG_LOG)
-			LOG(CC_RED, "Faild to Post Accept%d @_AddListenPort\n", i);
-#endif
-		}
-	}
-
-	return true;
-}
+//bool network::Server::_AddListenPort(int _Port, int _Max_Connect) {
+//	//SOCKET
+//	m_Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+//	if (m_Socket == INVALID_SOCKET) {
+//#if(DEBUG&DEBUG_LOG)
+//		LOG(CC_RED, "Faild to Create Socket @_AddListenPort\n");
+//#endif
+//		return false;
+//	}
+//
+//	SOCKADDR_IN _Addr;
+//	memset(&_Addr, 0, sizeof(_Addr));
+//	_Addr.sin_family = AF_INET;
+//	_Addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+//	_Addr.sin_port = htons(_Port);
+//
+//	//BIND
+//	if (bind(m_Socket, (SOCKADDR*)&_Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
+//#if(DEBUG&DEBUG_LOG)
+//		LOG(CC_RED, "Faild to Bind Socket @_AddListenPort\n");
+//#endif
+//		return false;
+//	}
+//
+//	//LISTEN
+//	if (listen(m_Socket, _Max_Connect) == SOCKET_ERROR) {
+//#if(DEBUG&DEBUG_LOG)
+//		LOG(CC_RED, "Faild to Listen Port %d @_AddListenPort\n", _Port);
+//#endif
+//		return false;
+//	}
+//
+//	//COMPLETIONPORT
+//	if (CreateIoCompletionPort((HANDLE)m_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
+//#if(DEBUG&DEBUG_LOG)
+//		LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_AddListenPort\n");
+//#endif
+//		return false;
+//	}
+//
+//	//POST ACCEPT
+//	for (int i = 0; i < m_ServerConfig.O_MaxPostAccept; ++i) {
+//		SVR_SOCKET_CONTEXT *_SocketContext = new SVR_SOCKET_CONTEXT();
+//		if (_PostAccept(_SocketContext) == false) {
+//#if(DEBUG&DEBUG_LOG)
+//			LOG(CC_RED, "Faild to Post Accept%d @_AddListenPort\n", i);
+//#endif
+//		}
+//	}
+//
+//	return true;
+//}
 
 bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	//WSADATA
@@ -534,10 +540,10 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 
 /*-----------------------------------------------------------Client Section-----------------------------------------------------------*/
 
-network::Client::Client() {
+network::Client::Client() :m_CompletionPort(NULL) {
 }
 
-network::Client::Client(const ClientConfig &_ClientConfig) {
+network::Client::Client(const ClientConfig &_ClientConfig) : m_CompletionPort(NULL) {
 	m_ClientConfig = _ClientConfig;
 }
 
@@ -546,11 +552,13 @@ void network::Client::SetConfig(const ClientConfig &_ClientConfig) {
 }
 
 bool network::Client::Connect() {
-	if (_InitCompletionPort() == false) {
+	if (!m_CompletionPort) {
+		if (_InitCompletionPort() == false) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(CC_RED, "Faild to Init ComplitionPort @Connect\n");
+			LOG(CC_RED, "Faild to Init ComplitionPort @Connect\n");
 #endif
-		return false;
+			return false;
+		}
 	}
 
 	if (_InitSock() == false) {
@@ -635,7 +643,13 @@ bool network::Client::_InitCompletionPort() {
 		return false;
 	}
 
-	unsigned int _WorkerThreadsNum = m_ClientConfig.O_WorkerThreadsPerProcessor * _GetProcessorNum();
+	unsigned int _WorkerThreadsNum = m_ClientConfig.O0_WorkerThreads > 0 ? m_ClientConfig.O0_WorkerThreads : (m_ClientConfig.O0_WorkerThreadsPerProcessor * _GetProcessorNum());
+	if (_WorkerThreadsNum <= 0) {
+#if(DEBUG&DEBUG_LOG)
+		LOG(CC_RED, "Invalid Worker Threads Number @_InitCompletionPort\n");
+#endif
+		return false;
+	}
 
 	HANDLE* _WorkerThreads = new HANDLE[_WorkerThreadsNum];
 	memset(_WorkerThreads, 0, sizeof(HANDLE)*_WorkerThreadsNum);

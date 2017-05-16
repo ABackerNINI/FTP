@@ -122,6 +122,4 @@ static const _FTP_CMDS_INF FTP_CMDS_INF[] = {
 	{ "NOOP", false, "Do nothing: NOOP" }
 };
 
-enum FTP_CMDS CmdDispatch(char **_Str);
-
 #endif//NINI_FTP_FTP_CMD_H

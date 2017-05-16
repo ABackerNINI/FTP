@@ -110,6 +110,8 @@ public:
 	void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
 
 protected:
+	enum FTP_CMDS CmdDispatch(char **_Str);
+
 	bool _Handle(SOCKET _Socket, ClientInf *_ClientInf);
 
 	bool _FtpSend(SOCKET _Socket, const char *_Buffer);

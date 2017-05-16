@@ -170,21 +170,24 @@ namespace network {
 	};
 
 	struct ServerConfig {
-		/* M:Mandatory
-		   O:Optional
+		/*	M:Mandatory
+			O:Optional
+			O[n]:Optional Set [n]
 		 */
 		int M_Port;
 		int O_MaxConnect;
 		int O_MaxPostAccept;
 		int O_MaxBufferLen;
-		int O_WorkerThreadsPerProcessor;
+		int O0_WorkerThreadsPerProcessor;
+		int O0_WorkerThreads;
 
 		ServerConfig(int _Port = -1) :
 			M_Port(_Port),
 			O_MaxConnect(DEFAULT_MAX_CONNECT),
 			O_MaxPostAccept(DEFAULT_MAX_POST_ACCEPT),
 			O_MaxBufferLen(DEFAULT_MAX_BUFFER_LEN),
-			O_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR) {
+			O0_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
+			O0_WorkerThreads(-1) {
 		}
 	};
 
@@ -210,7 +213,7 @@ namespace network {
 
 		bool Close(SOCKET _Socket);
 
-		bool AddListenPort(int _Port,int _Max_Connect);
+		//bool AddListenPort(int _Port, int _Max_Connect);
 
 		//bool Connect();
 
@@ -235,7 +238,7 @@ namespace network {
 
 		bool _InitComplitionPort();
 
-		bool _AddListenPort(int _Port,int _Max_Connect);
+		//bool _AddListenPort(int _Port, int _Max_Connect);
 
 		bool _PostAccept(SVR_SOCKET_CONTEXT *_SocketContext);
 
@@ -273,16 +276,19 @@ namespace network {
 	struct ClientConfig {
 		/*	M:Mandatory
 			O:Optional
+			O[n]:Optional Set [n]
 			A[n]:Alternative Set [n]
 		*/
 		const char *	A0_Address;
 		IP_PORT			A0_IpPort;
-		int				O_WorkerThreadsPerProcessor;
+		int				O0_WorkerThreadsPerProcessor;
+		int				O0_WorkerThreads;
 
 		ClientConfig() :
 			A0_Address(NULL),
 			A0_IpPort({ NULL,-1 }),
-			O_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR) {
+			O0_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
+			O0_WorkerThreads(-1) {
 		}
 	};
 
