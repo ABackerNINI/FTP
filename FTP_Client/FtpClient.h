@@ -98,6 +98,7 @@ public:
 
 	bool FtpSend(const char *_Buffer, int _Count);
 
+protected:
 	void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
 
 	void OnSent(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
@@ -106,7 +107,6 @@ public:
 
 	void OnClosed(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
 
-protected:
 	void _HandleResponse();
 
 protected:
@@ -127,6 +127,7 @@ public:
 
 	CLIENT_IO_STATUS GetIoStatus();
 
+protected:
 	void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
 
 	void OnSent(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
@@ -135,7 +136,6 @@ public:
 
 	void OnClosed(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
 
-protected:
 	void _HandleResponse();
 
 protected:

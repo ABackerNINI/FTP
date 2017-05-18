@@ -218,7 +218,7 @@ namespace network {
 
 		bool Close(SOCKET _Socket);
 
-		//bool AddListenPort(int _Port, int _Max_Connect);
+		bool AddListenPort(int _Port, int _Max_Connect);
 
 		//bool Connect();
 
@@ -243,7 +243,7 @@ namespace network {
 
 		bool _InitComplitionPort();
 
-		//bool _AddListenPort(int _Port, int _Max_Connect);
+		bool _AddListenPort(int _Port, int _Max_Connect);
 
 		bool _PostAccept(SVR_SOCKET_CONTEXT *_SocketContext);
 

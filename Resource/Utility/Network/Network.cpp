@@ -37,9 +37,9 @@ bool network::Server::Close(SOCKET _Socket) {
 	return true;
 }
 
-//bool network::Server::AddListenPort(int _Port, int _Max_Connect = 1) {
-//	return _AddListenPort(_Port, _Max_Connect);
-//}
+bool network::Server::AddListenPort(int _Port, int _Max_Connect = 1) {
+	return _AddListenPort(_Port, _Max_Connect);
+}
 
 bool network::Server::Stop() {
 	_Stop(m_Socket);
@@ -119,58 +119,58 @@ bool network::Server::_InitComplitionPort() {
 	return true;
 }
 
-//bool network::Server::_AddListenPort(int _Port, int _Max_Connect) {
-//	//SOCKET
-//	m_Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-//	if (m_Socket == INVALID_SOCKET) {
-//#if(DEBUG&DEBUG_LOG)
-//		LOG(CC_RED, "Faild to Create Socket @_AddListenPort\n");
-//#endif
-//		return false;
-//	}
-//
-//	SOCKADDR_IN _Addr;
-//	memset(&_Addr, 0, sizeof(_Addr));
-//	_Addr.sin_family = AF_INET;
-//	_Addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
-//	_Addr.sin_port = htons(_Port);
-//
-//	//BIND
-//	if (bind(m_Socket, (SOCKADDR*)&_Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
-//#if(DEBUG&DEBUG_LOG)
-//		LOG(CC_RED, "Faild to Bind Socket @_AddListenPort\n");
-//#endif
-//		return false;
-//	}
-//
-//	//LISTEN
-//	if (listen(m_Socket, _Max_Connect) == SOCKET_ERROR) {
-//#if(DEBUG&DEBUG_LOG)
-//		LOG(CC_RED, "Faild to Listen Port %d @_AddListenPort\n", _Port);
-//#endif
-//		return false;
-//	}
-//
-//	//COMPLETIONPORT
-//	if (CreateIoCompletionPort((HANDLE)m_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
-//#if(DEBUG&DEBUG_LOG)
-//		LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_AddListenPort\n");
-//#endif
-//		return false;
-//	}
-//
-//	//POST ACCEPT
-//	for (int i = 0; i < m_ServerConfig.O_MaxPostAccept; ++i) {
-//		SVR_SOCKET_CONTEXT *_SocketContext = new SVR_SOCKET_CONTEXT();
-//		if (_PostAccept(_SocketContext) == false) {
-//#if(DEBUG&DEBUG_LOG)
-//			LOG(CC_RED, "Faild to Post Accept%d @_AddListenPort\n", i);
-//#endif
-//		}
-//	}
-//
-//	return true;
-//}
+bool network::Server::_AddListenPort(int _Port, int _Max_Connect) {
+	//SOCKET
+	m_Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (m_Socket == INVALID_SOCKET) {
+#if(DEBUG&DEBUG_LOG)
+		LOG(CC_RED, "Faild to Create Socket @_AddListenPort\n");
+#endif
+		return false;
+	}
+
+	SOCKADDR_IN _Addr;
+	memset(&_Addr, 0, sizeof(_Addr));
+	_Addr.sin_family = AF_INET;
+	_Addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+	_Addr.sin_port = htons(_Port);
+
+	//BIND
+	if (bind(m_Socket, (SOCKADDR*)&_Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
+#if(DEBUG&DEBUG_LOG)
+		LOG(CC_RED, "Faild to Bind Socket @_AddListenPort\n");
+#endif
+		return false;
+	}
+
+	//LISTEN
+	if (listen(m_Socket, _Max_Connect) == SOCKET_ERROR) {
+#if(DEBUG&DEBUG_LOG)
+		LOG(CC_RED, "Faild to Listen Port %d @_AddListenPort\n", _Port);
+#endif
+		return false;
+	}
+
+	//COMPLETIONPORT
+	if (CreateIoCompletionPort((HANDLE)m_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
+#if(DEBUG&DEBUG_LOG)
+		LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_AddListenPort\n");
+#endif
+		return false;
+	}
+
+	//POST ACCEPT
+	for (int i = 0; i < m_ServerConfig.O_MaxPostAccept; ++i) {
+		SVR_SOCKET_CONTEXT *_SocketContext = new SVR_SOCKET_CONTEXT();
+		if (_PostAccept(_SocketContext) == false) {
+#if(DEBUG&DEBUG_LOG)
+			LOG(CC_RED, "Faild to Post Accept%d @_AddListenPort\n", i);
+#endif
+		}
+	}
+
+	return true;
+}
 
 bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
 	//WSADATA

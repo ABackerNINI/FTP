@@ -8,6 +8,10 @@
 #include "../Resource/Common/Common.h"
 
 #define DEFAULT_BUFFER_LEN 1024
+#define DEFAULT_USRNAME_BUFFER_LEN 100
+#define DEFAULT_PASSWD_BUFFER_LEN 100
+#define DEFAULT_DIR_BUFFER_LEN 100
+
 #define _CMD(CMD)  network::pointer_cast<_CmdHandler>(&FtpServer::_CmdHandler##CMD)
 
 enum CLIENT_LOGIN_STATUS {
@@ -27,6 +31,7 @@ struct ClientInf {
 	char	m_Passwd[100];
 	char	m_Dir[100];
 	bool	m_IsPasv;
+	int		m_Port;
 	CLIENT_LOGIN_STATUS m_Status;
 
 	ClientInf() :
@@ -36,6 +41,7 @@ struct ClientInf {
 		m_PosEnd(DEFAULT_BUFFER_LEN),
 		m_FlagUsingBuffer(false),
 		m_IsPasv(false),
+		m_Port(0),
 		m_Status(CLS_CONNECTED) {
 		m_Usrname[0] = '\0';
 		m_Passwd[0] = '\0';
@@ -87,6 +93,8 @@ struct ClientInf {
 
 class FtpServerData :public network::Server {
 public:
+
+protected:
 	void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
 
 	void OnRecvd(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
@@ -94,13 +102,12 @@ public:
 	void OnSent(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
 
 	void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
-
-protected:
 };
 
 class FtpServer :public network::Server {
 public:
 
+protected:
 	void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
 
 	void OnRecvd(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
@@ -109,7 +116,6 @@ public:
 
 	void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
 
-protected:
 	enum FTP_CMDS CmdDispatch(char **_Str);
 
 	bool _Handle(SOCKET _Socket, ClientInf *_ClientInf);
@@ -122,37 +128,37 @@ protected:
 	const _CmdHandler m_CmdHandler[FTP_CMDS_NUM + 1] = {//Need to Handle FTP_CMD_ERR
 		{ _CMD(_USER)},
 		{ _CMD(_PASS)},
-		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},//ACCT
 		{ _CMD(_CWD)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},//CDUP
+		{ _CMD(_NOT_IMPLEMENTED)},//SMNT
+		{ _CMD(_NOT_IMPLEMENTED)},//QUIT
+		{ _CMD(_NOT_IMPLEMENTED)},//REIN
 		{ _CMD(_PORT)},
 		{ _CMD(_PASV)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_NOT_IMPLEMENTED)},//TYPE
+		{ _CMD(_NOT_IMPLEMENTED)},//STRU
+		{ _CMD(_NOT_IMPLEMENTED)},//MODE
 		{ _CMD(_RETR)},
-		{ _CMD(_STOR)},//14
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
-		{ _CMD(_NOT_IMPLEMENTED)},
+		{ _CMD(_STOR)},
+		{ _CMD(_NOT_IMPLEMENTED)},//STOU
+		{ _CMD(_NOT_IMPLEMENTED)},//APPE
+		{ _CMD(_NOT_IMPLEMENTED)},//ALLO
+		{ _CMD(_NOT_IMPLEMENTED)},//REST
+		{ _CMD(_NOT_IMPLEMENTED)},//RNFR
+		{ _CMD(_NOT_IMPLEMENTED)},//RNTO
+		{ _CMD(_NOT_IMPLEMENTED)},//ABOR
+		{ _CMD(_NOT_IMPLEMENTED)},//DELE
+		{ _CMD(_NOT_IMPLEMENTED)},//RMD
+		{ _CMD(_NOT_IMPLEMENTED)},//MKD
+		{ _CMD(_NOT_IMPLEMENTED)},//PWD
+		{ _CMD(_NOT_IMPLEMENTED)},//LIST
+		{ _CMD(_NOT_IMPLEMENTED)},//NLST
+		{ _CMD(_NOT_IMPLEMENTED)},//SITE
+		{ _CMD(_NOT_IMPLEMENTED)},//SYST
+		{ _CMD(_NOT_IMPLEMENTED)},//STAT
+		{ _CMD(_HELP)},
+		{ _CMD(_NOOP)},
 		{ _CMD(_ERR)}
 	};
 
@@ -169,6 +175,20 @@ protected:
 	void _CmdHandler_RETR(SOCKET _Socket, ClientInf*, char *_Args);
 
 	void _CmdHandler_STOR(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_DELE(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_RMD(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_MKD(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_PWD(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_LIST(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_HELP(SOCKET _Socket, ClientInf*, char *_Args);
+
+	void _CmdHandler_NOOP(SOCKET _Socket, ClientInf*, char *_Args);
 
 	void _CmdHandler_ERR(SOCKET _Socket, ClientInf*, char *_Args);
 

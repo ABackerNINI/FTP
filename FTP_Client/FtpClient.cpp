@@ -1,5 +1,7 @@
 #include "FtpClient.h"
 
+/*-----------------------------------------------------------FtpClientData Section-----------------------------------------------------------*/
+
 FtpClientData::FtpClientData() {
 }
 
@@ -30,6 +32,8 @@ void FtpClientData::OnClosed(network::CLT_SOCKET_CONTEXT * _SocketContext) {
 
 void FtpClientData::_HandleResponse() {
 }
+
+/*-----------------------------------------------------------FtpClient Section-----------------------------------------------------------*/
 
 FtpClient::FtpClient() {
 }
@@ -117,12 +121,14 @@ void FtpClient::OnClosed(network::CLT_SOCKET_CONTEXT * _SocketContext) {
 }
 
 void FtpClient::_HandleResponse() {
-	char *_Str = m_ClientInf.Pop();
-	if (_Str) {
+	char *_Str;
+
+	while (_Str = m_ClientInf.Pop(), _Str) {
 		printf("\t%s\n", _Str);
 		fflush(stdout);
+
+		m_ClientStatus = CIS_RSP_HANDLED;
 	}
 
-	m_ClientStatus = CIS_RSP_HANDLED;
 	//TODO ERR CHECK
 }

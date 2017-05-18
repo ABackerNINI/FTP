@@ -1,0 +1,133 @@
+STATE DIAGRAMS:
+
+Here we present state diagrams for a very simple minded FTP   implementation.  Only the first digit of the reply codes is used.   There is one state diagram for each group of FTP commands or command   sequences.
+
+The command groupings were determined by constructing a model for   each command then collecting together the commands with structurally   identical models.
+
+For each command or command sequence there are three possible   outcomes: success (S), failure (F), and error (E).  In the state   diagrams below we use the symbol B for "begin", and the symbol W for   "wait for reply".
+
+We first present the diagram that represents the largest group of FTP   commands:
+
+                               1,3    +---+
+                          ----------->| E |
+                         |            +---+
+                         |
+      +---+    cmd    +---+    2      +---+
+      | B |---------->| W |---------->| S |
+      +---+           +---+           +---+
+      					 |
+      					 |     4,5    +---+
+      					  ----------->| F |
+      					              +---+
+
+This diagram models the commands:
+    ABOR, ALLO, DELE, CWD, CDUP, SMNT, HELP, MODE, NOOP, PASV,QUIT, SITE, PORT, SYST, STAT, RMD, MKD, PWD, STRU, and TYPE.
+
+
+The other large group of commands is represented by a very similar   diagram:
+                               3      +---+
+                          ----------->| E |
+                         |            +---+
+                         |
+      +---+    cmd    +---+    2      +---+
+      | B |---------->| W |---------->| S |
+      +---+       --->+---+           +---+
+                 |     | |
+                 |     | |     4,5    +---+
+                 |  1  |  ----------->| F |
+                  -----               +---+
+This diagram models the commands:
+         APPE, LIST, NLST, REIN, RETR, STOR, and STOU.
+
+Note that this second model could also be used to represent the first   group of commands, the only difference being that in the first group   the 100 series replies are unexpected and therefore treated as error,   while the second group expects (some may require) 100 series replies.   Remember that at most, one 100 series reply is allowed per command.
+
+The remaining diagrams model command sequences, perhaps the simplest   of these is the rename sequence:
+
+      +---+   RNFR    +---+    1,2    +---+
+      | B |---------->| W |---------->| E |
+      +---+           +---+        -->+---+
+      				   | |        |
+      		    3      | | 4,5    |
+         --------------  ------   |
+        |                      |  |   +---+
+        |               ------------->| S |
+        |              |   1,3 |  |   +---+
+        |             2|  -------
+        |              | |     |
+        V              | |     |
+      +---+   RNTO    +---+ 4,5 ----->+---+
+      |   |---------->| W |---------->| F |
+      +---+           +---+           +---+
+
+The next diagram is a simple model of the Restart command:
+      +---+   REST    +---+    1,2    +---+
+      | B |---------->| W |---------->| E |
+      +---+           +---+        -->+---+
+      				   | |        |
+      		    3      | | 4,5    |
+      	 --------------  ------   |
+      	|                      |  |   +---+
+      	|               ------------->| S |
+      	|              |   3   |  |   +---+
+      	|             2|  -------
+      	|              | |     |
+        V              | |     |
+      +---+   cmd     +---+ 4,5 ----->+---+
+      |   |---------->| W |---------->| F |
+      +---+        -->+---+           +---+
+                  |      |
+                  |  1   |
+                    -----
+Where "cmd" is APPE, STOR, or RETR.
+
+We note that the above three models are similar.  The Restart differs   from the Rename two only in the treatment of 100 series replies at   the second stage, while the second group expects (some may require)   100 series replies.  Remember that at most, one 100 series reply is   allowed per command.
+
+The most complicated diagram is for the Login sequence:
+                            1
+      +---+   USER    +---+------------->+---+
+      | B |---------->| W | 2       ---->| E |
+      +---+           +---+------  |  -->+---+
+                       | |       | | |
+                     3 | | 4,5   | | |
+         --------------   -----  | | |
+        |                      | | | |
+        |                      | | | |
+        |                 ---------  |
+        |               1|     | |   |
+        V                |     | |   |
+      +---+   PASS    +---+ 2  |  ------>+---+
+      |   |---------->| W |------------->| S |
+      +---+           +---+   ---------->+---+
+                       | |   | |     |
+                     3 | |4,5| |     |
+         --------------   --------   |
+        |                    | |  |  |
+        |                    | |  |  |
+        |                 ----------
+        |             1,3|   | |  |
+        V                |  2| |  |
+      +---+   ACCT    +---+--  |   ----->+---+
+      |   |---------->| W | 4,5 -------->| F |
+      +---+           +---+------------->+---+
+
+  Finally, we present a generalized diagram that could be used to model   the command and reply interchange:
+               -----------------------------------
+              |                                    |
+       Begin  |                                    |
+        |     V                                    |
+        |   +---+  cmd   +---+ 2         +---+     |
+         -->|   |------->|   |---------->|   |     |
+            |   |        | W |           | S |-----|
+         -->|   |     -->|   |-----      |   |     |
+        |   +---+    |   +---+ 4,5 |     +---+     |
+        |     |      |    | |      |               |
+        |     |      |   1| |3     |     +---+     |
+        |     |      |    | |      |     |   |     |
+        |     |       ----  |       ---->| F |----
+        |     |             |            |   |
+        |     |             |            +---+
+         ------------------
+              |
+              |
+              V
+             End

@@ -78,48 +78,67 @@ enum FTP_CMDS {
 	FTP_CMD_ERR
 };
 
+enum FTP_CMDS_NEED_ARGS {
+	FCNA_NONE,
+	FCNA_MANDATORY,
+	FCNA_OPTIONAL
+};
+
 struct _FTP_CMDS_INF {
-	const char *	m_Cmd;
-	bool			m_NeedArgs;
-	const char *	m_HelpMsg;
+	const char *			m_Cmd;
+	FTP_CMDS_NEED_ARGS		m_NeedArgs;
+	const char *			m_HelpMsg;
 };
 
 static const int FTP_CMDS_NUM = 34 - 1;//FTP_CMD_ERR Is Not a CMD
 
 static const _FTP_CMDS_INF FTP_CMDS_INF[] = {
-	{ "USER", true,  "Supply a username: USER username" },
-	{ "PASS", true,  "Supply a user password: PASS password" },
-	{ "ACCT", false, ""},
-	{ "CWD",  true,	 "Change working directory: CWD [directory-name]" },
-	{ "CDUP", false, ""},
-	{ "SMNT", false, "" },
-	{ "QUIT", false, "Logout or break the connection: QUIT" },
-	{ "REIN", false, "" },
-	{ "PORT", true,	 "Specify the client port number: PORT a0,a1,a2,a3,a4,a5" },
-	{ "PASV", false, "Set server in passive mode: PASV" },
-	{ "TYPE", true,	 "Set filetype: TYPE [A | I]" },
-	{ "STRU", false, "" },
-	{ "MODE", false, "" },
-	{ "RETR", true,	 "Get file: RETR file-name" },
-	{ "STOR", true,	 "Store file: STOR file-name" },
-	{ "STOU", false, "" },
-	{ "APPE", false, "" },
-	{ "ALLO", false, "" },
-	{ "REST", true,	 "Set restart transfer marker: REST marker" },
-	{ "RNFR", true,  "Specify old path name of file to be renamed: RNFR file-name" },
-	{ "RNTO", true,	 "Specify new path name of file to be renamed: RNTO file-name" },
-	{ "ABOR", false, "Abort transfer: ABOR" },
-	{ "DELE", true , "Delete file: DELE file-name" },
-	{ "RMD",  true,	 "Remove directory: RMD path-name" },
-	{ "MKD",  true,	 "Make directory: MKD path-name" },
-	{ "PWD",  false, "Get current directory: PWD" },
-	{ "LIST", false, "Get directory listing: LIST [path-name]" },
-	{ "NLST", false, ""},
-	{ "SITE", false, ""},
-	{ "SYST", false, "Get operating system type: SYST" } ,
-	{ "STAT", false, "" },
-	{ "HELP", false, "Show help: HELP [command]" },
-	{ "NOOP", false, "Do nothing: NOOP" }
+	{ "USER", FCNA_MANDATORY,  "Supply a username: USER username" },
+	{ "PASS", FCNA_MANDATORY,  "Supply a user password: PASS password" },
+	{ "ACCT", FCNA_NONE, ""},
+	{ "CWD",  FCNA_MANDATORY,	 "Change working directory: CWD [directory-name]" },
+	{ "CDUP", FCNA_NONE, ""},
+	{ "SMNT", FCNA_NONE, "" },
+	{ "QUIT", FCNA_NONE, "Logout or break the connection: QUIT" },
+	{ "REIN", FCNA_NONE, "" },
+	{ "PORT", FCNA_MANDATORY,	 "Specify the client port number: PORT a0,a1,a2,a3,a4,a5" },
+	{ "PASV", FCNA_NONE, "Set server in passive mode: PASV" },
+	{ "TYPE", FCNA_MANDATORY,	 "Set filetype: TYPE [A | I]" },
+	{ "STRU", FCNA_NONE, "" },
+	{ "MODE", FCNA_NONE, "" },
+	{ "RETR", FCNA_MANDATORY,	 "Get file: RETR file-name" },
+	{ "STOR", FCNA_MANDATORY,	 "Store file: STOR file-name" },
+	{ "STOU", FCNA_NONE, "" },
+	{ "APPE", FCNA_NONE, "" },
+	{ "ALLO", FCNA_NONE, "" },
+	{ "REST", FCNA_MANDATORY,	 "Set restart transfer marker: REST marker" },
+	{ "RNFR", FCNA_MANDATORY,  "Specify old path name of file to be renamed: RNFR file-name" },
+	{ "RNTO", FCNA_MANDATORY,	 "Specify new path name of file to be renamed: RNTO file-name" },
+	{ "ABOR", FCNA_NONE, "Abort transfer: ABOR" },
+	{ "DELE", FCNA_MANDATORY , "Delete file: DELE file-name" },
+	{ "RMD",  FCNA_MANDATORY,	 "Remove directory: RMD path-name" },
+	{ "MKD",  FCNA_MANDATORY,	 "Make directory: MKD path-name" },
+	{ "PWD",  FCNA_NONE, "Get current directory: PWD" },
+	{ "LIST", FCNA_NONE, "Get directory listing: LIST [path-name]" },
+	{ "NLST", FCNA_NONE, ""},
+	{ "SITE", FCNA_NONE, ""},
+	{ "SYST", FCNA_NONE, "Get operating system type: SYST" } ,
+	{ "STAT", FCNA_NONE, "" },
+	{ "HELP", FCNA_OPTIONAL, "Show help: HELP [command]" },
+	{ "NOOP", FCNA_NONE, "Do nothing: NOOP" }
 };
+
+static const char HELP_MSG[] =	
+	"214 The following commands are recognized:\r\n"
+	"USER\r\n"
+	"PASS\r\n"
+	"ACCT\r\n"
+	""
+	""
+	""
+	""
+	""
+	""
+	"214 HELP command successful.\r\n";
 
 #endif//NINI_FTP_FTP_CMD_H
