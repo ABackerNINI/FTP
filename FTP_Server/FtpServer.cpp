@@ -142,8 +142,8 @@ void FtpServer::_CmdHandler_CWD(SOCKET _Socket, ClientInf *, char * _Args) {
 
 void FtpServer::_CmdHandler_PORT(SOCKET _Socket, ClientInf *, char * _Args) {
 
-	int _Len = 
-	for(int i=0;i<_Len)
+	int _Len = 0;
+	for (int i = 0; i < _Len; ++i) {}
 
 	_FtpSend(_Socket, "200 Port command successful.\r\n");
 }

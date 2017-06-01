@@ -48,7 +48,7 @@ bool Connect(FtpClient *_FtpClient) {
 int main() {
 	SetConsoleCtrlHandler(ConsoleHandler, true);
 
-	_ClientConfig.A0_IpPort.M_Ip = "192.168.10.113";//"192.168.1.102";
+	_ClientConfig.A0_IpPort.M_Ip = "192.168.1.102";//"192.168.10.113";
 	_ClientConfig.A0_IpPort.M_Port = 21;
 	_ClientConfig.M_Port = 1024;
 
