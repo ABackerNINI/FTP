@@ -21,6 +21,7 @@
 #define FEATURE_RECV_ON_ACCEPT 0		//Recv Data on Accept.
 										//This may arise a problem that when the client does not send data on connect,
 										//the server won't get the event OnAccepted immediately until the client sends data.
+#define FEATURE_MULTI_CONNECTION 1		//Multi-Connection
 
 #define DEFAULT_MAX_CONNECT 30
 #define DEFAULT_MAX_BUFFER_LEN 100
@@ -117,7 +118,7 @@ namespace network {
 	struct SVR_SOCKET_CONTEXT {
 		OVERLAPPED		m_Overlapped;
 		SOCKET			m_ClientSocket;
-		//SOCKADDR_IN		m_ClientAddr;
+		SOCKADDR_IN		m_ClientAddr;
 		WSABUF			m_wsaBuf;
 		char*			m_szBuffer;
 		unsigned int	m_BytesTransferred;
@@ -274,8 +275,15 @@ namespace network {
 	};
 
 	struct IP_PORT {
-		const char *M_Ip;
-		int M_Port;
+		const char *	M0_Ip_String;
+		unsigned long	M0_Ip_ULong;
+		int				M_Port;
+
+		IP_PORT() :
+			M0_Ip_String(NULL),
+			M0_Ip_ULong(0),
+			M_Port(0) {
+		}
 	};
 
 	struct ClientConfig {
@@ -284,14 +292,16 @@ namespace network {
 			O[n]:Optional Set [n]
 			A[n]:Alternative Set [n]
 		*/
-		const char *	A0_Address;
-		IP_PORT			A0_IpPort;
+		//const char *	A0_Address;
+		//IP_PORT			A0_IpPort;
+		//int				O_LocalPort;
 		int				O0_WorkerThreadsPerProcessor;
 		int				O0_WorkerThreads;
 
 		ClientConfig() :
-			A0_Address(NULL),
-			A0_IpPort({ NULL,-1 }),
+			//A0_Address(NULL),
+			//A0_IpPort({ NULL,-1 }),
+			//O_LocalPort(0),
 			O0_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
 			O0_WorkerThreads(-1) {
 		}
@@ -318,13 +328,16 @@ namespace network {
 		WSABUF			m_wsaBuf;
 		char*			m_szBuffer;
 		unsigned int	m_BytesTransferred;
+		SOCKET			m_Socket;
+		//int				m_Ip;
 		CLT_OP  m_OpType;
 
 #if(DEBUG&DEBUG_TRACE)
 		int _DEBUG_TRACE;
 #endif
 
-		CLT_SOCKET_CONTEXT(int _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) {
+		CLT_SOCKET_CONTEXT(int _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) 
+		:m_Socket(0){
 			m_szBuffer = new char[_MaxBufferLen];
 			m_wsaBuf.buf = m_szBuffer;
 			m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'
@@ -338,6 +351,7 @@ namespace network {
 		}
 
 		CLT_SOCKET_CONTEXT(const char *_Buffer, unsigned int _BufferLen) :
+			m_Socket(0),
 			m_OpType(CLT_OP::CLTOP_UNDEFINED) {
 			m_szBuffer = new char[_BufferLen + 1];
 			memcpy(m_szBuffer, _Buffer, sizeof(char)*(_BufferLen + 1));
@@ -374,11 +388,21 @@ namespace network {
 
 		void SetConfig(const ClientConfig &_ClientConfig);
 
-		bool Connect();
+		//bool Connect();
 
-		bool Send(const char *_SendBuffer, unsigned int _BufferLen);
+		//bool Send(const char *_SendBuffer, unsigned int _BufferLen);
 
-		bool Close();
+		//bool Close();
+
+#if(FEATURE_MULTI_CONNECTION == 1)
+		SOCKET Connect(const IP_PORT *_IpPort,int *_LocalPort = NULL);
+
+		int Connect(const char *_Address, int *_LocalPort);
+
+		bool Send(SOCKET _Socket, const char *_SendBuffer, unsigned int _BufferLen);
+
+		bool Close(SOCKET _Socket);
+#endif
 
 		virtual void OnConnected(CLT_SOCKET_CONTEXT *_SocketContext);
 
@@ -391,11 +415,13 @@ namespace network {
 		~Client();
 
 	protected:
-		bool _InitSock();
+		int _Init();
+
+		SOCKET _InitSock(int *_Port);
 
 		bool _InitCompletionPort();
 
-		bool _PostConnect(unsigned long _Ip, int _Port);
+		bool _PostConnect(SOCKET _Socket, unsigned long _Ip, int _Port);
 
 		bool _PostSend(CLT_SOCKET_CONTEXT *_SocketContext);
 
@@ -410,7 +436,7 @@ namespace network {
 		static DWORD WINAPI ClientWorkThread(LPVOID _LpParam);
 
 	protected:
-		SOCKET				m_Socket;
+		//SOCKET				m_Socket;
 
 		HANDLE				m_CompletionPort;
 

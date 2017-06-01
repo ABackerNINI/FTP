@@ -1,6 +1,20 @@
 #include "FtpServer.h"
 #include <assert.h>
 
+/*-----------------------------------------------------------FtpServerClient Section-----------------------------------------------------------*/
+
+void FtpServerClient::OnConnected(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerClient::OnSent(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerClient::OnRecvd(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerClient::OnClosed(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
 /*-----------------------------------------------------------FtpServerData Section-----------------------------------------------------------*/
 
 void FtpServerData::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
@@ -17,8 +31,17 @@ void FtpServerData::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 
 /*-----------------------------------------------------------FtpServer Section-----------------------------------------------------------*/
 
+FtpServer::FtpServer() :network::Server() {
+	//network::ClientConfig _ClientConfig;
+	//_ClientConfig.O0_WorkerThreads = 5;
+
+	//m_FtpServerClient.SetConfig(_ClientConfig);
+}
+
 void FtpServer::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 	ClientInf *_ClientInf = new ClientInf();
+
+	_ClientInf->m_Ip = _SocketContext->m_ClientAddr.sin_addr.S_un.S_addr;
 
 	_FtpSend(_SocketContext->m_ClientSocket, "220 Welcome to NINI's FTP service.\r\n");
 
@@ -140,12 +163,18 @@ void FtpServer::_CmdHandler_CWD(SOCKET _Socket, ClientInf *, char * _Args) {
 	_FtpSend(_Socket, "500 CWD.\r\n");
 }
 
-void FtpServer::_CmdHandler_PORT(SOCKET _Socket, ClientInf *, char * _Args) {
+void FtpServer::_CmdHandler_PORT(SOCKET _Socket, ClientInf *_ClientInf, char * _Args) {
+	/*unsigned long _Port = std::atoi(_Args);
+	if (_Port > 1023) {*/
+		_FtpSend(_Socket, "200 Port command successful.\r\n");
 
-	int _Len = 0;
-	for (int i = 0; i < _Len; ++i) {}
-
-	_FtpSend(_Socket, "200 Port command successful.\r\n");
+		/*network::IP_PORT _IpPort;
+		_IpPort.M0_Ip_ULong = _Port;
+		_IpPort.M_Port = _Port;
+		m_FtpServerClient.Connect(&_IpPort);*/
+	/*} else {
+		_FtpSend(_Socket, "Port command faild.\r\n");
+	}*/
 }
 
 void FtpServer::_CmdHandler_PASV(SOCKET _Socket, ClientInf *, char * _Args) {

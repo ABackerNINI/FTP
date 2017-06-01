@@ -1,5 +1,19 @@
 #include "FtpClient.h"
 
+/*-----------------------------------------------------------FtpClientServer Section-----------------------------------------------------------*/
+
+void FtpClientServer::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpClientServer::OnRecvd(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpClientServer::OnSent(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpClientServer::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
 /*-----------------------------------------------------------FtpClientData Section-----------------------------------------------------------*/
 
 FtpClientData::FtpClientData() {
@@ -35,20 +49,24 @@ void FtpClientData::_HandleResponse() {
 
 /*-----------------------------------------------------------FtpClient Section-----------------------------------------------------------*/
 
-FtpClient::FtpClient() {
+FtpClient::FtpClient() :network::Client() {
+	//network::ServerConfig _ServerConfig;
+	//_ServerConfig.M_Port = 1045;
+	//_ServerConfig.O0_WorkerThreads = 0;
+
+	//m_FtpClientServer.SetConfig(_ServerConfig);
 }
 
-FtpClient::FtpClient(const FtpClientConfig & _FtpClientConfig) :network::Client(_FtpClientConfig), m_Port(_FtpClientConfig.M_Port), m_FtpClientData(_FtpClientConfig) {
+FtpClient::FtpClient(const FtpClientConfig & _FtpClientConfig) :network::Client(_FtpClientConfig)/*, m_Port(_FtpClientConfig.M_Port), m_FtpClientData(_FtpClientConfig)*/ {
 }
 
 void FtpClient::SetConfig(const FtpClientConfig & _FtpClientConfig) {
 	network::Client::SetConfig(_FtpClientConfig);
-
-	m_Port = _FtpClientConfig.M_Port;
 }
 
-bool FtpClient::FtpConnect() {
-	if (Connect()) {
+bool FtpClient::FtpConnect(const network::IP_PORT *_IpPort) {
+	int _LocalPort = 0;
+	if (m_Socket = Connect(_IpPort,&_LocalPort)) {
 		for (int i = 0; i < 10; ++i) {
 			
 			if (m_ClientStatus == CLIENT_IO_STATUS::CIS_RSP_HANDLED) {
@@ -75,7 +93,7 @@ bool FtpClient::FtpSend(const char * _Buffer, int _Count) {
 	bool _Sending = false;
 	while (true) {
 		if (!_Sending && (m_ClientStatus == CIS_RSP_HANDLED || m_ClientStatus == CIS_CONNECTED)) {
-			if (Send(_Buffer, _Count) == false) {
+			if (Send(m_Socket, _Buffer, _Count) == false) {
 				return false;
 			}
 			m_ClientStatus = CIS_SENDING;
@@ -91,6 +109,10 @@ bool FtpClient::FtpSend(const char * _Buffer, int _Count) {
 
 CLIENT_IO_STATUS FtpClient::GetIoStatus() {
 	return m_ClientStatus;
+}
+
+bool FtpClient::Close() {
+	return network::Client::Close(m_Socket);
 }
 
 void FtpClient::OnConnected(network::CLT_SOCKET_CONTEXT * _SocketContext) {

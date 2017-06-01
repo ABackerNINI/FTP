@@ -88,6 +88,18 @@ struct ClientInf {
 	}
 };
 
+class FtpClientServer :public network::Server {
+public:
+protected:
+	void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnRecvd(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnSent(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+};
+
 class FtpClientData :public network::Client {
 public:
 	FtpClientData();
@@ -121,11 +133,13 @@ public:
 
 	void SetConfig(const FtpClientConfig &_FtpClientConfig);
 
-	bool FtpConnect();
+	bool FtpConnect(const network::IP_PORT *_IpPort);
 
 	bool FtpSend(const char *_Buffer,int _Count);
 
 	CLIENT_IO_STATUS GetIoStatus();
+
+	bool Close();
 
 protected:
 	void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
@@ -139,7 +153,7 @@ protected:
 	void _HandleResponse();
 
 protected:
-	int					m_Port;
+	SOCKET				m_Socket;
 
 	FTP_CMDS			m_LastCmd;
 
@@ -147,7 +161,9 @@ protected:
 
 	CLIENT_IO_STATUS	m_ClientStatus;
 
-	FtpClientData		m_FtpClientData;
+	//FtpClientData		m_FtpClientData;
+
+	//FtpClientServer		m_FtpClientServer;
 };
 
 #endif//NINI_FTP_FTP_CLIENT_H
