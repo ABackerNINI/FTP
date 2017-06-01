@@ -133,11 +133,13 @@ public:
 
 	void SetConfig(const FtpClientConfig &_FtpClientConfig);
 
-	bool FtpConnect();
+	bool FtpConnect(const network::IP_PORT *_IpPort);
 
 	bool FtpSend(const char *_Buffer,int _Count);
 
 	CLIENT_IO_STATUS GetIoStatus();
+
+	bool Close();
 
 protected:
 	void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
@@ -151,7 +153,7 @@ protected:
 	void _HandleResponse();
 
 protected:
-	int					m_Port;
+	int					m_Socket;
 
 	FTP_CMDS			m_LastCmd;
 
@@ -159,7 +161,9 @@ protected:
 
 	CLIENT_IO_STATUS	m_ClientStatus;
 
-	FtpClientData		m_FtpClientData;
+	//FtpClientData		m_FtpClientData;
+
+	//FtpClientServer		m_FtpClientServer;
 };
 
 #endif//NINI_FTP_FTP_CLIENT_H

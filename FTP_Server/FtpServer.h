@@ -32,6 +32,7 @@ struct ClientInf {
 	char	m_Dir[100];
 	bool	m_IsPasv;
 	int		m_Port;
+	unsigned long  m_Ip;
 	CLIENT_LOGIN_STATUS m_Status;
 
 	ClientInf() :
@@ -119,6 +120,7 @@ protected:
 
 class FtpServer :public network::Server {
 public:
+	FtpServer();
 
 protected:
 	void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
@@ -134,6 +136,10 @@ protected:
 	bool _Handle(SOCKET _Socket, ClientInf *_ClientInf);
 
 	bool _FtpSend(SOCKET _Socket, const char *_Buffer);
+
+protected:
+
+	//FtpServerClient				m_FtpServerClient;
 
 protected:
 	typedef void(*_CmdHandler)(FtpServer*, SOCKET, ClientInf*, char *);

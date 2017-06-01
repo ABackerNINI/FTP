@@ -408,8 +408,12 @@ bool network::Server::_DoAccepted(SVR_SOCKET_CONTEXT *_SocketContext) {
 		_NewSocketContex->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
 		sizeof(SOCKADDR_IN) + 16,
 		sizeof(SOCKADDR_IN) + 16,
-		(LPSOCKADDR*)&_LocalAddr, &_LocalAddrLen,
-		(LPSOCKADDR*)&_ClientAddr, &_ClientAddrLen);//mark:?
+		(LPSOCKADDR*)&_LocalAddr, 
+		&_LocalAddrLen,
+		(LPSOCKADDR*)&_ClientAddr,
+		&_ClientAddrLen);//mark:?
+
+	_NewSocketContex->m_ClientAddr = *_ClientAddr;//mark
 
 	//TODO save clientaddr
 
@@ -546,54 +550,132 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 /*-----------------------------------------------------------Client Section-----------------------------------------------------------*/
 
 network::Client::Client() :m_CompletionPort(NULL) {
+	_Init();
 }
 
 network::Client::Client(const ClientConfig &_ClientConfig) : m_CompletionPort(NULL) {
 	m_ClientConfig = _ClientConfig;
+
+	_Init();
 }
 
 void network::Client::SetConfig(const ClientConfig &_ClientConfig) {
 	m_ClientConfig = _ClientConfig;
 }
 
-bool network::Client::Connect() {
-	if (!m_CompletionPort) {
-		if (_InitCompletionPort() == false) {
+int network::Client::_Init() {
+	//WSADATA
+	WSADATA Wsadata;
+	WORD wVersionRequested = MAKEWORD(2, 2);
+	if (WSAStartup(wVersionRequested, &Wsadata) != 0) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(CC_RED, "Faild to Init ComplitionPort @Connect\n");
+		LOG(CC_RED, "Faild to Load WSAStartup @_Init\n");
 #endif
-			return false;
-		}
+		return -1;
 	}
 
-	if (_InitSock() == false) {
+	if (LOBYTE(Wsadata.wVersion) != 2 || HIBYTE(Wsadata.wVersion) != 2) {
+#if(DEBUG&DEBUG_LOG)
+		LOG(CC_RED, "Wrong WSA Version(!2.2) @_Init\n");
+#endif
+		return -2;
+	}
+
+	if (_InitCompletionPort() == false) {
+#if(DEBUG&DEBUG_LOG)
+		LOG(CC_RED, "Faild to Init ComplitionPort @_Init\n");
+#endif
+		return -3;
+	}
+
+	return 0;
+}
+
+//bool network::Client::Connect() {
+//	if (!m_CompletionPort) {
+//		if (_InitCompletionPort() == false) {
+//#if(DEBUG&DEBUG_LOG)
+//			LOG(CC_RED, "Faild to Init ComplitionPort @Connect\n");
+//#endif
+//			return false;
+//		}
+//	}
+//
+//	if (_InitSock(0) == false) {
+//#if(DEBUG&DEBUG_LOG)
+//		LOG(CC_RED, "Faild to Init Sock @Connect\n");
+//#endif
+//		return false;
+//	}
+//
+//	if (m_ClientConfig.A0_IpPort.M_Ip == NULL) {
+//		//TODO parse address and call gethostbyname
+//	}
+//
+//	if (_PostConnect(inet_addr(m_ClientConfig.A0_IpPort.M_Ip), m_ClientConfig.A0_IpPort.M_Port) == false) {
+//#if(DEBUG&DEBUG_LOG)
+//		LOG(CC_RED, "Faild to Post Connect @Connect\n");
+//#endif
+//		return false;
+//	}
+//
+//	return true;
+//}
+
+//bool network::Client::Send(const char * _SendBuffer, unsigned int _BufferLen) {
+//	CLT_SOCKET_CONTEXT *_SocketContext = new CLT_SOCKET_CONTEXT(_SendBuffer, _BufferLen);
+//
+//	return _PostSend(_SocketContext);
+//}
+//
+//bool network::Client::Close() {
+//#if(DEBUG&DEBUG_TRACE)
+//	TRACE_PRINT("Close Socket:%lld @Close\n", m_Socket);
+//#endif
+//
+//	//shutdown(m_Socket, SD_BOTH);
+//
+//	//LINGER _Linger = { 1,0 };
+//	//_Linger.l_onoff = 0;
+//	//setsockopt(m_Socket, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
+//
+//	closesocket(m_Socket);
+//
+//	return true;
+//}
+
+int network::Client::Connect(const IP_PORT * _IpPort, int *_LocalPort) {
+	int _LocalPort1;
+	if (!_LocalPort) {
+		_LocalPort = &_LocalPort1;
+	}
+
+	int _Socket = _InitSock(_LocalPort);
+	if (*_LocalPort < 0) {
 #if(DEBUG&DEBUG_LOG)
 		LOG(CC_RED, "Faild to Init Sock @Connect\n");
 #endif
-		return false;
+		return -2;
 	}
 
-	if (m_ClientConfig.A0_IpPort.M_Ip == NULL) {
-		//TODO parse address and call gethostbyname
-	}
-
-	if (_PostConnect(inet_addr(m_ClientConfig.A0_IpPort.M_Ip), m_ClientConfig.A0_IpPort.M_Port) == false) {
+	if (_PostConnect(_Socket, _IpPort->M0_Ip_ULong ? _IpPort->M0_Ip_ULong : inet_addr(_IpPort->M0_Ip_String), _IpPort->M_Port) == false) {
 #if(DEBUG&DEBUG_LOG)
 		LOG(CC_RED, "Faild to Post Connect @Connect\n");
 #endif
-		return false;
+		return -3;
 	}
 
-	return true;
+	return _Socket;
 }
 
-bool network::Client::Send(const char * _SendBuffer, unsigned int _BufferLen) {
+bool network::Client::Send(SOCKET _Socket, const char * _SendBuffer, unsigned int _BufferLen) {
 	CLT_SOCKET_CONTEXT *_SocketContext = new CLT_SOCKET_CONTEXT(_SendBuffer, _BufferLen);
+	_SocketContext->m_Socket = _Socket;
 
 	return _PostSend(_SocketContext);
 }
 
-bool network::Client::Close() {
+bool network::Client::Close(SOCKET _Socket) {
 #if(DEBUG&DEBUG_TRACE)
 	TRACE_PRINT("Close Socket:%lld @Close\n", m_Socket);
 #endif
@@ -604,7 +686,7 @@ bool network::Client::Close() {
 	//_Linger.l_onoff = 0;
 	//setsockopt(m_Socket, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
 
-	closesocket(m_Socket);
+	closesocket(_Socket);
 
 	return true;
 }
@@ -674,77 +756,65 @@ bool network::Client::_InitCompletionPort() {
 	return true;
 }
 
-bool network::Client::_InitSock() {
-	//WSADATA
-	WSADATA Wsadata;
-	WORD wVersionRequested = MAKEWORD(2, 2);
-	if (WSAStartup(wVersionRequested, &Wsadata) != 0) {
-#if(DEBUG&DEBUG_LOG)
-		LOG(CC_RED, "Faild to Load WSAStartup @_InitSock\n");
-#endif
-		return false;
-	}
-
-	if (LOBYTE(Wsadata.wVersion) != 2 || HIBYTE(Wsadata.wVersion) != 2) {
-#if(DEBUG&DEBUG_LOG)
-		LOG(CC_RED, "Wrong WSA Version(!2.2) @_InitSock\n");
-#endif
-		return false;
-	}
+int network::Client::_InitSock(int *_Port) {
 
 	//SOCKET
-	m_Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-	if (m_Socket == INVALID_SOCKET) {
+	int _Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (_Socket == INVALID_SOCKET) {
 #if(DEBUG&DEBUG_LOG)
 		LOG(CC_RED, "Faild to Create Socket @_InitSock\n");
 #endif
-		return false;
+		return -3;
 	}
 
 	SOCKADDR_IN _LocalAddr;
 	memset(&_LocalAddr, 0, sizeof(_LocalAddr));
 	_LocalAddr.sin_family = AF_INET;
 	_LocalAddr.sin_addr.S_un.S_addr = INADDR_ANY;
-	_LocalAddr.sin_port = htons((short)0);
+	_LocalAddr.sin_port = htons(_Port ? (short)*_Port : 0);
 
 	//BIND
-	if (bind(m_Socket, (SOCKADDR*)&_LocalAddr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
+	if (bind(_Socket, (SOCKADDR*)&_LocalAddr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
 		LOG(CC_RED, "Faild to Bind Socket @_InitSock\n");
 #endif
-		return false;
+		return -4;
 	}
 
-	if (CreateIoCompletionPort((HANDLE)m_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
+	if (CreateIoCompletionPort((HANDLE)_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
 		LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_InitSock\n");
 #endif
-		return false;
+		return -5;
 	}
 
-	//pACCEPTEX pGETACCEPTEXSOCKADDRS
-	GUID GuidConnectEx = WSAID_CONNECTEX;
-	DWORD dwBytes = 0;
-	if (SOCKET_ERROR == WSAIoctl(
-		m_Socket,
-		SIO_GET_EXTENSION_FUNCTION_POINTER,
-		&GuidConnectEx,
-		sizeof(GuidConnectEx),
-		&m_ConnectEx,
-		sizeof(m_ConnectEx),
-		&dwBytes,
-		NULL,
-		NULL)) {
+	if (!m_ConnectEx) {
+		//pACCEPTEX pGETACCEPTEXSOCKADDRS
+		GUID GuidConnectEx = WSAID_CONNECTEX;
+		DWORD dwBytes = 0;
+		if (SOCKET_ERROR == WSAIoctl(
+			_Socket,
+			SIO_GET_EXTENSION_FUNCTION_POINTER,
+			&GuidConnectEx,
+			sizeof(GuidConnectEx),
+			&m_ConnectEx,
+			sizeof(m_ConnectEx),
+			&dwBytes,
+			NULL,
+			NULL)) {
 #if(DEBUG&DEBUG_LOG)
-		LOG(CC_RED, "Faild to Get ConnectEx @_InitSock\n");
+			LOG(CC_RED, "Faild to Get ConnectEx @_InitSock\n");
 #endif
-		return false;
+			return -6;
+		}
 	}
 
-	return true;
+	*_Port = _LocalAddr.sin_port;
+
+	return _Socket;
 }
 
-bool network::Client::_PostConnect(unsigned long _Ip, int _Port) {
+bool network::Client::_PostConnect(SOCKET _Socket, unsigned long _Ip, int _Port) {
 #if(DEBUG&DEBUG_TRACE)
 	TRACE_PRINT("PostConnect @_PostConnect\n");
 #endif
@@ -757,10 +827,11 @@ bool network::Client::_PostConnect(unsigned long _Ip, int _Port) {
 
 	CLT_SOCKET_CONTEXT *_SocketContext = new CLT_SOCKET_CONTEXT();
 
+	_SocketContext->m_Socket = _Socket;
 	_SocketContext->m_OpType = CLT_OP::CLTOP_CONNECTING;
 
 	DWORD dwBytes = 0;
-	if (m_ConnectEx(m_Socket, (SOCKADDR*)&_Addr, sizeof(_Addr), NULL, 0, &dwBytes, (LPOVERLAPPED)_SocketContext) == false) {
+	if (m_ConnectEx(_Socket, (SOCKADDR*)&_Addr, sizeof(_Addr), NULL, 0, &dwBytes, (LPOVERLAPPED)_SocketContext) == false) {
 		if (WSAGetLastError() != ERROR_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
 			LOG(CC_RED, "Faild to Post Connect%d @_PostConnect\n");
@@ -786,10 +857,10 @@ bool network::Client::_PostSend(CLT_SOCKET_CONTEXT * _SocketContext) {
 
 	_SocketContext->m_OpType = CLT_OP::CLTOP_SENDING;
 
-	if (WSASend(m_Socket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR) {
+	if (WSASend(_SocketContext->m_Socket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(CC_RED, "Faild to Post Send @_PostSend\n");
+			LOG(CC_RED, "Faild to Post Send %d @_PostSend\n", WSAGetLastError());
 #endif
 			return false;
 		}
@@ -808,7 +879,7 @@ bool network::Client::_PostRecv(CLT_SOCKET_CONTEXT * _SocketContext) {
 
 	_SocketContext->m_OpType = CLT_OP::CLTOP_RECVING;
 
-	if (WSARecv(m_Socket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR) {
+	if (WSARecv(_SocketContext->m_Socket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
 			LOG(CC_RED, "Faild to Post Recv @_PostRecv\n");
@@ -907,11 +978,11 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
 
 		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED)/* || (_BytesTransferred == 0 && _SocketContext->m_OpType != CLT_OP::CLTOP_CONNECTING)*/) {
 #if(DEBUG&DEBUG_LOG)
-			LOG(CC_YELLOW, "Server Offline Socket:%lld @ClientWorkThread\n", _WorkerParams->m_Instance->m_Socket);
+			LOG(CC_YELLOW, "Server Offline Socket:%lld @ClientWorkThread\n", _SocketContext->m_Socket);
 #endif
 			_OnClosed(_Client, _SocketContext);
 
-			closesocket(_WorkerParams->m_Instance->m_Socket);
+			closesocket(_SocketContext->m_Socket);
 
 			delete _SocketContext;
 
@@ -939,5 +1010,5 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
 }
 
 network::Client::~Client() {
-	closesocket(m_Socket);//TODO duplicated with Close()
+	//closesocket(m_Socket);//TODO duplicated with Close()
 }
