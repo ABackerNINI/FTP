@@ -30,6 +30,9 @@
     <ClCompile Include="..\Resource\Common\Common.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\Resource\Utility\File\File.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Resource\Utility\Network\Network.h">
@@ -42,6 +45,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\Resource\FtpCmds\FtpCmds.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Resource\Utility\File\File.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

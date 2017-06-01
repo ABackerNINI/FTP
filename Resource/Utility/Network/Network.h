@@ -21,7 +21,6 @@
 #define FEATURE_RECV_ON_ACCEPT 0		//Recv Data on Accept.
 										//This may arise a problem that when the client does not send data on connect,
 										//the server won't get the event OnAccepted immediately until the client sends data.
-#define FEATURE_MULTI_CONNECTION 1		//Multi-Connection
 
 #define DEFAULT_MAX_CONNECT 30
 #define DEFAULT_MAX_BUFFER_LEN 100
@@ -221,8 +220,6 @@ namespace network {
 
 		bool AddListenPort(int _Port, int _Max_Connect);
 
-		//bool Connect();
-
 		bool Stop();
 
 		virtual void OnAccepted(SVR_SOCKET_CONTEXT *_SocketContext);
@@ -232,8 +229,6 @@ namespace network {
 		virtual void OnSent(SVR_SOCKET_CONTEXT *_SocketContext);
 
 		virtual void OnClosed(SVR_SOCKET_CONTEXT *_SocketContext);
-
-		//virtual void OnCommit(SVR_SOCKET_CONTEXT *_SocketContext);
 
 	protected:
 		bool _Start(int _Port, int _MaxConnect);
@@ -388,21 +383,13 @@ namespace network {
 
 		void SetConfig(const ClientConfig &_ClientConfig);
 
-		//bool Connect();
-
-		//bool Send(const char *_SendBuffer, unsigned int _BufferLen);
-
-		//bool Close();
-
-#if(FEATURE_MULTI_CONNECTION == 1)
 		SOCKET Connect(const IP_PORT *_IpPort,int *_LocalPort = NULL);
 
-		int Connect(const char *_Address, int *_LocalPort);
+		SOCKET Connect(const char *_Address, int *_LocalPort);
 
 		bool Send(SOCKET _Socket, const char *_SendBuffer, unsigned int _BufferLen);
 
 		bool Close(SOCKET _Socket);
-#endif
 
 		virtual void OnConnected(CLT_SOCKET_CONTEXT *_SocketContext);
 
@@ -436,8 +423,6 @@ namespace network {
 		static DWORD WINAPI ClientWorkThread(LPVOID _LpParam);
 
 	protected:
-		//SOCKET				m_Socket;
-
 		HANDLE				m_CompletionPort;
 
 		ClientConfig		m_ClientConfig;

@@ -591,59 +591,6 @@ int network::Client::_Init() {
 	return 0;
 }
 
-//bool network::Client::Connect() {
-//	if (!m_CompletionPort) {
-//		if (_InitCompletionPort() == false) {
-//#if(DEBUG&DEBUG_LOG)
-//			LOG(CC_RED, "Faild to Init ComplitionPort @Connect\n");
-//#endif
-//			return false;
-//		}
-//	}
-//
-//	if (_InitSock(0) == false) {
-//#if(DEBUG&DEBUG_LOG)
-//		LOG(CC_RED, "Faild to Init Sock @Connect\n");
-//#endif
-//		return false;
-//	}
-//
-//	if (m_ClientConfig.A0_IpPort.M_Ip == NULL) {
-//		//TODO parse address and call gethostbyname
-//	}
-//
-//	if (_PostConnect(inet_addr(m_ClientConfig.A0_IpPort.M_Ip), m_ClientConfig.A0_IpPort.M_Port) == false) {
-//#if(DEBUG&DEBUG_LOG)
-//		LOG(CC_RED, "Faild to Post Connect @Connect\n");
-//#endif
-//		return false;
-//	}
-//
-//	return true;
-//}
-
-//bool network::Client::Send(const char * _SendBuffer, unsigned int _BufferLen) {
-//	CLT_SOCKET_CONTEXT *_SocketContext = new CLT_SOCKET_CONTEXT(_SendBuffer, _BufferLen);
-//
-//	return _PostSend(_SocketContext);
-//}
-//
-//bool network::Client::Close() {
-//#if(DEBUG&DEBUG_TRACE)
-//	TRACE_PRINT("Close Socket:%lld @Close\n", m_Socket);
-//#endif
-//
-//	//shutdown(m_Socket, SD_BOTH);
-//
-//	//LINGER _Linger = { 1,0 };
-//	//_Linger.l_onoff = 0;
-//	//setsockopt(m_Socket, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
-//
-//	closesocket(m_Socket);
-//
-//	return true;
-//}
-
 SOCKET network::Client::Connect(const IP_PORT * _IpPort, int *_LocalPort) {
 	int _LocalPort1 = 0;
 	if (!_LocalPort) {
@@ -666,6 +613,14 @@ SOCKET network::Client::Connect(const IP_PORT * _IpPort, int *_LocalPort) {
 	}
 
 	return _Socket;
+}
+
+SOCKET network::Client::Connect(const char * _Address, int * _LocalPort) {
+	IP_PORT _IpPort;
+
+	//TODO parse address and call gethostbyname
+
+	return Connect(&_IpPort, _LocalPort);
 }
 
 bool network::Client::Send(SOCKET _Socket, const char * _SendBuffer, unsigned int _BufferLen) {

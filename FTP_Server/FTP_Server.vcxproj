@@ -143,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Resource\Common\Common.cpp" />
+    <ClCompile Include="..\Resource\Utility\File\File.cpp" />
     <ClCompile Include="..\Resource\Utility\Network\Network.cpp" />
     <ClCompile Include="FtpServer.cpp" />
     <ClCompile Include="main.cpp" />
@@ -150,6 +151,7 @@
   <ItemGroup>
     <ClInclude Include="..\Resource\Common\Common.h" />
     <ClInclude Include="..\Resource\FtpCmds\FtpCmds.h" />
+    <ClInclude Include="..\Resource\Utility\File\File.h" />
     <ClInclude Include="..\Resource\Utility\Network\Network.h" />
     <ClInclude Include="FtpServer.h" />
   </ItemGroup>
