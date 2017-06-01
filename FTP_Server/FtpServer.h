@@ -91,6 +91,19 @@ struct ClientInf {
 	}
 };
 
+class FtpServerClient :public network::Client {
+public:
+
+protected:
+	void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnSent(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnRecvd(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnClosed(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
+};
+
 class FtpServerData :public network::Server {
 public:
 

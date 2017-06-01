@@ -88,6 +88,18 @@ struct ClientInf {
 	}
 };
 
+class FtpClientServer :public network::Server {
+public:
+protected:
+	void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnRecvd(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnSent(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+
+	void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+};
+
 class FtpClientData :public network::Client {
 public:
 	FtpClientData();

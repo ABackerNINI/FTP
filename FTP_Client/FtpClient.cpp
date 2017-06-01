@@ -1,5 +1,19 @@
 #include "FtpClient.h"
 
+/*-----------------------------------------------------------FtpClientServer Section-----------------------------------------------------------*/
+
+void FtpClientServer::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpClientServer::OnRecvd(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpClientServer::OnSent(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpClientServer::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+}
+
 /*-----------------------------------------------------------FtpClientData Section-----------------------------------------------------------*/
 
 FtpClientData::FtpClientData() {

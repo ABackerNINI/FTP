@@ -1,6 +1,20 @@
 #include "FtpServer.h"
 #include <assert.h>
 
+/*-----------------------------------------------------------FtpServerClient Section-----------------------------------------------------------*/
+
+void FtpServerClient::OnConnected(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerClient::OnSent(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerClient::OnRecvd(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
+void FtpServerClient::OnClosed(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+}
+
 /*-----------------------------------------------------------FtpServerData Section-----------------------------------------------------------*/
 
 void FtpServerData::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
@@ -140,12 +154,14 @@ void FtpServer::_CmdHandler_CWD(SOCKET _Socket, ClientInf *, char * _Args) {
 	_FtpSend(_Socket, "500 CWD.\r\n");
 }
 
-void FtpServer::_CmdHandler_PORT(SOCKET _Socket, ClientInf *, char * _Args) {
-
-	int _Len = 
-	for(int i=0;i<_Len)
-
-	_FtpSend(_Socket, "200 Port command successful.\r\n");
+void FtpServer::_CmdHandler_PORT(SOCKET _Socket, ClientInf *_ClientInf, char * _Args) {
+	int _Port = std::atoi(_Args);
+	if (_Port > 1023) {
+		
+		_FtpSend(_Socket, "200 Port command successful.\r\n");
+	} else {
+		_FtpSend(_Socket, "Port command faild.\r\n");
+	}
 }
 
 void FtpServer::_CmdHandler_PASV(SOCKET _Socket, ClientInf *, char * _Args) {
