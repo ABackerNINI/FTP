@@ -514,7 +514,7 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 
 		_SocketContext = CONTAINING_RECORD(_Overlapped, SVR_SOCKET_CONTEXT, m_Overlapped);
 
-		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED)/* || (_BytesTransferred == 0 && _SocketContext->m_OpType != SVR_OP::SVROP_ACCEPTING)*/) {
+		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED) || (_Ret == false && _BytesTransferred == 0 /*&& _SocketContext->m_OpType != SVR_OP::SVROP_ACCEPTING*/)) {
 #if(DEBUG&DEBUG_LOG)
 			LOG(CC_YELLOW, "Client Offline Socket:%lld @ServerWorkThread\n", _SocketContext->m_ClientSocket);
 #endif
@@ -632,7 +632,7 @@ bool network::Client::Send(SOCKET _Socket, const char * _SendBuffer, unsigned in
 
 bool network::Client::Close(SOCKET _Socket) {
 #if(DEBUG&DEBUG_TRACE)
-	TRACE_PRINT("Close Socket:%lld @Close\n", m_Socket);
+	TRACE_PRINT("Close Socket:%lld @Close\n", _Socket);
 #endif
 
 	//shutdown(m_Socket, SD_BOTH);
@@ -931,7 +931,7 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
 
 		_SocketContext = CONTAINING_RECORD(_Overlapped, CLT_SOCKET_CONTEXT, m_Overlapped);
 
-		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED)/* || (_BytesTransferred == 0 && _SocketContext->m_OpType != CLT_OP::CLTOP_CONNECTING)*/) {
+		if ((_Ret == false && GetLastError() == ERROR_NETNAME_DELETED) || (_Ret == false && _BytesTransferred == 0/* && _SocketContext->m_OpType != CLT_OP::CLTOP_CONNECTING*/)) {
 #if(DEBUG&DEBUG_LOG)
 			LOG(CC_YELLOW, "Server Offline Socket:%lld @ClientWorkThread\n", _SocketContext->m_Socket);
 #endif
