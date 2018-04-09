@@ -85,8 +85,8 @@ namespace network {
 	}
 #endif
 
-	class Server;
-	class Client;
+	//class Server;
+	//class Client;
 
 	template<typename dst_type, typename src_type>
 	dst_type pointer_cast(src_type src) {
@@ -128,14 +128,14 @@ namespace network {
 		unsigned int _DEBUG_TRACE;
 #endif
 
-		SVR_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, unsigned int _BufferLen) :
+		SVR_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, size_t _BufferLen) :
 			m_ClientSocket(_Socket),
 			m_OpType(SVR_OP::SVROP_UNDEFINED),
 			m_Extra(NULL) {
-			m_szBuffer = new char[_BufferLen + 1];
-			memcpy(m_szBuffer, _Buffer, sizeof(char)*(_BufferLen + 1));
+			m_szBuffer = new char[_BufferLen];
+			memcpy(m_szBuffer, _Buffer, sizeof(char)*_BufferLen);
 			m_wsaBuf.buf = m_szBuffer;
-			m_wsaBuf.len = _BufferLen;//one for '\0'
+			m_wsaBuf.len = (ULONG)_BufferLen;
 
 			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
 
@@ -144,13 +144,13 @@ namespace network {
 #endif
 		}
 
-		SVR_SOCKET_CONTEXT(int _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) :
+		SVR_SOCKET_CONTEXT(size_t _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) :
 			m_ClientSocket(INVALID_SOCKET),
 			m_OpType(SVR_OP::SVROP_UNDEFINED),
 			m_Extra(NULL) {
 			m_szBuffer = new char[_MaxBufferLen];//TODO user-defined(upper layer) buffer len
 			m_wsaBuf.buf = m_szBuffer;
-			m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'
+			m_wsaBuf.len = (ULONG)_MaxBufferLen;
 
 			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
 
@@ -214,11 +214,11 @@ namespace network {
 
 		bool Start();
 
-		bool Send(SOCKET _Socket, const char *_SendBuffer, unsigned int _BufferLen);
+		bool Send(SOCKET _Socket, const char *_SendBuffer, size_t _BufferLen);
 
 		bool Close(SOCKET _Socket);
 
-		bool AddListenPort(int _Port, int _Max_Connect);
+		//bool AddListenPort(int _Port, int _Max_Connect);
 
 		bool Stop();
 
@@ -239,7 +239,7 @@ namespace network {
 
 		bool _InitComplitionPort();
 
-		bool _AddListenPort(int _Port, int _Max_Connect);
+		//bool _AddListenPort(int _Port, int _Max_Connect);
 
 		bool _PostAccept(SVR_SOCKET_CONTEXT *_SocketContext);
 
@@ -252,6 +252,8 @@ namespace network {
 		bool _DoRecvd(SVR_SOCKET_CONTEXT* _SocketContext);
 
 		bool _DoSent(SVR_SOCKET_CONTEXT* _SocketContext);
+
+        static bool _IsClientAlive(SOCKET _Sockid);
 
 		static DWORD WINAPI ServerWorkThread(LPVOID _LpParam);
 
@@ -322,7 +324,7 @@ namespace network {
 		OVERLAPPED		m_Overlapped;
 		WSABUF			m_wsaBuf;
 		char*			m_szBuffer;
-		unsigned int	m_BytesTransferred;
+        size_t	m_BytesTransferred;
 		SOCKET			m_Socket;
 		//int				m_Ip;
 		CLT_OP  m_OpType;
@@ -331,11 +333,11 @@ namespace network {
 		int _DEBUG_TRACE;
 #endif
 
-		CLT_SOCKET_CONTEXT(int _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) 
+		CLT_SOCKET_CONTEXT(size_t _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN)
 		:m_Socket(0){
 			m_szBuffer = new char[_MaxBufferLen];
 			m_wsaBuf.buf = m_szBuffer;
-			m_wsaBuf.len = _MaxBufferLen - 1;//one for '\0'
+			m_wsaBuf.len = (ULONG)_MaxBufferLen;
 			m_OpType = CLT_OP::CLTOP_UNDEFINED;
 
 			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
@@ -345,13 +347,13 @@ namespace network {
 #endif
 		}
 
-		CLT_SOCKET_CONTEXT(const char *_Buffer, unsigned int _BufferLen) :
+		CLT_SOCKET_CONTEXT(const char *_Buffer, size_t _BufferLen) :
 			m_Socket(0),
 			m_OpType(CLT_OP::CLTOP_UNDEFINED) {
-			m_szBuffer = new char[_BufferLen + 1];
-			memcpy(m_szBuffer, _Buffer, sizeof(char)*(_BufferLen + 1));
+			m_szBuffer = new char[_BufferLen];
+			memcpy(m_szBuffer, _Buffer, sizeof(char)*_BufferLen);
 			m_wsaBuf.buf = m_szBuffer;
-			m_wsaBuf.len = _BufferLen;//one for '\0'
+			m_wsaBuf.len = (ULONG)_BufferLen;
 
 			memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
 
@@ -387,7 +389,7 @@ namespace network {
 
 		SOCKET Connect(const char *_Address, int *_LocalPort);
 
-		bool Send(SOCKET _Socket, const char *_SendBuffer, unsigned int _BufferLen);
+		bool Send(SOCKET _Socket, const char *_SendBuffer, size_t _BufferLen);
 
 		bool Close(SOCKET _Socket);
 
@@ -421,6 +423,8 @@ namespace network {
 		bool _DoRecvd(CLT_SOCKET_CONTEXT *_SocketContext);
 
 		static DWORD WINAPI ClientWorkThread(LPVOID _LpParam);
+
+        static bool _IsServerAlive(SOCKET _Sockid);
 
 	protected:
 		HANDLE				m_CompletionPort;

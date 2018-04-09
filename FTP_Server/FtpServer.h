@@ -23,8 +23,8 @@ enum CLIENT_LOGIN_STATUS {
 struct ClientInf {
 	char*	m_Buffer;
 	char*	m_pBuffer;
-	int		m_PosFront;
-	int		m_PosEnd;
+    size_t		m_PosFront;
+    size_t		m_PosEnd;
 	bool	m_FlagUsingBuffer;
 
 	char	m_Usrname[100];
@@ -50,7 +50,7 @@ struct ClientInf {
 		m_Dir[1] = '\0';
 	}
 
-	void Push(char *_Buffer, unsigned int _Count) {
+	void Push(char *_Buffer, size_t _Count) {
 		if (!m_FlagUsingBuffer) {
 			m_pBuffer = _Buffer;
 			m_PosFront = 0;
@@ -64,7 +64,7 @@ struct ClientInf {
 	char *Pop() {
 		char *p = (m_FlagUsingBuffer ? m_Buffer : m_pBuffer) + m_PosFront;
 		char *tmp = p;
-		for (int i = m_PosFront; i < m_PosEnd; ++i, ++p) {
+		for (size_t i = m_PosFront; i < m_PosEnd; ++i, ++p) {
 			if (*p == '\r'&&*(p + 1) == '\n') {
 				*p = '\0';
 
@@ -90,32 +90,6 @@ struct ClientInf {
 	~ClientInf() {
 		if (m_Buffer)delete[] m_Buffer;
 	}
-};
-
-class FtpServerClient :public network::Client {
-public:
-
-protected:
-	void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
-
-	void OnSent(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
-
-	void OnRecvd(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
-
-	void OnClosed(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
-};
-
-class FtpServerData :public network::Server {
-public:
-
-protected:
-	void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
-
-	void OnRecvd(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
-
-	void OnSent(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
-
-	void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
 };
 
 class FtpServer :public network::Server {
@@ -153,7 +127,7 @@ protected:
 		{ _CMD(_NOT_IMPLEMENTED)},//SMNT
 		{ _CMD(_NOT_IMPLEMENTED)},//QUIT
 		{ _CMD(_NOT_IMPLEMENTED)},//REIN
-		{ _CMD(_PORT)},
+		{ _CMD(_PORT)},//PORT
 		{ _CMD(_PASV)},
 		{ _CMD(_NOT_IMPLEMENTED)},//TYPE
 		{ _CMD(_NOT_IMPLEMENTED)},//STRU

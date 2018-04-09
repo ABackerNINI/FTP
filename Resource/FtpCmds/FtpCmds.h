@@ -101,7 +101,7 @@ static const _FTP_CMDS_INF FTP_CMDS_INF[] = {
 	{ "SMNT", FCNA_NONE, "" },
 	{ "QUIT", FCNA_NONE, "Logout or break the connection: QUIT" },
 	{ "REIN", FCNA_NONE, "" },
-	{ "PORT", FCNA_MANDATORY,	 "Specify the client port number: PORT a0,a1,a2,a3,a4,a5" },
+	{ "PORT", FCNA_NONE,	 "Specify the client port number: PORT a0,a1,a2,a3,a4,a5" },
 	{ "PASV", FCNA_NONE, "Set server in passive mode: PASV" },
 	{ "TYPE", FCNA_MANDATORY,	 "Set filetype: TYPE [A | I]" },
 	{ "STRU", FCNA_NONE, "" },

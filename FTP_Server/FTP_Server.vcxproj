@@ -146,7 +146,7 @@
     <ClCompile Include="..\Resource\Utility\File\File.cpp" />
     <ClCompile Include="..\Resource\Utility\Network\Network.cpp" />
     <ClCompile Include="FtpServer.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ServerMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Resource\Common\Common.h" />

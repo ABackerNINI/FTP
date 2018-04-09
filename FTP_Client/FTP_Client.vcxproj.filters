@@ -18,13 +18,13 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\Resource\Utility\Network\Network.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="FtpClient.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ClientMain.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

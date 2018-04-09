@@ -1,34 +1,6 @@
 #include "FtpServer.h"
 #include <assert.h>
 
-/*-----------------------------------------------------------FtpServerClient Section-----------------------------------------------------------*/
-
-void FtpServerClient::OnConnected(network::CLT_SOCKET_CONTEXT * _SocketContext) {
-}
-
-void FtpServerClient::OnSent(network::CLT_SOCKET_CONTEXT * _SocketContext) {
-}
-
-void FtpServerClient::OnRecvd(network::CLT_SOCKET_CONTEXT * _SocketContext) {
-}
-
-void FtpServerClient::OnClosed(network::CLT_SOCKET_CONTEXT * _SocketContext) {
-}
-
-/*-----------------------------------------------------------FtpServerData Section-----------------------------------------------------------*/
-
-void FtpServerData::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
-}
-
-void FtpServerData::OnRecvd(network::SVR_SOCKET_CONTEXT * _SocketContext) {
-}
-
-void FtpServerData::OnSent(network::SVR_SOCKET_CONTEXT * _SocketContext) {
-}
-
-void FtpServerData::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
-}
-
 /*-----------------------------------------------------------FtpServer Section-----------------------------------------------------------*/
 
 FtpServer::FtpServer() :network::Server() {
@@ -165,16 +137,16 @@ void FtpServer::_CmdHandler_CWD(SOCKET _Socket, ClientInf *, char * _Args) {
 
 void FtpServer::_CmdHandler_PORT(SOCKET _Socket, ClientInf *_ClientInf, char * _Args) {
 	unsigned long _Port = std::atoi(_Args);
-	if (_Port > 1023) {
-		_FtpSend(_Socket, "200 Port command successful.\r\n");
+	//if (_Port > 1023) {
+	//	//_FtpSend(_Socket, "200 Port command successful.\r\n");
 
-		/*network::IP_PORT _IpPort;
-		_IpPort.M0_Ip_ULong = _Port;
-		_IpPort.M_Port = _Port;
-		m_FtpServerClient.Connect(&_IpPort);*/
-	} else {
-		_FtpSend(_Socket, "500 Port command faild.\r\n");
-	}
+	//	/*network::IP_PORT _IpPort;
+	//	_IpPort.M0_Ip_ULong = _Port;
+	//	_IpPort.M_Port = _Port;
+	//	m_FtpServerClient.Connect(&_IpPort);*/
+	//} else {
+	//	//_FtpSend(_Socket, "500 Port command faild.\r\n");
+	//}
 }
 
 void FtpServer::_CmdHandler_PASV(SOCKET _Socket, ClientInf *, char * _Args) {

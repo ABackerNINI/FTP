@@ -35,8 +35,8 @@ struct ClientInf {
 	char*	m_Buffer;
 	char*	m_pBuffer;
 	bool	m_FlagUsingBuffer;
-	int		m_PosFront;
-	int		m_PosEnd;
+    size_t		m_PosFront;
+    size_t		m_PosEnd;
 
 	ClientInf() :
 		m_Buffer(NULL),
@@ -46,7 +46,7 @@ struct ClientInf {
 		m_PosEnd(DEFAULT_BUFFER_LEN) {
 	}
 
-	void Push(char *_Buffer, unsigned int _Count) {
+	void Push(char *_Buffer, size_t _Count) {
 		if (!m_FlagUsingBuffer) {
 			m_pBuffer = _Buffer;
 			m_PosFront = 0;
@@ -60,7 +60,7 @@ struct ClientInf {
 	char *Pop() {
 		char *p = (m_FlagUsingBuffer ? m_Buffer : m_pBuffer) + m_PosFront;
 		char *tmp = p;
-		for (int i = m_PosFront; i < m_PosEnd; ++i, ++p) {
+		for (size_t i = m_PosFront; i < m_PosEnd; ++i, ++p) {
 			if (*p == '\r'&&*(p + 1) == '\n') {
 				*p = '\0';
 
@@ -88,43 +88,6 @@ struct ClientInf {
 	}
 };
 
-class FtpClientServer :public network::Server {
-public:
-protected:
-	void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
-
-	void OnRecvd(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
-
-	void OnSent(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
-
-	void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
-};
-
-class FtpClientData :public network::Client {
-public:
-	FtpClientData();
-
-	FtpClientData(const FtpClientConfig &_FtpClientConfig);
-
-	void SetConfig(const FtpClientConfig &_FtpClientConfig);
-
-	bool FtpSend(const char *_Buffer, int _Count);
-
-protected:
-	void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
-
-	void OnSent(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
-
-	void OnRecvd(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
-
-	void OnClosed(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
-
-	void _HandleResponse();
-
-protected:
-	int	m_Port;
-};
-
 class FtpClient :public network::Client {
 public:
 	FtpClient();
@@ -135,7 +98,7 @@ public:
 
 	bool FtpConnect(const network::IP_PORT *_IpPort);
 
-	bool FtpSend(const char *_Buffer,int _Count);
+	bool FtpSend(const char *_Buffer, size_t _Count);
 
 	CLIENT_IO_STATUS GetIoStatus();
 
