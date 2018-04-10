@@ -175,15 +175,16 @@ void FtpServer::_CmdHandler_HELP(SOCKET _Socket, ClientInf *, char * _Args) {
 	if (_Args == NULL) {
 		_FtpSend(_Socket, HELP_MSG);
 	} else {
-		FTP_CMDS _Cmd = CmdDispatch(&_Args);
+        char *_Tmp = _Args;
+		FTP_CMDS _Cmd = CmdDispatch(&_Tmp);
 		if (_Cmd != FTP_CMDS::FTP_CMD_ERR) {
 			_FtpSend(_Socket, "214 ");
 			_FtpSend(_Socket, FTP_CMDS_INF[_Cmd].m_HelpMsg);
 			_FtpSend(_Socket, "\r\n");
 		} else {
-			_FtpSend(_Socket, "501 Unkown command ");
+			_FtpSend(_Socket, "501 Unkown command \"");
 			_FtpSend(_Socket, _Args);
-			_FtpSend(_Socket, "\r\n");
+			_FtpSend(_Socket, "\"\r\n");
 		}
 	}
 }
