@@ -1,7 +1,10 @@
 
 #include "Network.h"
 
-/*-----------------------------------------------------------Server Section-----------------------------------------------------------*/
+
+/*
+ * Server Codes
+ */
 
 network::Server::Server() {
 	//#if(DEBUG&DEBUG_TRACE)
@@ -525,7 +528,7 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
             if (_ErrCode == WAIT_TIMEOUT) {
                 if (!_IsClientAlive(_SocketContext->m_ClientSocket)) {
 #if(DEBUG&DEBUG_LOG)
-                    LOG(CC_YELLOW, "Client Error Socket:%lld @ServerWorkThread\n", _SocketContext->m_ClientSocket);
+                    LOG(CC_YELLOW, "Client Offline Error Code:%ld Socket:%lld @ServerWorkThread\n", WAIT_TIMEOUT, _SocketContext->m_ClientSocket);
 #endif
                     _OnClosed(_Server, _SocketContext);
 
@@ -537,7 +540,7 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
             } else if (_ErrCode == ERROR_NETNAME_DELETED) {
                 if (_SocketContext) {
 #if(DEBUG&DEBUG_LOG)
-                    LOG(CC_YELLOW, "Client Error Socket:%lld @ServerWorkThread\n", _SocketContext->m_ClientSocket);
+                    LOG(CC_YELLOW, "Client Offline Error Code:%ld Socket:%lld @ServerWorkThread\n", ERROR_NETNAME_DELETED, _SocketContext->m_ClientSocket);
 #endif
                     _OnClosed(_Server, _SocketContext);
 
@@ -556,7 +559,7 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 
         if (_BytesTransferred == 0 && _SocketContext->m_OpType != SVR_OP::SVROP_ACCEPTING) {
 #if(DEBUG&DEBUG_LOG)
-            LOG(CC_YELLOW, "Client Offline Socket:%lld @ServerWorkThread\n", _SocketContext->m_ClientSocket);
+            LOG(CC_YELLOW, "Client Offline Zero Bytes Transferred Socket:%lld @ServerWorkThread\n", _SocketContext->m_ClientSocket);
 #endif
             _OnClosed(_Server, _SocketContext);
 
@@ -585,7 +588,9 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 	return 0;
 }
 
-/*-----------------------------------------------------------Client Section-----------------------------------------------------------*/
+/*
+ * Client Codes
+ */
 
 network::Client::Client() :m_CompletionPort(NULL) {
 	_Init();
@@ -661,16 +666,16 @@ SOCKET network::Client::Connect(const char * _Address, int * _LocalPort) {
 	return Connect(&_IpPort, _LocalPort);
 }
 
-bool network::Client::Send(SOCKET _Socket, const char * _SendBuffer, size_t _BufferLen) {
+bool network::Client::Send(SOCKET _Sockid, const char * _SendBuffer, size_t _BufferLen) {
 	CLT_SOCKET_CONTEXT *_SocketContext = new CLT_SOCKET_CONTEXT(_SendBuffer, _BufferLen);//"port 1234\r\n"
-	_SocketContext->m_Socket = _Socket;
+	_SocketContext->m_Socket = _Sockid;
 
 	return _PostSend(_SocketContext);
 }
 
-bool network::Client::Close(SOCKET _Socket) {
+bool network::Client::Close(SOCKET _Sockid) {
 #if(DEBUG&DEBUG_TRACE)
-	TRACE_PRINT("Close Socket:%lld @Close\n", _Socket);
+	TRACE_PRINT("Close Socket:%lld @Close\n", _Sockid);
 #endif
 
 	//shutdown(m_Socket, SD_BOTH);
@@ -679,7 +684,7 @@ bool network::Client::Close(SOCKET _Socket) {
 	//_Linger.l_onoff = 0;
 	//setsockopt(m_Socket, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
 
-	closesocket(_Socket);
+	closesocket(_Sockid);
 
 	return true;
 }
@@ -807,7 +812,7 @@ SOCKET network::Client::_InitSock(int *_Port) {
 	return _Socket;
 }
 
-bool network::Client::_PostConnect(SOCKET _Socket, unsigned long _Ip, int _Port) {
+bool network::Client::_PostConnect(SOCKET _Sockid, unsigned long _Ip, int _Port) {
 #if(DEBUG&DEBUG_TRACE)
 	TRACE_PRINT("PostConnect @_PostConnect\n");
 #endif
@@ -820,11 +825,11 @@ bool network::Client::_PostConnect(SOCKET _Socket, unsigned long _Ip, int _Port)
 
 	CLT_SOCKET_CONTEXT *_SocketContext = new CLT_SOCKET_CONTEXT();
 
-	_SocketContext->m_Socket = _Socket;
+	_SocketContext->m_Socket = _Sockid;
 	_SocketContext->m_OpType = CLT_OP::CLTOP_CONNECTING;
 
 	DWORD dwBytes = 0;
-	if (m_ConnectEx(_Socket, (SOCKADDR*)&_Addr, sizeof(_Addr), NULL, 0, &dwBytes, (LPOVERLAPPED)_SocketContext) == false) {
+	if (m_ConnectEx(_Sockid, (SOCKADDR*)&_Addr, sizeof(_Addr), NULL, 0, &dwBytes, (LPOVERLAPPED)_SocketContext) == false) {
 		if (WSAGetLastError() != ERROR_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
 			LOG(CC_RED, "Faild to Post Connect%d @_PostConnect\n");

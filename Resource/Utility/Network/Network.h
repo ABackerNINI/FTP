@@ -107,11 +107,11 @@ namespace network {
 	};
 
 	enum SVR_OP {
+		SVROP_NULL,
 		SVROP_ACCEPTING,
 		SVROP_RECVING,
 		SVROP_SENDING,
-		SVROP_CLOSING,
-		SVROP_UNDEFINED
+		SVROP_CLOSING
 	};
 
 	struct SVR_SOCKET_CONTEXT {
@@ -130,7 +130,7 @@ namespace network {
 
 		SVR_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, size_t _BufferLen) :
 			m_ClientSocket(_Socket),
-			m_OpType(SVR_OP::SVROP_UNDEFINED),
+			m_OpType(SVR_OP::SVROP_NULL),
 			m_Extra(NULL) {
 			m_szBuffer = new char[_BufferLen];
 			memcpy(m_szBuffer, _Buffer, sizeof(char)*_BufferLen);
@@ -146,7 +146,7 @@ namespace network {
 
 		SVR_SOCKET_CONTEXT(size_t _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) :
 			m_ClientSocket(INVALID_SOCKET),
-			m_OpType(SVR_OP::SVROP_UNDEFINED),
+			m_OpType(SVR_OP::SVROP_NULL),
 			m_Extra(NULL) {
 			m_szBuffer = new char[_MaxBufferLen];//TODO user-defined(upper layer) buffer len
 			m_wsaBuf.buf = m_szBuffer;
@@ -198,7 +198,7 @@ namespace network {
 
 	enum SVR_EV {
 		SVREV_ACCEPTED,
-		SVREV_RECVD,
+		SVREV_RECEIVED,
 		SVREV_SENT,
 		SVREV_CLOSED,
 		SVREV_TIMEOUT
@@ -389,9 +389,9 @@ namespace network {
 
 		SOCKET Connect(const char *_Address, int *_LocalPort);
 
-		bool Send(SOCKET _Socket, const char *_SendBuffer, size_t _BufferLen);
+		bool Send(SOCKET _Sockid, const char *_SendBuffer, size_t _BufferLen);
 
-		bool Close(SOCKET _Socket);
+		bool Close(SOCKET _Sockid);
 
 		virtual void OnConnected(CLT_SOCKET_CONTEXT *_SocketContext);
 
@@ -410,7 +410,7 @@ namespace network {
 
 		bool _InitCompletionPort();
 
-		bool _PostConnect(SOCKET _Socket, unsigned long _Ip, int _Port);
+		bool _PostConnect(SOCKET _Sockid, unsigned long _Ip, int _Port);
 
 		bool _PostSend(CLT_SOCKET_CONTEXT *_SocketContext);
 
