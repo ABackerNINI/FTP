@@ -3,9 +3,10 @@
 #ifndef NINI_FTP_FTP_SERVER_H
 #define NINI_FTP_FTP_SERVER_H
 
+#include "../Resource/Common/Common.h"
 #include "../Resource/FtpCmds/FtpCmds.h"
 #include "../Resource/Utility/Network/Network.h"
-#include "../Resource/Common/Common.h"
+#include "../Resource/Utility/StringBuffer/StringBuffer.h"
 
 #define DEFAULT_BUFFER_LEN 1024
 #define DEFAULT_USRNAME_BUFFER_LEN 100
@@ -21,12 +22,6 @@ enum CLIENT_LOGIN_STATUS {
 };
 
 struct ClientInf {
-	char*	m_Buffer;
-	char*	m_pBuffer;
-    size_t		m_PosFront;
-    size_t		m_PosEnd;
-	bool	m_FlagUsingBuffer;
-
 	char	m_Usrname[100];
 	char	m_Passwd[100];
 	char	m_Dir[100];
@@ -34,13 +29,9 @@ struct ClientInf {
 	int		m_Port;
 	unsigned long  m_Ip;
 	CLIENT_LOGIN_STATUS m_Status;
+    StringBuffer m_CmdBuffer;
 
 	ClientInf() :
-		m_Buffer(NULL),
-		m_pBuffer(NULL),
-		m_PosFront(0),
-		m_PosEnd(DEFAULT_BUFFER_LEN),
-		m_FlagUsingBuffer(false),
 		m_IsPasv(false),
 		m_Port(0),
 		m_Status(CLS_CONNECTED) {
@@ -48,47 +39,6 @@ struct ClientInf {
 		m_Passwd[0] = '\0';
 		m_Dir[0] = '/';
 		m_Dir[1] = '\0';
-	}
-
-	void Push(char *_Buffer, size_t _Count) {
-		if (!m_FlagUsingBuffer) {
-			m_pBuffer = _Buffer;
-			m_PosFront = 0;
-			m_PosEnd = _Count;
-		} else {
-			memcpy(m_Buffer + m_PosEnd, _Buffer, _Count * sizeof(char));
-			m_PosEnd += _Count;
-		}
-	}
-
-	char *Pop() {
-		char *p = (m_FlagUsingBuffer ? m_Buffer : m_pBuffer) + m_PosFront;
-		char *tmp = p;
-		for (size_t i = m_PosFront; i < m_PosEnd; ++i, ++p) {
-			if (*p == '\r'&&*(p + 1) == '\n') {
-				*p = '\0';
-
-				m_PosFront = i + 2;
-
-				return tmp;
-			}
-		}
-
-		if (m_PosFront < m_PosEnd) {
-			m_FlagUsingBuffer = true;
-			if (!m_Buffer) {
-				m_Buffer = new char[DEFAULT_BUFFER_LEN];//TODO alloc after login
-			}
-			memcpy(m_Buffer, m_pBuffer + m_PosFront, m_PosEnd - m_PosFront);
-			m_PosEnd = m_PosEnd - m_PosFront;
-			m_PosFront = 0;
-		}
-
-		return NULL;
-	}
-
-	~ClientInf() {
-		if (m_Buffer)delete[] m_Buffer;
 	}
 };
 

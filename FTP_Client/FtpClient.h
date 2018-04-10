@@ -5,6 +5,7 @@
 
 #include "../Resource/FtpCmds/FtpCmds.h"
 #include "../Resource/Utility/Network/Network.h"
+#include "../Resource/Utility/StringBuffer/StringBuffer.h"
 
 #define DEFAULT_BUFFER_LEN 1024
 
@@ -32,60 +33,7 @@ struct FtpClientConfig :network::ClientConfig {
 };
 
 struct ClientInf {
-	char*	m_Buffer;
-	char*	m_pBuffer;
-	bool	m_FlagUsingBuffer;
-    size_t		m_PosFront;
-    size_t		m_PosEnd;
-
-	ClientInf() :
-		m_Buffer(NULL),
-		m_pBuffer(NULL),
-		m_FlagUsingBuffer(false),
-		m_PosFront(0),
-		m_PosEnd(DEFAULT_BUFFER_LEN) {
-	}
-
-	void Push(char *_Buffer, size_t _Count) {
-		if (!m_FlagUsingBuffer) {
-			m_pBuffer = _Buffer;
-			m_PosFront = 0;
-			m_PosEnd = _Count;
-		} else {
-			memcpy(m_Buffer + m_PosEnd, _Buffer, _Count * sizeof(char));
-			m_PosEnd += _Count;
-		}
-	}
-
-	char *Pop() {
-		char *p = (m_FlagUsingBuffer ? m_Buffer : m_pBuffer) + m_PosFront;
-		char *tmp = p;
-		for (size_t i = m_PosFront; i < m_PosEnd; ++i, ++p) {
-			if (*p == '\r'&&*(p + 1) == '\n') {
-				*p = '\0';
-
-				m_PosFront = i + 2;
-
-				return tmp;
-			}
-		}
-
-		if (m_PosFront < m_PosEnd) {
-			m_FlagUsingBuffer = true;
-			if (!m_Buffer) {
-				m_Buffer = new char[DEFAULT_BUFFER_LEN];//TODO alloc after login
-			}
-			memcpy(m_Buffer, m_pBuffer + m_PosFront, m_PosEnd - m_PosFront);
-			m_PosEnd = m_PosEnd - m_PosFront;
-			m_PosFront = 0;
-		}
-
-		return NULL;
-	}
-
-	~ClientInf() {
-		if (m_Buffer)delete[] m_Buffer;
-	}
+    StringBuffer m_CmdBuffer;
 };
 
 class FtpClient :public network::Client {

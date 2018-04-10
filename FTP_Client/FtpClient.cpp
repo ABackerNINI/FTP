@@ -73,7 +73,7 @@ void FtpClient::OnConnected(network::CLT_SOCKET_CONTEXT * _SocketContext) {
 	m_ClientStatus = CIS_CONNECTED;
 
 	if (_SocketContext->m_BytesTransferred > 0) {
-		m_ClientInf.Push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
+		m_ClientInf.m_CmdBuffer.push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
 
 		_HandleResponse();
 	}
@@ -86,7 +86,7 @@ void FtpClient::OnSent(network::CLT_SOCKET_CONTEXT * _SocketContext) {
 void FtpClient::OnRecvd(network::CLT_SOCKET_CONTEXT * _SocketContext) {
 	m_ClientStatus = CIS_RECVD;
 
-	m_ClientInf.Push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
+	m_ClientInf.m_CmdBuffer.push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
 
 	_HandleResponse();
 }
@@ -97,9 +97,9 @@ void FtpClient::OnClosed(network::CLT_SOCKET_CONTEXT * _SocketContext) {
 }
 
 void FtpClient::_HandleResponse() {
-	char *_Str;
+	const char *_Str;
 
-	while (_Str = m_ClientInf.Pop(), _Str) {
+	while (_Str = m_ClientInf.m_CmdBuffer.pop(), _Str) {
 		printf("\t%s\n", _Str);
 		fflush(stdout);
 

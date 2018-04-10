@@ -33,6 +33,9 @@
     <ClCompile Include="ServerMain.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\Resource\Utility\StringBuffer\StringBuffer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Resource\Utility\Network\Network.h">
@@ -48,6 +51,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\Resource\Utility\File\File.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Resource\Utility\StringBuffer\StringBuffer.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

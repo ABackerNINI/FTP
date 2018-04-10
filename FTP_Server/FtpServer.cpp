@@ -18,7 +18,7 @@ void FtpServer::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 	_FtpSend(_SocketContext->m_ClientSocket, "220 Welcome to NINI's FTP service.\r\n");
 
 	if (_SocketContext->m_BytesTransferred > 0) {
-		_ClientInf->Push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
+		_ClientInf->m_CmdBuffer.push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
 
 		_Handle(_SocketContext->m_ClientSocket, _ClientInf);
 	}
@@ -29,7 +29,7 @@ void FtpServer::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 void FtpServer::OnRecvd(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 	ClientInf *_ClientInf = (ClientInf *)(_SocketContext->m_Extra);
 
-	_ClientInf->Push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
+	_ClientInf->m_CmdBuffer.push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
 
 	_Handle(_SocketContext->m_ClientSocket, _ClientInf);
 }
@@ -66,7 +66,7 @@ bool FtpServer::_Handle(SOCKET _Socket, ClientInf * _ClientInf) {
 	char *_Str;
 	char *_Args;
 	int _Cmd;
-	while (_Str = _ClientInf->Pop(), _Str) {
+	while (_Str = _ClientInf->m_CmdBuffer.pop(), _Str) {
 		printf("%s\n", _Str);
 		_Args = _Str;
 		_Cmd = CmdDispatch(&_Args);
@@ -136,17 +136,12 @@ void FtpServer::_CmdHandler_CWD(SOCKET _Socket, ClientInf *, char * _Args) {
 }
 
 void FtpServer::_CmdHandler_PORT(SOCKET _Socket, ClientInf *_ClientInf, char * _Args) {
-	unsigned long _Port = std::atoi(_Args);
-	//if (_Port > 1023) {
-	//	//_FtpSend(_Socket, "200 Port command successful.\r\n");
-
-	//	/*network::IP_PORT _IpPort;
-	//	_IpPort.M0_Ip_ULong = _Port;
-	//	_IpPort.M_Port = _Port;
-	//	m_FtpServerClient.Connect(&_IpPort);*/
-	//} else {
-	//	//_FtpSend(_Socket, "500 Port command faild.\r\n");
-	//}
+    unsigned long _Port = std::atoi(_Args);
+    if (_Port > 1023) {
+        _FtpSend(_Socket, "200 Port command successful.\r\n");
+    } else {
+        _FtpSend(_Socket, "500 Port command faild.\r\n");
+    }
 }
 
 void FtpServer::_CmdHandler_PASV(SOCKET _Socket, ClientInf *, char * _Args) {
