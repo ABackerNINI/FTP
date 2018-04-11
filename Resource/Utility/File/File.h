@@ -7,23 +7,23 @@
 
 class File {
 public:
-	File();
+    File();
 
-	bool Open(const char *_Path,const char *_Mode = "rb");
+    bool Open(const char *_Path, const char *_Mode = "rb");
 
-	bool Jump(int _Bytes);
+    bool Jump(int _Bytes);
 
-	int Read();
+    int Read();
 
-	bool Close();
+    bool Close();
 
 public:
-	static int Delete(const char *_Path);
+    static int Delete(const char *_Path);
 
 protected:
-	long long		m_Cur;
-	
-	FILE			*m_File;
+    long long		m_Cur;
+
+    FILE			*m_File;
 };
 
 #endif //NINI_FTP_FILE_H

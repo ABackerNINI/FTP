@@ -42,52 +42,52 @@
 //#define FTP_CMD_ERR  34
 
 enum FTP_CMDS {
-	FTP_CMD_USER,
-	FTP_CMD_PASS,
-	FTP_CMD_ACCT,
-	FTP_CMD_CWD,
-	FTP_CMD_CDUP,
-	FTP_CMD_SMNT,
-	FTP_CMD_QUIT,
-	FTP_CMD_REIN,
-	FTP_CMD_PORT,
-	FTP_CMD_PASV,
-	FTP_CMD_TYPE,
-	FTP_CMD_STRU,
-	FTP_CMD_MODE,
-	FTP_CMD_RETR,
-	FTP_CMD_STOR,
-	FTP_CMD_STOU,
-	FTP_CMD_APPE,
-	FTP_CMD_ALLO,
-	FTP_CMD_REST,
-	FTP_CMD_RNFR,
-	FTP_CMD_RNTO,
-	FTP_CMD_ABOR,
-	FTP_CMD_DELE,
-	FTP_CMD_RMD,
-	FTP_CMD_MKD,
-	FTP_CMD_PWD,
-	FTP_CMD_LIST,
-	FTP_CMD_NLST,
-	FTP_CMD_SITE,
-	FTP_CMD_SYST,
-	FTP_CMD_STAT,
-	FTP_CMD_HELP,
-	FTP_CMD_NOOP,
-	FTP_CMD_ERR
+    FTP_CMD_USER,
+    FTP_CMD_PASS,
+    FTP_CMD_ACCT,
+    FTP_CMD_CWD,
+    FTP_CMD_CDUP,
+    FTP_CMD_SMNT,
+    FTP_CMD_QUIT,
+    FTP_CMD_REIN,
+    FTP_CMD_PORT,
+    FTP_CMD_PASV,
+    FTP_CMD_TYPE,
+    FTP_CMD_STRU,
+    FTP_CMD_MODE,
+    FTP_CMD_RETR,
+    FTP_CMD_STOR,
+    FTP_CMD_STOU,
+    FTP_CMD_APPE,
+    FTP_CMD_ALLO,
+    FTP_CMD_REST,
+    FTP_CMD_RNFR,
+    FTP_CMD_RNTO,
+    FTP_CMD_ABOR,
+    FTP_CMD_DELE,
+    FTP_CMD_RMD,
+    FTP_CMD_MKD,
+    FTP_CMD_PWD,
+    FTP_CMD_LIST,
+    FTP_CMD_NLST,
+    FTP_CMD_SITE,
+    FTP_CMD_SYST,
+    FTP_CMD_STAT,
+    FTP_CMD_HELP,
+    FTP_CMD_NOOP,
+    FTP_CMD_ERR
 };
 
 enum FTP_CMDS_NEED_ARGS {
-	FCNA_NONE,
-	FCNA_MANDATORY,
-	FCNA_OPTIONAL
+    FCNA_NONE,
+    FCNA_MANDATORY,
+    FCNA_OPTIONAL
 };
 
 struct _FTP_CMDS_INF {
-	const char *			m_Cmd;
-	FTP_CMDS_NEED_ARGS		m_NeedArgs;
-	const char *			m_HelpMsg;
+    const char *			m_Cmd;
+    FTP_CMDS_NEED_ARGS		m_NeedArgs;
+    const char *			m_HelpMsg;
 };
 
 static const int FTP_CMDS_NUM = 34 - 1;//FTP_CMD_ERR Is Not a CMD
@@ -128,17 +128,17 @@ static const _FTP_CMDS_INF FTP_CMDS_INF[] = {
     { "NOOP", FCNA_NONE, "Do nothing: NOOP" }
 };
 
-static const char HELP_MSG[] =	
-	"214 The following commands are recognized:\r\n"
-	"USER\r\n"
-	"PASS\r\n"
-	"ACCT\r\n"
-	""
-	""
-	""
-	""
-	""
-	""
-	"214 HELP command successful.\r\n";
+static const char HELP_MSG[] =
+"214 The following commands are recognized:\r\n"
+"USER\r\n"
+"PASS\r\n"
+"ACCT\r\n"
+""
+""
+""
+""
+""
+""
+"214 HELP command successful.\r\n";
 
 #endif//NINI_FTP_FTP_CMD_H

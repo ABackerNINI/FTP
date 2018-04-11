@@ -11,7 +11,7 @@ StringBuffer::StringBuffer() :
 
 void StringBuffer::push(const char *str, size_t count) {
     if (str[count - 1] == '\0')count -= 1;
-        
+
     _buffer(str, count);
 }
 

@@ -6,14 +6,14 @@
 FtpServer _Server;
 
 int main() {
-	network::ServerConfig config;
-	config.M_Port = 21;
-	config.O_MaxConnect = 10;
+    network::ServerConfig config;
+    config.M_Port = 21;
+    config.O_MaxConnect = 10;
 
-	_Server.SetConfig(config);
-	_Server.Start();
+    _Server.SetConfig(config);
+    _Server.Start();
 
-	_getch();
+    _getch();
 
-	return 0;
+    return 0;
 }

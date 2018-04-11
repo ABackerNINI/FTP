@@ -4,16 +4,14 @@
 #define NINI_FTP_THREADPOOL_H
 
 namespace thread_pool {
-	class  ThreadPool
-	{
-	public:
-		 ThreadPool();
-		~ ThreadPool();
+    class  ThreadPool {
+    public:
+        ThreadPool();
+        ~ThreadPool();
 
-	private:
+    private:
 
-	};
-
+    };
 }
 
 #endif //NINI_FTP_THREADPOOL_H
