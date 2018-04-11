@@ -18,30 +18,30 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Resource\Utility\Network\Network.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="FtpClient.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="ClientMain.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\Resource\Utility\StringBuffer\StringBuffer.cpp">
+    <ClCompile Include="..\Utility\Network\Network.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Utility\StringBuffer\StringBuffer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Resource\Utility\Network\Network.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="FtpClient.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\Resource\FtpCmds\FtpCmds.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\Resource\Utility\StringBuffer\StringBuffer.h">
+    <ClInclude Include="..\Utility\Network\Network.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Utility\StringBuffer\StringBuffer.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

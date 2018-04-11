@@ -4,8 +4,8 @@
 #define _NINI_FTP_CLIENT_H_
 
 #include "../Resource/FtpCmds/FtpCmds.h"
-#include "../Resource/Utility/Network/Network.h"
-#include "../Resource/Utility/StringBuffer/StringBuffer.h"
+#include "../Utility/Network/Network.h"
+#include "../Utility/StringBuffer/StringBuffer.h"
 
 #define DEFAULT_BUFFER_LEN 1024
 

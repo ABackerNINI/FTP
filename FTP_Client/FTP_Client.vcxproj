@@ -143,15 +143,15 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Resource\Utility\Network\Network.cpp" />
-    <ClCompile Include="..\Resource\Utility\StringBuffer\StringBuffer.cpp" />
+    <ClCompile Include="..\Utility\Network\Network.cpp" />
+    <ClCompile Include="..\Utility\StringBuffer\StringBuffer.cpp" />
     <ClCompile Include="FtpClient.cpp" />
     <ClCompile Include="ClientMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Resource\FtpCmds\FtpCmds.h" />
-    <ClInclude Include="..\Resource\Utility\Network\Network.h" />
-    <ClInclude Include="..\Resource\Utility\StringBuffer\StringBuffer.h" />
+    <ClInclude Include="..\Utility\Network\Network.h" />
+    <ClInclude Include="..\Utility\StringBuffer\StringBuffer.h" />
     <ClInclude Include="FtpClient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

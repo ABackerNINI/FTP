@@ -5,8 +5,8 @@
 
 #include "../Resource/Common/Common.h"
 #include "../Resource/FtpCmds/FtpCmds.h"
-#include "../Resource/Utility/Network/Network.h"
-#include "../Resource/Utility/StringBuffer/StringBuffer.h"
+#include "../Utility/Network/Network.h"
+#include "../Utility/StringBuffer/StringBuffer.h"
 
 #define DEFAULT_BUFFER_LEN 1024
 #define DEFAULT_USRNAME_BUFFER_LEN 100
