@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef NINI_FTP_NETWORK_H
-#define NINI_FTP_NETWORK_H
+#ifndef _NINI_NETWORK_IOCP_H_
+#define _NINI_NETWORK_IOCP_H_
 
 #include <stdio.h>
 #include <iostream>
@@ -436,4 +436,4 @@ namespace network {
         LPFN_CONNECTEX		m_ConnectEx;
     };
 }
-#endif //NINI_FTP_NETWORK_H
+#endif //_NINI_NETWORK_IOCP_H_

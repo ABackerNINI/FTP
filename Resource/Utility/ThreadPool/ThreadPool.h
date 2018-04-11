@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef NINI_FTP_THREADPOOL_H
-#define NINI_FTP_THREADPOOL_H
+#ifndef _NINI_THREAD_POOL_H_
+#define _NINI_THREAD_POOL_H_
 
 namespace thread_pool {
     class  ThreadPool {
@@ -14,4 +14,4 @@ namespace thread_pool {
     };
 }
 
-#endif //NINI_FTP_THREADPOOL_H
+#endif //_NINI_THREAD_POOL_H_

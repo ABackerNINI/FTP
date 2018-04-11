@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef NINI_FTP_FILE_H
-#define NINI_FTP_FILE_H
+#ifndef _NINI_FILE_H_
+#define _NINI_FILE_H_
 
 #include <stdio.h>
 
@@ -26,4 +26,4 @@ protected:
     FILE			*m_File;
 };
 
-#endif //NINI_FTP_FILE_H
+#endif //_NINI_FILE_H_

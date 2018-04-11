@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef NINI_FTP_FTP_CLIENT_H
-#define NINI_FTP_FTP_CLIENT_H
+#ifndef _NINI_FTP_CLIENT_H_
+#define _NINI_FTP_CLIENT_H_
 
 #include "../Resource/FtpCmds/FtpCmds.h"
 #include "../Resource/Utility/Network/Network.h"
@@ -77,4 +77,4 @@ protected:
     //FtpClientServer		m_FtpClientServer;
 };
 
-#endif//NINI_FTP_FTP_CLIENT_H
+#endif //_NINI_FTP_CLIENT_H_

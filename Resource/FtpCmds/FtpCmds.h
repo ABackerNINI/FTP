@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef NINI_FTP_FTP_CMD_H
-#define NINI_FTP_FTP_CMD_H
+#ifndef _NINI_FTP_RESOURCE_FTP_CMD_H_
+#define _NINI_FTP_RESOURCE_FTP_CMD_H_
 
 #include <stdio.h>
 #include "../Common/Common.h"
@@ -141,4 +141,4 @@ static const char HELP_MSG[] =
 ""
 "214 HELP command successful.\r\n";
 
-#endif//NINI_FTP_FTP_CMD_H
+#endif //_NINI_FTP_RESOURCE_FTP_CMD_H_

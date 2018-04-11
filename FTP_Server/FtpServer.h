@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef NINI_FTP_FTP_SERVER_H
-#define NINI_FTP_FTP_SERVER_H
+#ifndef _NINI_FTP_SERVER_H_
+#define _NINI_FTP_SERVER_H_
 
 #include "../Resource/Common/Common.h"
 #include "../Resource/FtpCmds/FtpCmds.h"
@@ -138,4 +138,4 @@ protected:
     void _CmdHandler_NOT_IMPLEMENTED(SOCKET _Socket, ClientInf*, char *_Args);
 };
 
-#endif //NINI_FTP_FTP_SERVER_H
+#endif //_NINI_FTP_SERVER_H_
