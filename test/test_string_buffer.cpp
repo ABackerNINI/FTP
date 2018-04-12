@@ -3,6 +3,8 @@
 #include <conio.h>
 #include "../utility/string_buffer/string_buffer.h"
 
+#pragma warning(disable:4996)
+
 void test_string_buffer() {
     string_buffer sb;
     char *s1 = new char[100];

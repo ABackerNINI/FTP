@@ -1,15 +1,70 @@
 
 #include "network.h"
 
+/*
+ * SVR_SOCKET_CONTEXT
+ */
+network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, size_t _BufferLen) :
+    m_ClientSocket(_Socket),
+    m_OpType(SVR_OP::SVROP_NULL),
+    m_Extra(NULL) {
+    m_szBuffer = new char[_BufferLen];
+    memcpy(m_szBuffer, _Buffer, sizeof(char)*_BufferLen);
+    m_wsaBuf.buf = m_szBuffer;
+    m_wsaBuf.len = (ULONG)_BufferLen;
+
+    memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+
+#if(DEBUG&DEBUG_TRACE)
+    _DEBUG_TRACE = network::_DEBUG_TRACE++;
+#endif
+}
+
+network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(size_t _MaxBufferLen/* = DEFAULT_MAX_BUFFER_LEN*/) :
+    m_ClientSocket(INVALID_SOCKET),
+    m_OpType(SVR_OP::SVROP_NULL),
+    m_Extra(NULL) {
+    m_szBuffer = new char[_MaxBufferLen];//TODO user-defined(upper layer) buffer len
+    m_wsaBuf.buf = m_szBuffer;
+    m_wsaBuf.len = (ULONG)_MaxBufferLen;
+
+    memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+
+#if(DEBUG&DEBUG_TRACE)
+    _DEBUG_TRACE = network::_DEBUG_TRACE++;
+#endif
+}
+
+void network::SVR_SOCKET_CONTEXT::RESET_BUFFER() {
+    m_szBuffer[0] = '\0';
+    m_BytesTransferred = 0;
+}
+
+network::SVR_SOCKET_CONTEXT::~SVR_SOCKET_CONTEXT() {
+    if (m_szBuffer)
+        delete[] m_szBuffer;
+
+#if(DEBUG&DEBUG_TRACE)
+    TRACE_PRINT("PSC Dispose DEBUG_TRACE:%u Socket:%lld OP:%d\n", _DEBUG_TRACE, m_ClientSocket, m_OpType);
+#endif
+}
 
 /*
- * Server Codes
+ * ServerConfig
  */
+network::ServerConfig::ServerConfig(unsigned int _Port/* = 0*/, unsigned int _MaxConnect/* = SOMAXCONN*/) :
+    M_Port(_Port),
+    O_MaxConnect(_MaxConnect),
+    O_MaxPostAccept(DEFAULT_MAX_POST_ACCEPT),
+    O_MaxBufferLen(DEFAULT_MAX_BUFFER_LEN),
+    O0_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
+    O0_WorkerThreads(0) {
+}
 
+/*
+ * Server
+ */
 network::Server::Server() {
-    //#if(DEBUG&DEBUG_TRACE)
-    //	InitializeCriticalSection(&CRITICAL_PRINT);
-    //#endif
 }
 
 network::Server::Server(const ServerConfig &_ServerConfig) {
@@ -40,10 +95,6 @@ bool network::Server::Close(SOCKET _Socket) {
     return true;
 }
 
-//bool network::Server::AddListenPort(int _Port, int _Max_Connect = 1) {
-//	return _AddListenPort(_Port, _Max_Connect);
-//}
-
 bool network::Server::Stop() {
     _Stop(m_Socket);
 
@@ -57,7 +108,6 @@ void network::Server::OnAccepted(SVR_SOCKET_CONTEXT * _SocketContext) {
 
     if (_SocketContext->m_BytesTransferred) {
         printf("%s\n", _SocketContext->m_szBuffer);
-        //Send(_SocketContext->m_ClientSocket, _SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
     }
 }
 
@@ -67,10 +117,6 @@ void network::Server::OnRecvd(SVR_SOCKET_CONTEXT * _SocketContext) {
 #endif
 
     printf("%s\n", _SocketContext->m_szBuffer);
-
-    //if (_SocketContext->m_BytesTransferred) {
-    //	Send(_SocketContext->m_ClientSocket, _SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
-    //}
 }
 
 void network::Server::OnSent(SVR_SOCKET_CONTEXT * _SocketContext) {
@@ -122,60 +168,7 @@ bool network::Server::_InitComplitionPort() {
     return true;
 }
 
-//bool network::Server::_AddListenPort(int _Port, int _Max_Connect) {
-//	//SOCKET
-//	m_Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-//	if (m_Socket == INVALID_SOCKET) {
-//#if(DEBUG&DEBUG_LOG)
-//		LOG(CC_RED, "Faild to Create Socket @_AddListenPort\n");
-//#endif
-//		return false;
-//	}
-//
-//	SOCKADDR_IN _Addr;
-//	memset(&_Addr, 0, sizeof(_Addr));
-//	_Addr.sin_family = AF_INET;
-//	_Addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
-//	_Addr.sin_port = htons(_Port);
-//
-//	//BIND
-//	if (bind(m_Socket, (SOCKADDR*)&_Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
-//#if(DEBUG&DEBUG_LOG)
-//		LOG(CC_RED, "Faild to Bind Socket @_AddListenPort\n");
-//#endif
-//		return false;
-//	}
-//
-//	//LISTEN
-//	if (listen(m_Socket, _Max_Connect) == SOCKET_ERROR) {
-//#if(DEBUG&DEBUG_LOG)
-//		LOG(CC_RED, "Faild to Listen Port %d @_AddListenPort\n", _Port);
-//#endif
-//		return false;
-//	}
-//
-//	//COMPLETIONPORT
-//	if (CreateIoCompletionPort((HANDLE)m_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
-//#if(DEBUG&DEBUG_LOG)
-//		LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_AddListenPort\n");
-//#endif
-//		return false;
-//	}
-//
-//	//POST ACCEPT
-//	for (int i = 0; i < m_ServerConfig.O_MaxPostAccept; ++i) {
-//		SVR_SOCKET_CONTEXT *_SocketContext = new SVR_SOCKET_CONTEXT();
-//		if (_PostAccept(_SocketContext) == false) {
-//#if(DEBUG&DEBUG_LOG)
-//			LOG(CC_RED, "Faild to Post Accept%d @_AddListenPort\n", i);
-//#endif
-//		}
-//	}
-//
-//	return true;
-//}
-
-bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
+bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     //WSADATA
     WSADATA Wsadata;
     WORD wVersionRequested = MAKEWORD(2, 2);
@@ -194,7 +187,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
     }
 
     //SOCKET
-    m_Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    m_Socket = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
     if (m_Socket == INVALID_SOCKET) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Create Socket @_InitSock\n");
@@ -217,7 +210,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
     }
 
     //LISTEN
-    if (listen(m_Socket, _Max_Connect) == SOCKET_ERROR) {
+    if (listen(m_Socket, _MaxConnect) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Listen Port %d @_InitSock\n", _Port);
 #endif
@@ -269,7 +262,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
     }
 
     //POST ACCEPT
-    for (int i = 0; i < m_ServerConfig.O_MaxPostAccept; ++i) {
+    for (unsigned int i = 0; i < m_ServerConfig.O_MaxPostAccept; ++i) {
         SVR_SOCKET_CONTEXT *_SocketContext = new SVR_SOCKET_CONTEXT();
         if (_PostAccept(_SocketContext) == false) {
 #if(DEBUG&DEBUG_LOG)
@@ -281,7 +274,7 @@ bool network::Server::_InitSock(int _Port, unsigned int _Max_Connect) {
     return true;
 }
 
-bool network::Server::_Start(int _Port, int _MaxConnect = SOMAXCONN) {
+bool network::Server::_Start(unsigned int _Port, unsigned int _MaxConnect) {
     if (_InitComplitionPort() == false) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Init ComplitionPort @_Start\n");
@@ -301,7 +294,7 @@ bool network::Server::_Start(int _Port, int _MaxConnect = SOMAXCONN) {
 
 void network::Server::_Stop(SOCKET _Sockid) {
     closesocket(_Sockid);
-    WSACleanup();
+    //WSACleanup();
 }
 
 bool network::Server::_PostAccept(SVR_SOCKET_CONTEXT *_SocketContext) {
@@ -312,7 +305,7 @@ bool network::Server::_PostAccept(SVR_SOCKET_CONTEXT *_SocketContext) {
     DWORD _Flags = 0;
 
     _SocketContext->m_OpType = SVR_OP::SVROP_ACCEPTING;
-    _SocketContext->m_ClientSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+    _SocketContext->m_ClientSocket = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
 
     if (m_pAcceptEx(m_Socket,
         _SocketContext->m_ClientSocket,
@@ -589,9 +582,72 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 }
 
 /*
- * Client Codes
+ * CLT_SOCKET_CONTEXT
  */
+network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(size_t _MaxBufferLen /*= DEFAULT_MAX_BUFFER_LEN*/) :
+    m_Socket(0),
+    m_Extra(NULL) {
+    m_szBuffer = new char[_MaxBufferLen];
+    m_wsaBuf.buf = m_szBuffer;
+    m_wsaBuf.len = (ULONG)_MaxBufferLen;
+    m_OpType = CLT_OP::CLTOP_UNDEFINED;
 
+    memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+
+#if(DEBUG&DEBUG_TRACE)
+    _DEBUG_TRACE = network::_DEBUG_TRACE++;
+#endif
+}
+
+network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(const char *_Buffer, size_t _BufferLen) :
+    m_Socket(0),
+    m_OpType(CLT_OP::CLTOP_UNDEFINED) {
+    m_szBuffer = new char[_BufferLen];
+    memcpy(m_szBuffer, _Buffer, sizeof(char)*_BufferLen);
+    m_wsaBuf.buf = m_szBuffer;
+    m_wsaBuf.len = (ULONG)_BufferLen;
+
+    memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+
+#if(DEBUG&DEBUG_TRACE)
+    _DEBUG_TRACE = network::_DEBUG_TRACE++;
+#endif
+}
+
+void network::CLT_SOCKET_CONTEXT::RESET_BUFFER() {
+    m_szBuffer[0] = '\0';
+    m_BytesTransferred = 0;
+}
+
+network::CLT_SOCKET_CONTEXT::~CLT_SOCKET_CONTEXT() {
+    if (m_szBuffer)
+        delete[] m_szBuffer;
+
+#if(DEBUG&DEBUG_TRACE)
+    TRACE_PRINT("PSC Dispose DEBUG_TRACE:%d\n", _DEBUG_TRACE);
+#endif
+}
+
+/*
+ * IP_PORT
+ */
+network::IP_PORT::IP_PORT() :
+    M0_Ip_String(NULL),
+    M0_Ip_ULong(0),
+    M_Port(0) {
+}
+
+/*
+ * ClientConfig
+ */
+network::ClientConfig::ClientConfig() :
+    O0_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
+    O0_WorkerThreads(0) {
+}
+
+/*
+ * Client
+ */
 network::Client::Client() :m_CompletionPort(NULL) {
     _Init();
 }
@@ -634,8 +690,8 @@ int network::Client::_Init() {
     return 0;
 }
 
-SOCKET network::Client::Connect(const IP_PORT * _IpPort, int *_LocalPort) {
-    int _LocalPort1 = 0;
+SOCKET network::Client::Connect(const IP_PORT *_IpPort, unsigned int *_LocalPort/* = NULL*/) {
+    unsigned int _LocalPort1 = 0;
     if (!_LocalPort) {
         _LocalPort = &_LocalPort1;
     }
@@ -658,7 +714,7 @@ SOCKET network::Client::Connect(const IP_PORT * _IpPort, int *_LocalPort) {
     return _Socket;
 }
 
-SOCKET network::Client::Connect(const char * _Address, int * _LocalPort) {
+SOCKET network::Client::Connect(const char * _Address, unsigned int * _LocalPort) {
     IP_PORT _IpPort;
 
     //TODO parse address and call gethostbyname
@@ -666,7 +722,7 @@ SOCKET network::Client::Connect(const char * _Address, int * _LocalPort) {
     return Connect(&_IpPort, _LocalPort);
 }
 
-bool network::Client::Send(SOCKET _Sockid, const char * _SendBuffer, size_t _BufferLen) {
+bool network::Client::Send(SOCKET _Sockid, const char *_SendBuffer, size_t _BufferLen) {
     CLT_SOCKET_CONTEXT *_SocketContext = new CLT_SOCKET_CONTEXT(_SendBuffer, _BufferLen);//"port 1234\r\n"
     _SocketContext->m_Socket = _Sockid;
 
@@ -754,10 +810,10 @@ bool network::Client::_InitCompletionPort() {
     return true;
 }
 
-SOCKET network::Client::_InitSock(int *_Port) {
+SOCKET network::Client::_InitSock(unsigned int *_Port) {
 
     //SOCKET
-    SOCKET _Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    SOCKET _Socket = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
     if (_Socket == INVALID_SOCKET) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Create Socket @_InitSock\n");
@@ -812,7 +868,7 @@ SOCKET network::Client::_InitSock(int *_Port) {
     return _Socket;
 }
 
-bool network::Client::_PostConnect(SOCKET _Sockid, unsigned long _Ip, int _Port) {
+bool network::Client::_PostConnect(SOCKET _Sockid, unsigned long _Ip, unsigned int _Port) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("PostConnect @_PostConnect\n");
 #endif

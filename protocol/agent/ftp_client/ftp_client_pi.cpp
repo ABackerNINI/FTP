@@ -19,7 +19,7 @@ void ftp_client_pi::ftp_client_pi::SetConfig(const FtpClientConfig & _FtpClientC
 }
 
 bool ftp_client_pi::ftp_client_pi::FtpConnect(const network::IP_PORT *_IpPort) {
-    int _LocalPort = 0;
+    unsigned int _LocalPort = 0;
     if (m_Socket = Connect(_IpPort, &_LocalPort)) {
         for (int i = 0; i < 10; ++i) {
 

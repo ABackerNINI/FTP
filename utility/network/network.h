@@ -14,20 +14,20 @@
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "Kernel32.lib")
 
+namespace network {
+
 #define DEBUG 1
 #define DEBUG_TRACE 1
 #define DEBUG_LOG 1
 
 #define FEATURE_RECV_ON_ACCEPT 0		//Recv Data on Accept.
-//This may arise a problem that when the client does not send data on connect,
-//the server won't get the event OnAccepted immediately until the client sends data.
+    //This may arise a problem that when the client does not send data on connect,
+    //the server won't get the event OnAccepted immediately until the client sends data.
 
-#define DEFAULT_MAX_CONNECT 30
 #define DEFAULT_MAX_BUFFER_LEN 100
 #define DEFAULT_MAX_POST_ACCEPT 10
 #define DEFAULT_WORKER_THREADS_PER_PROCESSOR 2
 
-namespace network {
 
 #if(DEBUG&(DEBUG_TRACE|DEBUG_LOG))
     enum CONSOLE_COLOR {
@@ -85,11 +85,8 @@ namespace network {
     }
 #endif
 
-    //class Server;
-    //class Client;
-
     template<typename dst_type, typename src_type>
-    dst_type pointer_cast(src_type src) {
+    inline dst_type pointer_cast(src_type src) {
         return *static_cast<dst_type*>(static_cast<void*>(&src));
     }
 
@@ -128,50 +125,13 @@ namespace network {
         unsigned int _DEBUG_TRACE;
 #endif
 
-        SVR_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, size_t _BufferLen) :
-            m_ClientSocket(_Socket),
-            m_OpType(SVR_OP::SVROP_NULL),
-            m_Extra(NULL) {
-            m_szBuffer = new char[_BufferLen];
-            memcpy(m_szBuffer, _Buffer, sizeof(char)*_BufferLen);
-            m_wsaBuf.buf = m_szBuffer;
-            m_wsaBuf.len = (ULONG)_BufferLen;
+        SVR_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, size_t _BufferLen);
 
-            memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+        SVR_SOCKET_CONTEXT(size_t _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN);
 
-#if(DEBUG&DEBUG_TRACE)
-            _DEBUG_TRACE = network::_DEBUG_TRACE++;
-#endif
-        }
+        void RESET_BUFFER();
 
-        SVR_SOCKET_CONTEXT(size_t _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) :
-            m_ClientSocket(INVALID_SOCKET),
-            m_OpType(SVR_OP::SVROP_NULL),
-            m_Extra(NULL) {
-            m_szBuffer = new char[_MaxBufferLen];//TODO user-defined(upper layer) buffer len
-            m_wsaBuf.buf = m_szBuffer;
-            m_wsaBuf.len = (ULONG)_MaxBufferLen;
-
-            memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
-
-#if(DEBUG&DEBUG_TRACE)
-            _DEBUG_TRACE = network::_DEBUG_TRACE++;
-#endif
-        }
-
-        void RESET_BUFFER() {
-            m_szBuffer[0] = '\0';
-            m_BytesTransferred = 0;
-        }
-
-        ~SVR_SOCKET_CONTEXT() {
-            if (m_szBuffer)
-                delete[] m_szBuffer;
-
-#if(DEBUG&DEBUG_TRACE)
-            TRACE_PRINT("PSC Dispose DEBUG_TRACE:%u Socket:%lld OP:%d\n", _DEBUG_TRACE, m_ClientSocket, m_OpType);
-#endif
-        }
+        ~SVR_SOCKET_CONTEXT();
     };
 
     struct ServerConfig {
@@ -179,21 +139,14 @@ namespace network {
             O:Optional
             O[n]:Optional Set [n]
          */
-        int M_Port;
-        int O_MaxConnect;
-        int O_MaxPostAccept;
-        int O_MaxBufferLen;
-        int O0_WorkerThreadsPerProcessor;
-        int O0_WorkerThreads;
+        unsigned int M_Port;
+        unsigned int O_MaxConnect;
+        unsigned int O_MaxPostAccept;
+        unsigned int O_MaxBufferLen;
+        unsigned int O0_WorkerThreadsPerProcessor;
+        unsigned int O0_WorkerThreads;
 
-        ServerConfig(int _Port = -1) :
-            M_Port(_Port),
-            O_MaxConnect(DEFAULT_MAX_CONNECT),
-            O_MaxPostAccept(DEFAULT_MAX_POST_ACCEPT),
-            O_MaxBufferLen(DEFAULT_MAX_BUFFER_LEN),
-            O0_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
-            O0_WorkerThreads(-1) {
-        }
+        ServerConfig(unsigned int _Port = 0, unsigned int _MaxConnect = SOMAXCONN);
     };
 
     enum SVR_EV {
@@ -218,8 +171,6 @@ namespace network {
 
         bool Close(SOCKET _Socket);
 
-        //bool AddListenPort(int _Port, int _Max_Connect);
-
         bool Stop();
 
         virtual void OnAccepted(SVR_SOCKET_CONTEXT *_SocketContext);
@@ -231,15 +182,13 @@ namespace network {
         virtual void OnClosed(SVR_SOCKET_CONTEXT *_SocketContext);
 
     protected:
-        bool _Start(int _Port, int _MaxConnect);
+        bool _Start(unsigned int _Port, unsigned int _MaxConnect);
 
         void _Stop(SOCKET _Sockid);
 
-        bool _InitSock(int _Port, unsigned int _Max_Connect);
+        bool _InitSock(unsigned int _Port, unsigned int _MaxConnect);
 
         bool _InitComplitionPort();
-
-        //bool _AddListenPort(int _Port, int _Max_Connect);
 
         bool _PostAccept(SVR_SOCKET_CONTEXT *_SocketContext);
 
@@ -274,13 +223,9 @@ namespace network {
     struct IP_PORT {
         const char *	M0_Ip_String;
         unsigned long	M0_Ip_ULong;
-        int				M_Port;
+        unsigned int	M_Port;
 
-        IP_PORT() :
-            M0_Ip_String(NULL),
-            M0_Ip_ULong(0),
-            M_Port(0) {
-        }
+        IP_PORT();
     };
 
     struct ClientConfig {
@@ -289,19 +234,10 @@ namespace network {
             O[n]:Optional Set [n]
             A[n]:Alternative Set [n]
         */
-        //const char *	A0_Address;
-        //IP_PORT			A0_IpPort;
-        //int				O_LocalPort;
-        int				O0_WorkerThreadsPerProcessor;
-        int				O0_WorkerThreads;
+        unsigned int				O0_WorkerThreadsPerProcessor;
+        unsigned int				O0_WorkerThreads;
 
-        ClientConfig() :
-            //A0_Address(NULL),
-            //A0_IpPort({ NULL,-1 }),
-            //O_LocalPort(0),
-            O0_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
-            O0_WorkerThreads(-1) {
-        }
+        ClientConfig();
     };
 
     enum CLT_OP {
@@ -326,7 +262,6 @@ namespace network {
         char*			m_szBuffer;
         size_t	        m_BytesTransferred;
         SOCKET			m_Socket;
-        //int				m_Ip;
         CLT_OP          m_OpType;
         void*           m_Extra;
 
@@ -334,49 +269,13 @@ namespace network {
         int _DEBUG_TRACE;
 #endif
 
-        CLT_SOCKET_CONTEXT(size_t _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN) :
-            m_Socket(0),
-            m_Extra(NULL) {
-            m_szBuffer = new char[_MaxBufferLen];
-            m_wsaBuf.buf = m_szBuffer;
-            m_wsaBuf.len = (ULONG)_MaxBufferLen;
-            m_OpType = CLT_OP::CLTOP_UNDEFINED;
+        CLT_SOCKET_CONTEXT(size_t _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN);
 
-            memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+        CLT_SOCKET_CONTEXT(const char *_Buffer, size_t _BufferLen);
 
-#if(DEBUG&DEBUG_TRACE)
-            _DEBUG_TRACE = network::_DEBUG_TRACE++;
-#endif
-        }
+        void RESET_BUFFER();
 
-        CLT_SOCKET_CONTEXT(const char *_Buffer, size_t _BufferLen) :
-            m_Socket(0),
-            m_OpType(CLT_OP::CLTOP_UNDEFINED) {
-            m_szBuffer = new char[_BufferLen];
-            memcpy(m_szBuffer, _Buffer, sizeof(char)*_BufferLen);
-            m_wsaBuf.buf = m_szBuffer;
-            m_wsaBuf.len = (ULONG)_BufferLen;
-
-            memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
-
-#if(DEBUG&DEBUG_TRACE)
-            _DEBUG_TRACE = network::_DEBUG_TRACE++;
-#endif
-        }
-
-        void RESET_BUFFER() {
-            m_szBuffer[0] = '\0';
-            m_BytesTransferred = 0;
-        }
-
-        ~CLT_SOCKET_CONTEXT() {
-            if (m_szBuffer)
-                delete[] m_szBuffer;
-
-#if(DEBUG&DEBUG_TRACE)
-            TRACE_PRINT("PSC Dispose DEBUG_TRACE:%d\n", _DEBUG_TRACE);
-#endif
-        }
+        ~CLT_SOCKET_CONTEXT();
     };
 
     class Client {
@@ -387,9 +286,9 @@ namespace network {
 
         void SetConfig(const ClientConfig &_ClientConfig);
 
-        SOCKET Connect(const IP_PORT *_IpPort, int *_LocalPort = NULL);
+        SOCKET Connect(const IP_PORT *_IpPort, unsigned int *_LocalPort = NULL);
 
-        SOCKET Connect(const char *_Address, int *_LocalPort);
+        SOCKET Connect(const char *_Address, unsigned int *_LocalPort);
 
         bool Send(SOCKET _Sockid, const char *_SendBuffer, size_t _BufferLen);
 
@@ -408,11 +307,11 @@ namespace network {
     protected:
         int _Init();
 
-        SOCKET _InitSock(int *_Port);
+        SOCKET _InitSock(unsigned int *_Port);
 
         bool _InitCompletionPort();
 
-        bool _PostConnect(SOCKET _Sockid, unsigned long _Ip, int _Port);
+        bool _PostConnect(SOCKET _Sockid, unsigned long _Ip, unsigned int _Port);
 
         bool _PostSend(CLT_SOCKET_CONTEXT *_SocketContext);
 
@@ -436,4 +335,5 @@ namespace network {
         LPFN_CONNECTEX		m_ConnectEx;
     };
 }
+
 #endif //_NINI_NETWORK_IOCP_H_
