@@ -3,10 +3,10 @@
 #ifndef _NINI_FTP_SERVER_H_
 #define _NINI_FTP_SERVER_H_
 
-#include "../Resource/Common/Common.h"
-#include "../Resource/FtpCmds/FtpCmds.h"
-#include "../Utility/Network/Network.h"
-#include "../Utility/StringBuffer/StringBuffer.h"
+#include "../resource/common/common.h"
+#include "../resource/ftp_cmds/ftp_cmds.h"
+#include "../utility/network/network.h"
+#include "../utility/string_buffer/string_buffer.h"
 
 #define DEFAULT_BUFFER_LEN 1024
 #define DEFAULT_USRNAME_BUFFER_LEN 100

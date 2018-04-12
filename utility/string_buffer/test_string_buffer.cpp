@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <conio.h>
-#include "StringBuffer.h"
+#include "string_buffer.h"
 
 void StringBufferTest() {
     StringBuffer sb;

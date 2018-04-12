@@ -1,4 +1,4 @@
-#include "Common.h"
+#include "common.h"
 #include <stdio.h>
 
 int cut_string(char *_Str, const char _Cutter) {

@@ -1,4 +1,4 @@
-#include "StringBuffer.h"
+#include "string_buffer.h"
 #include <memory.h>
 #include <malloc.h>
 

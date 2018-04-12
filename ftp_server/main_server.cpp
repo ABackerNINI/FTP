@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <conio.h>
-#include "FtpServer.h"
+#include "ftp_server.h"
 
 FtpServer _Server;
 

@@ -6,25 +6,25 @@ cmake_minimum_required (VERSION 3.8)
 project ("FTP")
 
 set(FTP_CLIENT_PI
-	ftp_client/FtpClient.h
-	ftp_client/FtpClient.cpp
+	ftp_client/ftp_client.h
+	ftp_client/ftp_client.cpp
 )
 
 set(FTP_SERVER_PI
-	ftp_server/FtpServer.h
-	ftp_server/FtpServer.cpp
+	ftp_server/ftp_server.h
+	ftp_server/ftp_server.cpp
 )
 
 #############################################################
 
 set(RESOURCE_COMMON
-	resource/Common/Common.h
-	resource/Common/Common.cpp
+	resource/common/common.h
+	resource/common/common.cpp
 )
 
 set(RESOURCE_FTP_CMD
-	resource/FtpCmds/FtpCmds.h
-	resource/FtpCmds/FtpCmds.cpp
+	resource/ftp_cmds/ftp_cmds.h
+	resource/ftp_cmds/ftp_cmds.cpp
 )
 
 set(RESOURCE
@@ -35,13 +35,13 @@ set(RESOURCE
 #############################################################
 
 set(UTILITY_NETWORK
-	utility/Network/Network.h
-	utility/Network/Network.cpp
+	utility/network/network.h
+	utility/network/network.cpp
 )
 
 set(UTILITY_STRING_BUFFER
-	utility/StringBuffer/StringBuffer.h
-	utility/StringBuffer/StringBuffer.cpp
+	utility/string_buffer/string_buffer.h
+	utility/string_buffer/string_buffer.cpp
 )
 
 set(UTILITY
@@ -51,13 +51,13 @@ set(UTILITY
 
 #############################################################
 
-add_executable(ftp_client ftp_client/ClientMain.cpp
+add_executable(ftp_client ftp_client/main_client.cpp
 	${FTP_CLIENT_PI}
 	${RESOURCE}
 	${UTILITY}
 )
 
-add_executable(ftp_server ftp_server/ServerMain.cpp
+add_executable(ftp_server ftp_server/main_server.cpp
 	${FTP_SERVER_PI}
 	${RESOURCE}
     ${UTILITY}
