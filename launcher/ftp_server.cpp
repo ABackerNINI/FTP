@@ -3,7 +3,7 @@
 #include <conio.h>
 #include "../protocol/agent/ftp_server/ftp_server_pi.h"
 
-ftp_server_pi _Server;
+ftp_server_pi::ftp_server_pi _Server;
 
 int main() {
     network::ServerConfig config;

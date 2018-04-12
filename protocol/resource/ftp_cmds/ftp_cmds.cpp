@@ -1,6 +1,6 @@
 #include "ftp_cmds.h"
 
-enum FTP_CMDS CmdDispatch(char **_Str) {
+enum ftp_cmds::FTP_CMDS ftp_cmds::CmdDispatch(char **_Str) {
     char *p = *_Str;
     FTP_CMDS _Ret = FTP_CMD_ERR;
 

@@ -4,9 +4,9 @@
 
 #include "../protocol/agent/ftp_client/ftp_client_pi.h"
 
-FtpClientConfig _ClientConfig;
+ftp_client_pi::FtpClientConfig _ClientConfig;
 
-ftp_client_pi _Client;
+ftp_client_pi::ftp_client_pi _Client;
 
 BOOL CALLBACK ConsoleHandler(DWORD _Ev) {
     BOOL _Ret = FALSE;
