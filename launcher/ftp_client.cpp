@@ -61,5 +61,7 @@ int main() {
 
     _Client.Close();
 
+    network::Cleanup();
+
     return 0;
 }

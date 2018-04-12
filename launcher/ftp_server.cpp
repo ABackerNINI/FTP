@@ -15,5 +15,7 @@ int main() {
 
     _getch();
 
+    network::Cleanup();
+
     return 0;
 }

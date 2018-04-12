@@ -2,6 +2,13 @@
 #include "network.h"
 
 /*
+ * Cleanup
+ */
+int network::Cleanup(){
+    return WSACleanup();
+}
+
+/*
  * SVR_SOCKET_CONTEXT
  */
 network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, size_t _BufferLen) :

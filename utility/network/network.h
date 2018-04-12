@@ -16,6 +16,8 @@
 
 namespace network {
 
+    //TODO #define T_PORT unsigned short
+
 #define DEBUG 1
 #define DEBUG_TRACE 1
 #define DEBUG_LOG 1
@@ -84,6 +86,9 @@ namespace network {
         fflush(stdout);
     }
 #endif
+
+    //Call it after all network jobs are done.
+    int Cleanup();
 
     template<typename dst_type, typename src_type>
     inline dst_type pointer_cast(src_type src) {
