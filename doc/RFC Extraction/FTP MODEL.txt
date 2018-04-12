@@ -1,0 +1,21 @@
+THE FTP MODEL
+                                            -------------
+                                            |/---------\|
+                                            ||   User  ||    --------
+                                            ||Interface|<--->| User |
+                                            |\----^----/|    --------
+                  ----------                |     |     |
+                  |/------\|  FTP Commands  |/----V----\|
+                  ||Server|<---------------->|   User  ||
+                  ||  PI  ||   FTP Replies  ||    PI   ||
+                  |\--^---/|                |\----^----/|
+                  |   |    |                |     |     |
+      --------    |/--V---\|      Data      |/----V----\|    --------
+      | File |<--->|Server|<---------------->|  User   |<--->| File |
+      |System|    || DTP  ||   Connection   ||   DTP   ||    |System|
+      --------    |\------/|                |\---------/|    --------
+                  ----------                -------------
+                  Server-FTP                   USER-FTP
+      NOTES: 1. The data connection may be used in either direction.
+             2. The data connection need not exist all of the time.
+                      Figure 1  Model for FTP Use
