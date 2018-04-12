@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _NINI_FTP_CLIENT_H_
-#define _NINI_FTP_CLIENT_H_
+#ifndef _NINI_FTP_CLIENT_PI_H_
+#define _NINI_FTP_CLIENT_PI_H_
 
 #include "../resource/ftp_cmds/ftp_cmds.h"
 #include "../utility/network/network.h"
@@ -36,11 +36,11 @@ struct ClientInf {
     string_buffer m_CmdBuffer;
 };
 
-class FtpClient :public network::Client {
+class ftp_client_pi :public network::Client {
 public:
-    FtpClient();
+    ftp_client_pi();
 
-    FtpClient(const FtpClientConfig &_FtpClientConfig);
+    ftp_client_pi(const FtpClientConfig &_FtpClientConfig);
 
     void SetConfig(const FtpClientConfig &_FtpClientConfig);
 
@@ -77,4 +77,4 @@ protected:
     //FtpClientServer		m_FtpClientServer;
 };
 
-#endif //_NINI_FTP_CLIENT_H_
+#endif //_NINI_FTP_CLIENT_PI_H_

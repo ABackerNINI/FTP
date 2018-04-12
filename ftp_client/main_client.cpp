@@ -2,11 +2,11 @@
 #include <iostream>
 #include <conio.h>
 
-#include "ftp_client.h"
+#include "ftp_client_pi.h"
 
 FtpClientConfig _ClientConfig;
 
-FtpClient _Client;
+ftp_client_pi _Client;
 
 BOOL CALLBACK ConsoleHandler(DWORD _Ev) {
     BOOL _Ret = FALSE;

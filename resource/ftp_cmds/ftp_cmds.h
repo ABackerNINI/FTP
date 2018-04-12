@@ -129,7 +129,7 @@ static const _FTP_CMDS_INF FTP_CMDS_INF[] = {
 };
 
 static const char HELP_MSG[] =
-"214 The following commands are recognized:\r\n"
+"214-The following commands are recognized:\r\n"
 "USER\r\n"
 "PASS\r\n"
 "ACCT\r\n"
@@ -140,5 +140,7 @@ static const char HELP_MSG[] =
 ""
 ""
 "214 HELP command successful.\r\n";
+
+enum FTP_CMDS CmdDispatch(char **_Str);
 
 #endif //_NINI_FTP_RESOURCE_FTP_CMD_H_

@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _NINI_FTP_SERVER_H_
-#define _NINI_FTP_SERVER_H_
+#ifndef _NINI_FTP_SERVER_PI_H_
+#define _NINI_FTP_SERVER_PI_H_
 
 #include "../resource/common/common.h"
 #include "../resource/ftp_cmds/ftp_cmds.h"
@@ -13,7 +13,7 @@
 #define DEFAULT_PASSWD_BUFFER_LEN 100
 #define DEFAULT_DIR_BUFFER_LEN 100
 
-#define _CMD(CMD)  network::pointer_cast<_CmdHandler>(&FtpServer::_CmdHandler##CMD)
+#define _CMD(CMD)  network::pointer_cast<_CmdHandler>(&ftp_server_pi::_CmdHandler##CMD)
 
 enum CLIENT_LOGIN_STATUS {
     CLS_CONNECTED,
@@ -42,9 +42,9 @@ struct ClientInf {
     }
 };
 
-class FtpServer :public network::Server {
+class ftp_server_pi :public network::Server {
 public:
-    FtpServer();
+    ftp_server_pi();
 
 protected:
     void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
@@ -55,8 +55,6 @@ protected:
 
     void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
 
-    enum FTP_CMDS CmdDispatch(char **_Str);
-
     bool _Handle(SOCKET _Socket, ClientInf *_ClientInf);
 
     bool _FtpSend(SOCKET _Socket, const char *_Buffer);
@@ -66,7 +64,7 @@ protected:
     //FtpServerClient				m_FtpServerClient;
 
 protected:
-    typedef void(*_CmdHandler)(FtpServer*, SOCKET, ClientInf*, char *);
+    typedef void(*_CmdHandler)(ftp_server_pi*, SOCKET, ClientInf*, char *);
 
     const _CmdHandler m_CmdHandler[FTP_CMDS_NUM + 1] = {//Need to Handle FTP_CMD_ERR
         { _CMD(_USER)},
@@ -138,4 +136,4 @@ protected:
     void _CmdHandler_NOT_IMPLEMENTED(SOCKET _Socket, ClientInf*, char *_Args);
 };
 
-#endif //_NINI_FTP_SERVER_H_
+#endif //_NINI_FTP_SERVER_PI_H_

@@ -6,13 +6,13 @@ cmake_minimum_required (VERSION 3.8)
 project ("FTP")
 
 set(FTP_CLIENT_PI
-	ftp_client/ftp_client.h
-	ftp_client/ftp_client.cpp
+	ftp_client/ftp_client_pi.h
+	ftp_client/ftp_client_pi.cpp
 )
 
 set(FTP_SERVER_PI
-	ftp_server/ftp_server.h
-	ftp_server/ftp_server.cpp
+	ftp_server/ftp_server_pi.h
+	ftp_server/ftp_server_pi.cpp
 )
 
 #############################################################

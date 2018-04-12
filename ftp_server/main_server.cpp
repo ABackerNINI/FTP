@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <iostream>
 #include <conio.h>
-#include "ftp_server.h"
+#include "ftp_server_pi.h"
 
-FtpServer _Server;
+ftp_server_pi _Server;
 
 int main() {
     network::ServerConfig config;
