@@ -29,7 +29,7 @@ struct ClientInf {
     int		m_Port;
     unsigned long  m_Ip;
     CLIENT_LOGIN_STATUS m_Status;
-    StringBuffer m_CmdBuffer;
+    string_buffer m_CmdBuffer;
 
     ClientInf() :
         m_IsPasv(false),

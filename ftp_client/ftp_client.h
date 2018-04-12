@@ -33,7 +33,7 @@ struct FtpClientConfig :network::ClientConfig {
 };
 
 struct ClientInf {
-    StringBuffer m_CmdBuffer;
+    string_buffer m_CmdBuffer;
 };
 
 class FtpClient :public network::Client {

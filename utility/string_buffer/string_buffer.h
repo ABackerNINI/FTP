@@ -7,13 +7,13 @@
 
 #define STRING_BUFFER_DEFAULT_BUFFER_LEN 10
 
-class StringBuffer {
+class string_buffer {
 public:
-    StringBuffer();
+    string_buffer();
     void push(const char *str, size_t count);
     char *pop();
     size_t size();
-    ~StringBuffer();
+    ~string_buffer();
 private:
     void _buffer(const char *str, size_t count);
 private:
