@@ -63,5 +63,10 @@ add_executable(ftp_server ftp_server/main_server.cpp
     ${UTILITY}
 )
 
-# 包含子项目。
-#add_subdirectory ("FTP")
+#############################################################
+
+add_executable(test_string_buffer test/test_string_buffer.cpp
+	${UTILITY_STRING_BUFFER}
+)
+
+#############################################################
