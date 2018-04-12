@@ -2,7 +2,7 @@
 #include <iostream>
 #include <conio.h>
 
-#include "ftp_client_pi.h"
+#include "../protocol/agent/ftp_client/ftp_client_pi.h"
 
 FtpClientConfig _ClientConfig;
 

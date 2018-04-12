@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-#define STRING_BUFFER_DEFAULT_BUFFER_LEN 10
+#define STRING_BUFFER_DEFAULT_BUFFER_LEN 100
 
 class string_buffer {
 public:

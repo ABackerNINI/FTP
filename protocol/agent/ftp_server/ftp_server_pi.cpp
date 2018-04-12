@@ -1,6 +1,16 @@
 #include "ftp_server_pi.h"
 #include <assert.h>
 
+ClientInf::ClientInf() :
+    m_IsPasv(false),
+    m_Port(0),
+    m_Status(CLS_CONNECTED) {
+    m_Usrname[0] = '\0';
+    m_Passwd[0] = '\0';
+    m_Dir[0] = '/';
+    m_Dir[1] = '\0';
+}
+
 /*-----------------------------------------------------------FtpServer Section-----------------------------------------------------------*/
 
 ftp_server_pi::ftp_server_pi() :network::Server() {

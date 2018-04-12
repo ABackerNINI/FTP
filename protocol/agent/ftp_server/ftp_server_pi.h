@@ -3,10 +3,10 @@
 #ifndef _NINI_FTP_SERVER_PI_H_
 #define _NINI_FTP_SERVER_PI_H_
 
-#include "../resource/common/common.h"
-#include "../resource/ftp_cmds/ftp_cmds.h"
-#include "../utility/network/network.h"
-#include "../utility/string_buffer/string_buffer.h"
+#include "../../resource/ftp_cmds/ftp_cmds.h"
+#include "../../../common/common.h"
+#include "../../../utility/network/network.h"
+#include "../../../utility/string_buffer/string_buffer.h"
 
 #define DEFAULT_BUFFER_LEN 1024
 #define DEFAULT_USRNAME_BUFFER_LEN 100
@@ -31,15 +31,7 @@ struct ClientInf {
     CLIENT_LOGIN_STATUS m_Status;
     string_buffer m_CmdBuffer;
 
-    ClientInf() :
-        m_IsPasv(false),
-        m_Port(0),
-        m_Status(CLS_CONNECTED) {
-        m_Usrname[0] = '\0';
-        m_Passwd[0] = '\0';
-        m_Dir[0] = '/';
-        m_Dir[1] = '\0';
-    }
+    ClientInf();
 };
 
 class ftp_server_pi :public network::Server {

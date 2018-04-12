@@ -4,7 +4,7 @@
 #define _NINI_FTP_RESOURCE_FTP_CMD_H_
 
 #include <stdio.h>
-#include "../common/common.h"
+#include "../../../common/common.h"
 
 //#define FTP_CMD_USER 1
 //#define FTP_CMD_PASS 2
