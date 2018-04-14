@@ -93,4 +93,16 @@ add_executable(test_string_buffer test/test_string_buffer.cpp
 	${FTP_UTILITY_STRING_BUFFER}
 )
 
+add_executable(test_ftp_dtp_client test/test_ftp_dtp/test_ftp_dtp_client.cpp
+	${FTP_COMMON}
+	${FTP_PROTOCOL_AGETN_DTP}
+	${FTP_UTILITY}
+)
+
+add_executable(test_ftp_dtp_server test/test_ftp_dtp/test_ftp_dtp_server.cpp
+	${FTP_COMMON}
+	${FTP_PROTOCOL_AGETN_DTP}
+	${FTP_UTILITY}
+)
+
 #############################################################
