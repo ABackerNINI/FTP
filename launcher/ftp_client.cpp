@@ -4,8 +4,6 @@
 
 #include "../protocol/agent/ftp_client/ftp_client_pi.h"
 
-ftp_client_pi::FtpClientConfig _ClientConfig;
-
 ftp_client_pi::ftp_client_pi _Client;
 
 BOOL CALLBACK ConsoleHandler(DWORD _Ev) {
@@ -24,17 +22,13 @@ BOOL CALLBACK ConsoleHandler(DWORD _Ev) {
 int main() {
     SetConsoleCtrlHandler(ConsoleHandler, true);
 
-    network::IP_PORT _IpPort;
-    _IpPort.M0_Ip_String = "192.168.1.107";
-    _IpPort.M_Port = 21;
-    _ClientConfig.M_Port = 1027;
-
-    _Client.SetConfig(_ClientConfig);
+    const char *addr = "192.168.1.107";
+    unsigned int port = 21;
 
     char _Cmd[1000 + 1];
     size_t _Strlen;
 
-    _Client.FtpConnect(&_IpPort);
+    _Client.FtpConnect(addr, port);
 
     while (true) {
         printf(">");
@@ -44,7 +38,7 @@ int main() {
             _Client.Close();
             break;
         } else if (_stricmp(_Cmd, "RECONN\n") == 0) {
-            _Client.FtpConnect(&_IpPort);
+            _Client.FtpConnect(addr, port);
             continue;
         }
 

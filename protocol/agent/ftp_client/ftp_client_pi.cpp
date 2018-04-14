@@ -4,7 +4,6 @@ ftp_client_pi::ftp_client_pi::ftp_client_pi() :network::Client() {
 }
 
 bool ftp_client_pi::ftp_client_pi::FtpConnect(const char *_Address, unsigned int _Port, unsigned int *_LocalPort/* = NULL*/) {
-    //unsigned int _LocalPort = 0;
     if (Connect(_Address, _Port, _LocalPort) != SOCKET_ERROR) {
         for (int i = 0; i < 10; ++i) {
 

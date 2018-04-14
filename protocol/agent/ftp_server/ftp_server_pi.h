@@ -54,10 +54,6 @@ namespace ftp_server_pi {
         bool _FtpSend(SOCKET _Sockid, const char *_Buffer);
 
     protected:
-
-        //FtpServerClient				m_FtpServerClient;
-
-    protected:
         typedef void(*_CmdHandler)(ftp_server_pi*, SOCKET, ClientInf*, char *);
 
         const _CmdHandler m_CmdHandler[ftp_cmds::FTP_CMDS_NUM + 1] = {//Need to Handle FTP_CMD_ERR
