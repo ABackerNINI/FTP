@@ -26,6 +26,13 @@ set(FTP_PROTOCOL_AGENT_SERVER_PI
 
 ##
 
+set(FTP_PROTOCOL_AGETN_DTP
+	protocol/agent/ftp_dtp/ftp_dtp.h
+	protocol/agent/ftp_dtp/ftp_dtp.cpp
+)
+
+##
+
 set(FTP_PROTOCOL_RESOURCE_FTP_CMD
 	protocol/resource/ftp_cmds/ftp_cmds.h
 	protocol/resource/ftp_cmds/ftp_cmds.cpp
@@ -39,11 +46,13 @@ set(FTP_PROTOCOL_RESOURCE
 
 set(FTP_PROTOCOL_CLIENT
 	${FTP_PROTOCOL_AGENT_CLIENT_PI}
+	${FTP_PROTOCOL_AGETN_DTP}
 	${FTP_PROTOCOL_RESOURCE}
 )
 
 set(FTP_PROTOCOL_SERVER
 	${FTP_PROTOCOL_AGENT_SERVER_PI}
+	${FTP_PROTOCOL_AGETN_DTP}
 	${FTP_PROTOCOL_RESOURCE}
 )
 
