@@ -49,9 +49,9 @@ namespace ftp_server_pi {
 
         void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
 
-        bool _Handle(SOCKET _Socket, ClientInf *_ClientInf);
+        bool _Handle(SOCKET _Sockid, ClientInf *_ClientInf);
 
-        bool _FtpSend(SOCKET _Socket, const char *_Buffer);
+        bool _FtpSend(SOCKET _Sockid, const char *_Buffer);
 
     protected:
 
@@ -97,37 +97,37 @@ namespace ftp_server_pi {
             { _CMD(_ERR)}
         };
 
-        void _CmdHandler_USER(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_USER(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_PASS(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_PASS(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_CWD(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_CWD(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_PORT(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_PORT(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_PASV(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_PASV(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_RETR(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_RETR(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_STOR(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_STOR(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_DELE(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_DELE(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_RMD(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_RMD(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_MKD(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_MKD(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_PWD(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_PWD(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_LIST(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_LIST(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_HELP(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_HELP(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_NOOP(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_NOOP(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_ERR(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_ERR(SOCKET _Sockid, ClientInf*, char *_Args);
 
-        void _CmdHandler_NOT_IMPLEMENTED(SOCKET _Socket, ClientInf*, char *_Args);
+        void _CmdHandler_NOT_IMPLEMENTED(SOCKET _Sockid, ClientInf*, char *_Args);
     };
 }
 

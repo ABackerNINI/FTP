@@ -1,26 +1,11 @@
 #include "ftp_client_pi.h"
 
-
-/*-----------------------------------------------------------FtpClient Section-----------------------------------------------------------*/
-
 ftp_client_pi::ftp_client_pi::ftp_client_pi() :network::Client() {
-    //network::ServerConfig _ServerConfig;
-    //_ServerConfig.M_Port = 1045;
-    //_ServerConfig.O0_WorkerThreads = 0;
-
-    //m_FtpClientServer.SetConfig(_ServerConfig);
 }
 
-ftp_client_pi::ftp_client_pi::ftp_client_pi(const FtpClientConfig & _FtpClientConfig) :network::Client(_FtpClientConfig)/*, m_Port(_FtpClientConfig.M_Port), m_FtpClientData(_FtpClientConfig)*/ {
-}
-
-void ftp_client_pi::ftp_client_pi::SetConfig(const FtpClientConfig & _FtpClientConfig) {
-    network::Client::SetConfig(_FtpClientConfig);
-}
-
-bool ftp_client_pi::ftp_client_pi::FtpConnect(const network::IP_PORT *_IpPort) {
-    unsigned int _LocalPort = 0;
-    if (m_Socket = Connect(_IpPort, &_LocalPort)) {
+bool ftp_client_pi::ftp_client_pi::FtpConnect(const char *_Address, unsigned int _Port, unsigned int *_LocalPort/* = NULL*/) {
+    //unsigned int _LocalPort = 0;
+    if (Connect(_Address, _Port, _LocalPort) != SOCKET_ERROR) {
         for (int i = 0; i < 10; ++i) {
 
             if (m_ClientStatus == CLIENT_IO_STATUS::CIS_RSP_HANDLED) {
@@ -47,7 +32,7 @@ bool ftp_client_pi::ftp_client_pi::FtpSend(const char * _Buffer, size_t _Count) 
     bool _Sending = false;
     while (true) {
         if (!_Sending && (m_ClientStatus == CIS_RSP_HANDLED || m_ClientStatus == CIS_CONNECTED)) {
-            if (Send(m_Socket, _Buffer, _Count) == false) {
+            if (Send(_Buffer, _Count) == false) {
                 return false;
             }
             m_ClientStatus = CIS_SENDING;
@@ -66,7 +51,7 @@ ftp_client_pi::CLIENT_IO_STATUS ftp_client_pi::ftp_client_pi::GetIoStatus() {
 }
 
 bool ftp_client_pi::ftp_client_pi::Close() {
-    return network::Client::Close(m_Socket);
+    return network::Client::Close();
 }
 
 void ftp_client_pi::ftp_client_pi::OnConnected(network::CLT_SOCKET_CONTEXT * _SocketContext) {

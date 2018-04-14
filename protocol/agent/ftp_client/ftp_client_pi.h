@@ -30,10 +30,6 @@ namespace ftp_client_pi {
         CLS_DISCONNECTED
     };
 
-    struct FtpClientConfig :network::ClientConfig {
-        int M_Port;
-    };
-
     struct ClientInf {
         string_buffer m_CmdBuffer;
     };
@@ -42,11 +38,7 @@ namespace ftp_client_pi {
     public:
         ftp_client_pi();
 
-        ftp_client_pi(const FtpClientConfig &_FtpClientConfig);
-
-        void SetConfig(const FtpClientConfig &_FtpClientConfig);
-
-        bool FtpConnect(const network::IP_PORT *_IpPort);
+        bool FtpConnect(const char *_Address, unsigned int _Port, unsigned int *_LocalPort = NULL);
 
         bool FtpSend(const char *_Buffer, size_t _Count);
 
@@ -66,17 +58,9 @@ namespace ftp_client_pi {
         void _HandleResponse();
 
     protected:
-        SOCKET				m_Socket;
-
-        ftp_cmds::FTP_CMDS			m_LastCmd;
-
+        ftp_cmds::FTP_CMDS	m_LastCmd;
         ClientInf			m_ClientInf;
-
         CLIENT_IO_STATUS	m_ClientStatus;
-
-        //FtpClientData		m_FtpClientData;
-
-        //FtpClientServer		m_FtpClientServer;
     };
 }
 

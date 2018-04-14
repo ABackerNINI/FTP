@@ -14,10 +14,6 @@ ftp_server_pi::ClientInf::ClientInf() :
 /*-----------------------------------------------------------FtpServer Section-----------------------------------------------------------*/
 
 ftp_server_pi::ftp_server_pi::ftp_server_pi() :network::Server() {
-    //network::ClientConfig _ClientConfig;
-    //_ClientConfig.O0_WorkerThreads = 5;
-
-    //m_FtpServerClient.SetConfig(_ClientConfig);
 }
 
 void ftp_server_pi::ftp_server_pi::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
@@ -25,12 +21,12 @@ void ftp_server_pi::ftp_server_pi::OnAccepted(network::SVR_SOCKET_CONTEXT * _Soc
 
     _ClientInf->m_Ip = _SocketContext->m_ClientAddr.sin_addr.S_un.S_addr;
 
-    _FtpSend(_SocketContext->m_ClientSocket, "220 Welcome to NINI's FTP service.\r\n");
+    _FtpSend(_SocketContext->m_ClientSockid, "220 Welcome to NINI's FTP service.\r\n");
 
     if (_SocketContext->m_BytesTransferred > 0) {
         _ClientInf->m_CmdBuffer.push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
 
-        _Handle(_SocketContext->m_ClientSocket, _ClientInf);
+        _Handle(_SocketContext->m_ClientSockid, _ClientInf);
     }
 
     _SocketContext->m_Extra = _ClientInf;
@@ -41,7 +37,7 @@ void ftp_server_pi::ftp_server_pi::OnRecvd(network::SVR_SOCKET_CONTEXT * _Socket
 
     _ClientInf->m_CmdBuffer.push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
 
-    _Handle(_SocketContext->m_ClientSocket, _ClientInf);
+    _Handle(_SocketContext->m_ClientSockid, _ClientInf);
 }
 
 void ftp_server_pi::ftp_server_pi::OnSent(network::SVR_SOCKET_CONTEXT * _SocketContext) {
@@ -51,7 +47,7 @@ void ftp_server_pi::ftp_server_pi::OnClosed(network::SVR_SOCKET_CONTEXT * _Socke
     delete (ClientInf *)(_SocketContext->m_Extra);
 }
 
-bool ftp_server_pi::ftp_server_pi::_Handle(SOCKET _Socket, ClientInf * _ClientInf) {
+bool ftp_server_pi::ftp_server_pi::_Handle(SOCKET _Sockid, ClientInf * _ClientInf) {
     char *_Str;
     char *_Args;
     int _Cmd;
@@ -61,7 +57,7 @@ bool ftp_server_pi::ftp_server_pi::_Handle(SOCKET _Socket, ClientInf * _ClientIn
         _Cmd = ftp_cmds::CmdDispatch(&_Args);
 
         if ((ftp_cmds::FTP_CMDS_INF[_Cmd].m_NeedArgs == ftp_cmds::FCNA_MANDATORY && _Args == NULL) || (ftp_cmds::FTP_CMDS_INF[_Cmd].m_NeedArgs == ftp_cmds::FCNA_NONE && _Args)) {
-            _FtpSend(_Socket, "501 Syntax error in parameters or arguments.\r\n");
+            _FtpSend(_Sockid, "501 Syntax error in parameters or arguments.\r\n");
             continue;
         }
 
@@ -70,30 +66,30 @@ bool ftp_server_pi::ftp_server_pi::_Handle(SOCKET _Socket, ClientInf * _ClientIn
         //	continue;
         //}
 
-        m_CmdHandler[_Cmd](this, _Socket, _ClientInf, _Args);
+        m_CmdHandler[_Cmd](this, _Sockid, _ClientInf, _Args);
     }
 
     return false;
 }
 
-bool ftp_server_pi::ftp_server_pi::_FtpSend(SOCKET _Socket, const char * _Buffer) {
-    return Send(_Socket, _Buffer, strlen(_Buffer));
+bool ftp_server_pi::ftp_server_pi::_FtpSend(SOCKET _Sockid, const char * _Buffer) {
+    return Send(_Sockid, _Buffer, strlen(_Buffer));
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_USER(SOCKET _Socket, ClientInf *_ClientInf, char * _Args) {
+void ftp_server_pi::ftp_server_pi::_CmdHandler_USER(SOCKET _Sockid, ClientInf *_ClientInf, char * _Args) {
     switch (_ClientInf->m_Status) {
     case CLS_CONNECTED:
         _ClientInf->m_Status = CLS_USRNAME_SPECIFIED;
         memcpy(_ClientInf->m_Usrname, _Args, min(DEFAULT_USRNAME_BUFFER_LEN, strlen(_Args)));
-        _FtpSend(_Socket, "331 User name ok,need password.\r\n");
+        _FtpSend(_Sockid, "331 User name ok,need password.\r\n");
         break;
     case CLS_USRNAME_SPECIFIED:
         memcpy(_ClientInf->m_Usrname, _Args, min(DEFAULT_USRNAME_BUFFER_LEN, strlen(_Args)));
-        _FtpSend(_Socket, "331 User name ok,need password.\r\n");
+        _FtpSend(_Sockid, "331 User name ok,need password.\r\n");
         break;
     case CLS_PASSWORD_SPECIFIED:
         _ClientInf->m_Status = CLS_USRNAME_SPECIFIED;
-        _FtpSend(_Socket, "331 User name ok,need password.\r\n");//TODO
+        _FtpSend(_Sockid, "331 User name ok,need password.\r\n");//TODO
         break;
     default:
         assert(false);
@@ -101,18 +97,18 @@ void ftp_server_pi::ftp_server_pi::_CmdHandler_USER(SOCKET _Socket, ClientInf *_
     }
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_PASS(SOCKET _Socket, ClientInf *_ClientInf, char * _Args) {
+void ftp_server_pi::ftp_server_pi::_CmdHandler_PASS(SOCKET _Sockid, ClientInf *_ClientInf, char * _Args) {
     switch (_ClientInf->m_Status) {
     case CLS_CONNECTED:
-        _FtpSend(_Socket, "503 Need account for login.\r\n");
+        _FtpSend(_Sockid, "503 Need account for login.\r\n");
         break;
     case CLS_USRNAME_SPECIFIED:
         _ClientInf->m_Status = CLS_PASSWORD_SPECIFIED;
         memcpy(_ClientInf->m_Passwd, _Args, min(DEFAULT_PASSWD_BUFFER_LEN, strlen(_Args)));
-        _FtpSend(_Socket, "230 User logged in, proceed.\r\n");
+        _FtpSend(_Sockid, "230 User logged in, proceed.\r\n");
         break;
     case CLS_PASSWORD_SPECIFIED:
-        _FtpSend(_Socket, "230 User logged in, proceed.\r\n");//TODO
+        _FtpSend(_Sockid, "230 User logged in, proceed.\r\n");//TODO
         break;
     default:
         assert(false);
@@ -120,72 +116,72 @@ void ftp_server_pi::ftp_server_pi::_CmdHandler_PASS(SOCKET _Socket, ClientInf *_
     }
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_CWD(SOCKET _Socket, ClientInf *, char * _Args) {
-    _FtpSend(_Socket, "500 CWD.\r\n");
+void ftp_server_pi::ftp_server_pi::_CmdHandler_CWD(SOCKET _Sockid, ClientInf *, char * _Args) {
+    _FtpSend(_Sockid, "500 CWD.\r\n");
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_PORT(SOCKET _Socket, ClientInf *_ClientInf, char * _Args) {
+void ftp_server_pi::ftp_server_pi::_CmdHandler_PORT(SOCKET _Sockid, ClientInf *_ClientInf, char * _Args) {
     unsigned long _Port = std::atoi(_Args);
     if (_Port > 1023) {
-        _FtpSend(_Socket, "200 Port command successful.\r\n");
+        _FtpSend(_Sockid, "200 Port command successful.\r\n");
     } else {
-        _FtpSend(_Socket, "500 Port command faild.\r\n");
+        _FtpSend(_Sockid, "500 Port command faild.\r\n");
     }
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_PASV(SOCKET _Socket, ClientInf *, char * _Args) {
-    _FtpSend(_Socket, "500 PASV.\r\n");
+void ftp_server_pi::ftp_server_pi::_CmdHandler_PASV(SOCKET _Sockid, ClientInf *, char * _Args) {
+    _FtpSend(_Sockid, "500 PASV.\r\n");
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_RETR(SOCKET _Socket, ClientInf *, char * _Args) {
-    _FtpSend(_Socket, "500 RETR.\r\n");
+void ftp_server_pi::ftp_server_pi::_CmdHandler_RETR(SOCKET _Sockid, ClientInf *, char * _Args) {
+    _FtpSend(_Sockid, "500 RETR.\r\n");
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_STOR(SOCKET _Socket, ClientInf *, char * _Args) {
-    _FtpSend(_Socket, "500 STOR.\r\n");
+void ftp_server_pi::ftp_server_pi::_CmdHandler_STOR(SOCKET _Sockid, ClientInf *, char * _Args) {
+    _FtpSend(_Sockid, "500 STOR.\r\n");
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_DELE(SOCKET _Socket, ClientInf *, char * _Args) {
+void ftp_server_pi::ftp_server_pi::_CmdHandler_DELE(SOCKET _Sockid, ClientInf *, char * _Args) {
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_RMD(SOCKET _Socket, ClientInf *, char * _Args) {
+void ftp_server_pi::ftp_server_pi::_CmdHandler_RMD(SOCKET _Sockid, ClientInf *, char * _Args) {
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_MKD(SOCKET _Socket, ClientInf *, char * _Args) {
+void ftp_server_pi::ftp_server_pi::_CmdHandler_MKD(SOCKET _Sockid, ClientInf *, char * _Args) {
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_PWD(SOCKET _Socket, ClientInf *, char * _Args) {
+void ftp_server_pi::ftp_server_pi::_CmdHandler_PWD(SOCKET _Sockid, ClientInf *, char * _Args) {
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_LIST(SOCKET _Socket, ClientInf *, char * _Args) {
+void ftp_server_pi::ftp_server_pi::_CmdHandler_LIST(SOCKET _Sockid, ClientInf *, char * _Args) {
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_HELP(SOCKET _Socket, ClientInf *, char * _Args) {
+void ftp_server_pi::ftp_server_pi::_CmdHandler_HELP(SOCKET _Sockid, ClientInf *, char * _Args) {
     if (_Args == NULL) {
-        _FtpSend(_Socket, ftp_cmds::HELP_MSG);
+        _FtpSend(_Sockid, ftp_cmds::HELP_MSG);
     } else {
         char *_Tmp = _Args;
         ftp_cmds::FTP_CMDS _Cmd = ftp_cmds::CmdDispatch(&_Tmp);
         if (_Cmd != ftp_cmds::FTP_CMDS::FTP_CMD_ERR) {
-            _FtpSend(_Socket, "214 ");
-            _FtpSend(_Socket, ftp_cmds::FTP_CMDS_INF[_Cmd].m_HelpMsg);
-            _FtpSend(_Socket, "\r\n");
+            _FtpSend(_Sockid, "214 ");
+            _FtpSend(_Sockid, ftp_cmds::FTP_CMDS_INF[_Cmd].m_HelpMsg);
+            _FtpSend(_Sockid, "\r\n");
         } else {
-            _FtpSend(_Socket, "501 Unkown command \"");
-            _FtpSend(_Socket, _Args);
-            _FtpSend(_Socket, "\"\r\n");
+            _FtpSend(_Sockid, "501 Unkown command \"");
+            _FtpSend(_Sockid, _Args);
+            _FtpSend(_Sockid, "\"\r\n");
         }
     }
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_NOOP(SOCKET _Socket, ClientInf *, char * _Args) {
-    _FtpSend(_Socket, "200 ok\r\n");
+void ftp_server_pi::ftp_server_pi::_CmdHandler_NOOP(SOCKET _Sockid, ClientInf *, char * _Args) {
+    _FtpSend(_Sockid, "200 ok\r\n");
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_ERR(SOCKET _Socket, ClientInf *, char * _Args) {
-    _FtpSend(_Socket, "500 Syntax error, command unrecognized.\r\n");
+void ftp_server_pi::ftp_server_pi::_CmdHandler_ERR(SOCKET _Sockid, ClientInf *, char * _Args) {
+    _FtpSend(_Sockid, "500 Syntax error, command unrecognized.\r\n");
 }
 
-void ftp_server_pi::ftp_server_pi::_CmdHandler_NOT_IMPLEMENTED(SOCKET _Socket, ClientInf *, char * _Args) {
-    _FtpSend(_Socket, "502 Command not implemented.\r\n");
+void ftp_server_pi::ftp_server_pi::_CmdHandler_NOT_IMPLEMENTED(SOCKET _Sockid, ClientInf *, char * _Args) {
+    _FtpSend(_Sockid, "502 Command not implemented.\r\n");
 }

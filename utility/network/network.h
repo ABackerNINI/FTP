@@ -258,7 +258,6 @@ namespace network {
         WSABUF			m_wsaBuf;
         char*			m_szBuffer;
         size_t	        m_BytesTransferred;
-        SOCKET			m_Sockid;
         CLT_OP          m_OpType;
         void*           m_Extra;
 
