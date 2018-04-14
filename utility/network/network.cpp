@@ -11,8 +11,8 @@ int network::Cleanup(){
 /*
  * SVR_SOCKET_CONTEXT
  */
-network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, size_t _BufferLen) :
-    m_ClientSocket(_Socket),
+network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(SOCKET _Sockid, const char *_Buffer, size_t _BufferLen) :
+    m_ClientSocket(_Sockid),
     m_OpType(SVR_OP::SVROP_NULL),
     m_Extra(NULL) {
     m_szBuffer = new char[_BufferLen];
@@ -86,18 +86,18 @@ bool network::Server::Start() {
     return _Start(m_ServerConfig.M_Port, m_ServerConfig.O_MaxConnect);
 }
 
-bool network::Server::Send(SOCKET _Socket, const char * _SendBuffer, size_t _BufferLen) {
-    SVR_SOCKET_CONTEXT *_SocketContext = new SVR_SOCKET_CONTEXT(_Socket, _SendBuffer, _BufferLen);
+bool network::Server::Send(SOCKET _Sockid, const char * _SendBuffer, size_t _BufferLen) {
+    SVR_SOCKET_CONTEXT *_SocketContext = new SVR_SOCKET_CONTEXT(_Sockid, _SendBuffer, _BufferLen);
 
     return _PostSend(_SocketContext);
 }
 
-bool network::Server::Close(SOCKET _Socket) {
+bool network::Server::Close(SOCKET _Sockid) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("Close Socket:%lld @Close\n", _Socket);
+    TRACE_PRINT("Close Socket:%lld @Close\n", _Sockid);
 #endif
 
-    closesocket(_Socket);
+    closesocket(_Sockid);
 
     return true;
 }

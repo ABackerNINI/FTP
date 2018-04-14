@@ -130,7 +130,7 @@ namespace network {
         unsigned int _DEBUG_TRACE;
 #endif
 
-        SVR_SOCKET_CONTEXT(SOCKET _Socket, const char *_Buffer, size_t _BufferLen);
+        SVR_SOCKET_CONTEXT(SOCKET _Sockid, const char *_Buffer, size_t _BufferLen);
 
         SVR_SOCKET_CONTEXT(size_t _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN);
 
@@ -172,9 +172,9 @@ namespace network {
 
         bool Start();
 
-        bool Send(SOCKET _Socket, const char *_SendBuffer, size_t _BufferLen);
+        bool Send(SOCKET _Sockid, const char *_SendBuffer, size_t _BufferLen);
 
-        bool Close(SOCKET _Socket);
+        bool Close(SOCKET _Sockid);
 
         bool Stop();
 
