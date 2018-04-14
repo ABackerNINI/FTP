@@ -118,7 +118,7 @@ namespace network {
 
     struct SVR_SOCKET_CONTEXT {
         OVERLAPPED		m_Overlapped;
-        SOCKET			m_ClientSocket;
+        SOCKET			m_ClientSockid;
         SOCKADDR_IN		m_ClientAddr;
         WSABUF			m_wsaBuf;
         char*			m_szBuffer;
@@ -216,7 +216,7 @@ namespace network {
 
         ServerConfig				m_ServerConfig;
 
-        SOCKET						m_Socket;
+        SOCKET						m_Sockid;
 
         HANDLE						m_CompletionPort;
 
@@ -258,7 +258,7 @@ namespace network {
         WSABUF			m_wsaBuf;
         char*			m_szBuffer;
         size_t	        m_BytesTransferred;
-        SOCKET			m_Socket;
+        SOCKET			m_Sockid;
         CLT_OP          m_OpType;
         void*           m_Extra;
 

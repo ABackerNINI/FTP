@@ -12,7 +12,7 @@ int network::Cleanup() {
  * SVR_SOCKET_CONTEXT
  */
 network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(SOCKET _Sockid, const char *_Buffer, size_t _BufferLen) :
-    m_ClientSocket(_Sockid),
+    m_ClientSockid(_Sockid),
     m_OpType(SVR_OP::SVROP_NULL),
     m_Extra(NULL) {
     m_szBuffer = new char[_BufferLen];
@@ -28,7 +28,7 @@ network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(SOCKET _Sockid, const char *_Buf
 }
 
 network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(size_t _MaxBufferLen/* = DEFAULT_MAX_BUFFER_LEN*/) :
-    m_ClientSocket(INVALID_SOCKET),
+    m_ClientSockid(INVALID_SOCKET),
     m_OpType(SVR_OP::SVROP_NULL),
     m_Extra(NULL) {
     m_szBuffer = new char[_MaxBufferLen];//TODO user-defined(upper layer) buffer len
@@ -52,7 +52,7 @@ network::SVR_SOCKET_CONTEXT::~SVR_SOCKET_CONTEXT() {
         delete[] m_szBuffer;
 
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("PSC Dispose DEBUG_TRACE:%u Socket:%lld OP:%d\n", _DEBUG_TRACE, m_ClientSocket, m_OpType);
+    TRACE_PRINT("PSC Dispose DEBUG_TRACE:%u Socket:%lld OP:%d\n", _DEBUG_TRACE, m_ClientSockid, m_OpType);
 #endif
 }
 
@@ -103,7 +103,7 @@ bool network::Server::Close(SOCKET _Sockid) {
 }
 
 bool network::Server::Stop() {
-    _Stop(m_Socket);
+    _Stop(m_Sockid);
 
     CloseHandle(m_CompletionPort);
 
@@ -197,8 +197,8 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     }
 
     //SOCKET
-    m_Socket = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-    if (m_Socket == INVALID_SOCKET) {
+    m_Sockid = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    if (m_Sockid == INVALID_SOCKET) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Create Socket @_InitSock\n");
 #endif
@@ -212,7 +212,7 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     _Addr.sin_port = htons(_Port);
 
     //BIND
-    if (bind(m_Socket, (SOCKADDR*)&_Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
+    if (bind(m_Sockid, (SOCKADDR*)&_Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket @_InitSock\n");
 #endif
@@ -220,7 +220,7 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     }
 
     //LISTEN
-    if (listen(m_Socket, _MaxConnect) == SOCKET_ERROR) {
+    if (listen(m_Sockid, _MaxConnect) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Listen Port %d @_InitSock\n", _Port);
 #endif
@@ -228,7 +228,7 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     }
 
     //COMPLETIONPORT
-    if (CreateIoCompletionPort((HANDLE)m_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
+    if (CreateIoCompletionPort((HANDLE)m_Sockid, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_InitSock\n");
 #endif
@@ -240,7 +240,7 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     GUID GuidGetAcceptExSockAddrs = WSAID_GETACCEPTEXSOCKADDRS;
     DWORD dwBytes = 0;
     if (SOCKET_ERROR == WSAIoctl(
-        m_Socket,
+        m_Sockid,
         SIO_GET_EXTENSION_FUNCTION_POINTER,
         &GuidAcceptEx,
         sizeof(GuidAcceptEx),
@@ -256,7 +256,7 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     }
 
     if (SOCKET_ERROR == WSAIoctl(
-        m_Socket,
+        m_Sockid,
         SIO_GET_EXTENSION_FUNCTION_POINTER,
         &GuidGetAcceptExSockAddrs,
         sizeof(GuidGetAcceptExSockAddrs),
@@ -315,10 +315,10 @@ bool network::Server::_PostAccept(SVR_SOCKET_CONTEXT *_SocketContext) {
     DWORD _Flags = 0;
 
     _SocketContext->m_OpType = SVR_OP::SVROP_ACCEPTING;
-    _SocketContext->m_ClientSocket = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+    _SocketContext->m_ClientSockid = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
 
-    if (m_pAcceptEx(m_Socket,
-        _SocketContext->m_ClientSocket,
+    if (m_pAcceptEx(m_Sockid,
+        _SocketContext->m_ClientSockid,
         _SocketContext->m_wsaBuf.buf,
 #if(FEATURE_RECV_ON_ACCEPT)
         _SocketContext->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
@@ -331,7 +331,7 @@ bool network::Server::_PostAccept(SVR_SOCKET_CONTEXT *_SocketContext) {
         &(_SocketContext->m_Overlapped)) == false) {
         if (WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-            LOG(CC_RED, "Faild to Post Accept Socket:%lld @PostAccept\n", _SocketContext->m_ClientSocket);
+            LOG(CC_RED, "Faild to Post Accept Socket:%lld @PostAccept\n", _SocketContext->m_ClientSockid);
 #endif
             return false;
         }
@@ -350,10 +350,10 @@ bool network::Server::_PostRecv(SVR_SOCKET_CONTEXT *_SocketContext) {
 
     _SocketContext->m_OpType = SVR_OP::SVROP_RECVING;
 
-    if (WSARecv(_SocketContext->m_ClientSocket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR &&
+    if (WSARecv(_SocketContext->m_ClientSockid, &(_SocketContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR &&
         WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_PostRecv\n", _SocketContext->m_ClientSocket);
+        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_PostRecv\n", _SocketContext->m_ClientSockid);
 #endif
         return false;
     }
@@ -375,10 +375,10 @@ bool network::Server::_PostSend(SVR_SOCKET_CONTEXT *_SocketContext) {
 
     _SocketContext->m_OpType = SVR_OP::SVROP_SENDING;
 
-    if (WSASend(_SocketContext->m_ClientSocket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR &&
+    if (WSASend(_SocketContext->m_ClientSockid, &(_SocketContext->m_wsaBuf), 1, &dwBytes, dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR &&
         WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Post Send Socket:%lld @_PostSend\n", _SocketContext->m_ClientSocket);
+        LOG(CC_RED, "Faild to Post Send Socket:%lld @_PostSend\n", _SocketContext->m_ClientSockid);
 #endif
         return false;
     }
@@ -388,11 +388,11 @@ bool network::Server::_PostSend(SVR_SOCKET_CONTEXT *_SocketContext) {
 
 bool network::Server::_DoAccepted(SVR_SOCKET_CONTEXT *_SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("DoAccept DEBUG_TRACE %u Socket:%d @_DoAccepted\n", _SocketContext->_DEBUG_TRACE, _SocketContext->m_ClientSocket);
+    TRACE_PRINT("DoAccept DEBUG_TRACE %u Socket:%d @_DoAccepted\n", _SocketContext->_DEBUG_TRACE, _SocketContext->m_ClientSockid);
 #endif
 
 #if(DEBUG&DEBUG_LOG)
-    LOG(CC_YELLOW, "Accepted a Client Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
+    LOG(CC_YELLOW, "Accepted a Client Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSockid);
 #endif
 
     //_SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
@@ -403,7 +403,7 @@ bool network::Server::_DoAccepted(SVR_SOCKET_CONTEXT *_SocketContext) {
 
     SVR_SOCKET_CONTEXT *_NewSocketContex = new SVR_SOCKET_CONTEXT();
     _NewSocketContex->m_OpType = SVR_OP::SVROP_RECVING;
-    _NewSocketContex->m_ClientSocket = _SocketContext->m_ClientSocket;
+    _NewSocketContex->m_ClientSockid = _SocketContext->m_ClientSockid;
     _NewSocketContex->m_Extra = _SocketContext->m_Extra;
     SOCKADDR_IN *_ClientAddr, *_LocalAddr;//mark:need to delete?
     int _ClientAddrLen = sizeof(SOCKADDR_IN), _LocalAddrLen = sizeof(SOCKADDR_IN);
@@ -426,23 +426,23 @@ bool network::Server::_DoAccepted(SVR_SOCKET_CONTEXT *_SocketContext) {
 
     //TODO save clientaddr
 
-    if (CreateIoCompletionPort((HANDLE)_NewSocketContex->m_ClientSocket, m_CompletionPort, (ULONG_PTR)_NewSocketContex, 0) == NULL) {
+    if (CreateIoCompletionPort((HANDLE)_NewSocketContex->m_ClientSockid, m_CompletionPort, (ULONG_PTR)_NewSocketContex, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Bind Socket with CompletionPort Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
+        LOG(CC_RED, "Faild to Bind Socket with CompletionPort Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSockid);
 #endif
         return false;
     }
 
     if (_PostRecv(_NewSocketContex) == false) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
+        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSockid);
 #endif
         return false;
     }
 
     if (_PostAccept(_SocketContext) == false) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Post Accept Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
+        LOG(CC_RED, "Faild to Post Accept Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSockid);
 #endif
         return false;
     }
@@ -465,7 +465,7 @@ bool network::Server::_DoRecvd(SVR_SOCKET_CONTEXT *_SocketContext) {
 
     if (_PostRecv(_SocketContext) == false) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_DoRecvd\n", _SocketContext->m_ClientSocket);
+        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_DoRecvd\n", _SocketContext->m_ClientSockid);
 #endif
         return false;
     }
@@ -529,13 +529,13 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
             _ErrCode = GetLastError();
 
             if (_ErrCode == WAIT_TIMEOUT) {
-                if (!_IsClientAlive(_SocketContext->m_ClientSocket)) {
+                if (!_IsClientAlive(_SocketContext->m_ClientSockid)) {
 #if(DEBUG&DEBUG_LOG)
-                    LOG(CC_YELLOW, "Client Offline Error Code:%ld Socket:%lld @ServerWorkThread\n", WAIT_TIMEOUT, _SocketContext->m_ClientSocket);
+                    LOG(CC_YELLOW, "Client Offline Error Code:%ld Socket:%lld @ServerWorkThread\n", WAIT_TIMEOUT, _SocketContext->m_ClientSockid);
 #endif
                     _OnClosed(_Server, _SocketContext);
 
-                    closesocket(_SocketContext->m_ClientSocket);
+                    closesocket(_SocketContext->m_ClientSockid);
 
                     delete _SocketContext;
                 }
@@ -543,11 +543,11 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
             } else if (_ErrCode == ERROR_NETNAME_DELETED) {
                 if (_SocketContext) {
 #if(DEBUG&DEBUG_LOG)
-                    LOG(CC_YELLOW, "Client Offline Error Code:%ld Socket:%lld @ServerWorkThread\n", ERROR_NETNAME_DELETED, _SocketContext->m_ClientSocket);
+                    LOG(CC_YELLOW, "Client Offline Error Code:%ld Socket:%lld @ServerWorkThread\n", ERROR_NETNAME_DELETED, _SocketContext->m_ClientSockid);
 #endif
                     _OnClosed(_Server, _SocketContext);
 
-                    closesocket(_SocketContext->m_ClientSocket);
+                    closesocket(_SocketContext->m_ClientSockid);
 
                     delete _SocketContext;
                 } else {
@@ -562,11 +562,11 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 
         if (_BytesTransferred == 0 && _SocketContext->m_OpType != SVR_OP::SVROP_ACCEPTING) {
 #if(DEBUG&DEBUG_LOG)
-            LOG(CC_YELLOW, "Client Offline Zero Bytes Transferred Socket:%lld @ServerWorkThread\n", _SocketContext->m_ClientSocket);
+            LOG(CC_YELLOW, "Client Offline Zero Bytes Transferred Socket:%lld @ServerWorkThread\n", _SocketContext->m_ClientSockid);
 #endif
             _OnClosed(_Server, _SocketContext);
 
-            closesocket(_SocketContext->m_ClientSocket);
+            closesocket(_SocketContext->m_ClientSockid);
 
             delete _SocketContext;
         }
@@ -595,7 +595,7 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
  * CLT_SOCKET_CONTEXT
  */
 network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(size_t _MaxBufferLen /*= DEFAULT_MAX_BUFFER_LEN*/) :
-    m_Socket(0),
+    m_Sockid(0),
     m_Extra(NULL) {
     m_szBuffer = new char[_MaxBufferLen];
     m_wsaBuf.buf = m_szBuffer;
@@ -610,7 +610,7 @@ network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(size_t _MaxBufferLen /*= DEFAULT
 }
 
 network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(const char *_Buffer, size_t _BufferLen) :
-    m_Socket(0),
+    m_Sockid(0),
     m_OpType(CLT_OP::CLTOP_UNDEFINED) {
     m_szBuffer = new char[_BufferLen];
     memcpy(m_szBuffer, _Buffer, sizeof(char)*_BufferLen);
@@ -717,7 +717,7 @@ SOCKET network::Client::Connect(const char * _Address, unsigned int _Port, unsig
 
 bool network::Client::Send(const char *_SendBuffer, size_t _BufferLen) {
     CLT_SOCKET_CONTEXT *_SocketContext = new CLT_SOCKET_CONTEXT(_SendBuffer, _BufferLen);//"port 1234\r\n"
-    _SocketContext->m_Socket = m_Sockid;
+    _SocketContext->m_Sockid = m_Sockid;
 
     return _PostSend(_SocketContext);
 }
@@ -727,11 +727,11 @@ bool network::Client::Close() {
     TRACE_PRINT("Close Socket:%lld @Close\n", m_Sockid);
 #endif
 
-    //shutdown(m_Socket, SD_BOTH);
+    //shutdown(m_Sockid, SD_BOTH);
 
     //LINGER _Linger = { 1,0 };
     //_Linger.l_onoff = 0;
-    //setsockopt(m_Socket, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
+    //setsockopt(m_Sockid, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
 
     closesocket(m_Sockid);
 
@@ -809,8 +809,8 @@ bool network::Client::_InitCompletionPort() {
 
 SOCKET network::Client::_InitSock(unsigned int *_Port) {
     //SOCKET
-    SOCKET _Socket = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-    if (_Socket == INVALID_SOCKET) {
+    SOCKET _Sockid = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    if (_Sockid == INVALID_SOCKET) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Create Socket @_InitSock\n");
 #endif
@@ -824,14 +824,14 @@ SOCKET network::Client::_InitSock(unsigned int *_Port) {
     _LocalAddr.sin_port = htons(_Port ? (short)*_Port : 0);
 
     //BIND
-    if (bind(_Socket, (SOCKADDR*)&_LocalAddr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
+    if (bind(_Sockid, (SOCKADDR*)&_LocalAddr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket @_InitSock\n");
 #endif
         return -4;
     }
 
-    if (CreateIoCompletionPort((HANDLE)_Socket, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
+    if (CreateIoCompletionPort((HANDLE)_Sockid, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_InitSock\n");
 #endif
@@ -843,7 +843,7 @@ SOCKET network::Client::_InitSock(unsigned int *_Port) {
         GUID GuidConnectEx = WSAID_CONNECTEX;
         DWORD dwBytes = 0;
         if (SOCKET_ERROR == WSAIoctl(
-            _Socket,
+            _Sockid,
             SIO_GET_EXTENSION_FUNCTION_POINTER,
             &GuidConnectEx,
             sizeof(GuidConnectEx),
@@ -861,7 +861,7 @@ SOCKET network::Client::_InitSock(unsigned int *_Port) {
 
     *_Port = _LocalAddr.sin_port;
 
-    return _Socket;
+    return _Sockid;
 }
 
 bool network::Client::_PostConnect(SOCKET _Sockid, unsigned long _Ip, unsigned int _Port) {
@@ -877,7 +877,7 @@ bool network::Client::_PostConnect(SOCKET _Sockid, unsigned long _Ip, unsigned i
 
     CLT_SOCKET_CONTEXT *_SocketContext = new CLT_SOCKET_CONTEXT();
 
-    _SocketContext->m_Socket = _Sockid;
+    _SocketContext->m_Sockid = _Sockid;
     _SocketContext->m_OpType = CLT_OP::CLTOP_CONNECTING;
 
     DWORD dwBytes = 0;
@@ -907,7 +907,7 @@ bool network::Client::_PostSend(CLT_SOCKET_CONTEXT * _SocketContext) {
 
     _SocketContext->m_OpType = CLT_OP::CLTOP_SENDING;
 
-    if (WSASend(_SocketContext->m_Socket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR) {
+    if (WSASend(_SocketContext->m_Sockid, &(_SocketContext->m_wsaBuf), 1, &dwBytes, dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR) {
         if (WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "Faild to Post Send %d @_PostSend\n", WSAGetLastError());
@@ -929,7 +929,7 @@ bool network::Client::_PostRecv(CLT_SOCKET_CONTEXT * _SocketContext) {
 
     _SocketContext->m_OpType = CLT_OP::CLTOP_RECVING;
 
-    if (WSARecv(_SocketContext->m_Socket, &(_SocketContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR) {
+    if (WSARecv(_SocketContext->m_Sockid, &(_SocketContext->m_wsaBuf), 1, &dwBytes, &dwFlags, &(_SocketContext->m_Overlapped), NULL) == SOCKET_ERROR) {
         if (WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "Faild to Post Recv @_PostRecv\n");
@@ -1027,13 +1027,13 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
             _ErrCode = GetLastError();
 
             if (_ErrCode == WAIT_TIMEOUT) {
-                if (!_IsServerAlive(_SocketContext->m_Socket)) {
+                if (!_IsServerAlive(_SocketContext->m_Sockid)) {
 #if(DEBUG&DEBUG_LOG)
-                    LOG(CC_YELLOW, "Server Error Socket:%lld @ClientWorkThread\n", _SocketContext->m_Socket);
+                    LOG(CC_YELLOW, "Server Error Socket:%lld @ClientWorkThread\n", _SocketContext->m_Sockid);
 #endif
                     _OnClosed(_Client, _SocketContext);
 
-                    closesocket(_SocketContext->m_Socket);
+                    closesocket(_SocketContext->m_Sockid);
 
                     delete _SocketContext;
                 }
@@ -1041,11 +1041,11 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
             } else if (_ErrCode == ERROR_NETNAME_DELETED) {
                 if (_SocketContext) {
 #if(DEBUG&DEBUG_LOG)
-                    LOG(CC_YELLOW, "Server Error Socket:%lld @ClientWorkThread\n", _SocketContext->m_Socket);
+                    LOG(CC_YELLOW, "Server Error Socket:%lld @ClientWorkThread\n", _SocketContext->m_Sockid);
 #endif
                     _OnClosed(_Client, _SocketContext);
 
-                    closesocket(_SocketContext->m_Socket);
+                    closesocket(_SocketContext->m_Sockid);
 
                     delete _SocketContext;
                 }
@@ -1060,11 +1060,11 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
 
         if (_BytesTransferred == 0 && _SocketContext->m_OpType != CLT_OP::CLTOP_CONNECTING) {
 #if(DEBUG&DEBUG_LOG)
-            LOG(CC_YELLOW, "Server Offline Socket:%lld @ClientWorkThread\n", _SocketContext->m_Socket);
+            LOG(CC_YELLOW, "Server Offline Socket:%lld @ClientWorkThread\n", _SocketContext->m_Sockid);
 #endif
             _OnClosed(_Client, _SocketContext);
 
-            closesocket(_SocketContext->m_Socket);
+            closesocket(_SocketContext->m_Sockid);
 
             delete _SocketContext;
 
