@@ -105,6 +105,8 @@ bool network::Server::Close(SOCKET _Sockid) {
 bool network::Server::Stop() {
     _Stop(m_Socket);
 
+    CloseHandle(m_CompletionPort);
+
     return true;
 }
 
@@ -749,6 +751,8 @@ bool network::Client::Close(SOCKET _Sockid) {
     //setsockopt(m_Socket, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
 
     closesocket(_Sockid);
+
+    CloseHandle(m_CompletionPort);
 
     return true;
 }

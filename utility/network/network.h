@@ -297,7 +297,7 @@ namespace network {
 
         bool Send(SOCKET _Sockid, const char *_SendBuffer, size_t _BufferLen);
 
-        bool Close(SOCKET _Sockid);
+        bool Close(SOCKET _Sockid);//TODO bool Close(void);
 
         virtual void OnConnected(CLT_SOCKET_CONTEXT *_SocketContext);
 
