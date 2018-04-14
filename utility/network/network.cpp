@@ -43,7 +43,7 @@ network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(size_t _MaxBufferLen/* = DEFAULT
 }
 
 void network::SVR_SOCKET_CONTEXT::RESET_BUFFER() {
-    m_szBuffer[0] = '\0';
+    //m_szBuffer[0] = '\0';
     m_BytesTransferred = 0;
 }
 
@@ -114,6 +114,7 @@ void network::Server::OnAccepted(SVR_SOCKET_CONTEXT * _SocketContext) {
 #endif
 
     if (_SocketContext->m_BytesTransferred) {
+        _SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
         printf("%s\n", _SocketContext->m_szBuffer);
     }
 }
@@ -122,7 +123,7 @@ void network::Server::OnRecvd(SVR_SOCKET_CONTEXT * _SocketContext) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("OnRecvd DEBUG_TRACE %u BytesTransferred:%u @OnRecvd\n", _SocketContext->_DEBUG_TRACE, _SocketContext->m_BytesTransferred);
 #endif
-
+    _SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
     printf("%s\n", _SocketContext->m_szBuffer);
 }
 
@@ -392,7 +393,7 @@ bool network::Server::_DoAccepted(SVR_SOCKET_CONTEXT *_SocketContext) {
     LOG(CC_YELLOW, "Accepted a Client Socket:%lld @_DoAccepted\n", _SocketContext->m_ClientSocket);
 #endif
 
-    _SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
+    //_SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
 
     OnAccepted(_SocketContext);
 
@@ -452,7 +453,7 @@ bool network::Server::_DoRecvd(SVR_SOCKET_CONTEXT *_SocketContext) {
     TRACE_PRINT("DoRecv DEBUG_TRACE %u @_DoRecvd\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
-    _SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
+    //_SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
 
     OnRecvd(_SocketContext);
 
@@ -622,7 +623,7 @@ network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(const char *_Buffer, size_t _Buf
 }
 
 void network::CLT_SOCKET_CONTEXT::RESET_BUFFER() {
-    m_szBuffer[0] = '\0';
+    //m_szBuffer[0] = '\0';
     m_BytesTransferred = 0;
 }
 
@@ -648,8 +649,8 @@ network::IP_PORT::IP_PORT() :
  * ClientConfig
  */
 network::ClientConfig::ClientConfig() :
-    O0_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
-    O0_WorkerThreads(0) {
+    O0_WorkerThreadsPerProcessor(0),
+    O0_WorkerThreads(2) {
 }
 
 /*
@@ -758,6 +759,7 @@ void network::Client::OnConnected(CLT_SOCKET_CONTEXT * _SocketContext) {
 #endif
 
     if (_SocketContext->m_BytesTransferred) {
+        _SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
         printf("%s\n", _SocketContext->m_szBuffer);
     }
 }
@@ -773,6 +775,7 @@ void network::Client::OnRecvd(CLT_SOCKET_CONTEXT * _SocketContext) {
     TRACE_PRINT("OnRecvd DEBUG_TRACE %u BytesTransferred:%u @OnRecvd\n", _SocketContext->_DEBUG_TRACE, _SocketContext->m_BytesTransferred);
 #endif
 
+    _SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
     printf("%s\n", _SocketContext->m_szBuffer);
 }
 
@@ -957,7 +960,7 @@ bool network::Client::_DoConnected(CLT_SOCKET_CONTEXT * _SocketContext) {
     TRACE_PRINT("DoConnected DEBUG_TRACE %u @_DoConnected\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
-    _SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
+    //_SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
 
     OnConnected(_SocketContext);
 
@@ -990,7 +993,7 @@ bool network::Client::_DoRecvd(CLT_SOCKET_CONTEXT * _SocketContext) {
     TRACE_PRINT("DoRecvd DEBUG_TRACE %u @_DoRecvd\n", _SocketContext->_DEBUG_TRACE);
 #endif
 
-    _SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
+    //_SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
 
     OnRecvd(_SocketContext);
 
