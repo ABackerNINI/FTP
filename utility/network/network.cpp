@@ -4,7 +4,7 @@
 /*
  * Cleanup
  */
-int network::Cleanup(){
+int network::Cleanup() {
     return WSACleanup();
 }
 
@@ -639,15 +639,6 @@ network::CLT_SOCKET_CONTEXT::~CLT_SOCKET_CONTEXT() {
 }
 
 /*
- * IP_PORT
- */
-network::IP_PORT::IP_PORT() :
-    M0_Ip_String(NULL),
-    M0_Ip_ULong(0),
-    M_Port(0) {
-}
-
-/*
  * ClientConfig
  */
 network::ClientConfig::ClientConfig() :
@@ -700,13 +691,13 @@ int network::Client::_Init() {
     return 0;
 }
 
-SOCKET network::Client::Connect(const IP_PORT *_IpPort, unsigned int *_LocalPort/* = NULL*/) {
+SOCKET network::Client::Connect(const char * _Address, unsigned int _Port, unsigned int * _LocalPort/* = NULL*/) {
     unsigned int _LocalPort1 = 0;
     if (!_LocalPort) {
         _LocalPort = &_LocalPort1;
     }
 
-    SOCKET _Socket = _InitSock(_LocalPort);
+    m_Sockid = _InitSock(_LocalPort);
     if (*_LocalPort < 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Init Sock @Connect\n");
@@ -714,34 +705,26 @@ SOCKET network::Client::Connect(const IP_PORT *_IpPort, unsigned int *_LocalPort
         return -2;
     }
 
-    if (_PostConnect(_Socket, _IpPort->M0_Ip_ULong ? _IpPort->M0_Ip_ULong : inet_addr(_IpPort->M0_Ip_String), _IpPort->M_Port) == false) {
+    if (_PostConnect(m_Sockid, inet_addr(_Address), _Port) == false) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Post Connect @Connect\n");
 #endif
         return -3;
     }
 
-    return _Socket;
+    return m_Sockid;
 }
 
-SOCKET network::Client::Connect(const char * _Address, unsigned int * _LocalPort) {
-    IP_PORT _IpPort;
-
-    //TODO parse address and call gethostbyname
-
-    return Connect(&_IpPort, _LocalPort);
-}
-
-bool network::Client::Send(SOCKET _Sockid, const char *_SendBuffer, size_t _BufferLen) {
+bool network::Client::Send(const char *_SendBuffer, size_t _BufferLen) {
     CLT_SOCKET_CONTEXT *_SocketContext = new CLT_SOCKET_CONTEXT(_SendBuffer, _BufferLen);//"port 1234\r\n"
-    _SocketContext->m_Socket = _Sockid;
+    _SocketContext->m_Socket = m_Sockid;
 
     return _PostSend(_SocketContext);
 }
 
-bool network::Client::Close(SOCKET _Sockid) {
+bool network::Client::Close() {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("Close Socket:%lld @Close\n", _Sockid);
+    TRACE_PRINT("Close Socket:%lld @Close\n", m_Sockid);
 #endif
 
     //shutdown(m_Socket, SD_BOTH);
@@ -750,7 +733,7 @@ bool network::Client::Close(SOCKET _Sockid) {
     //_Linger.l_onoff = 0;
     //setsockopt(m_Socket, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
 
-    closesocket(_Sockid);
+    closesocket(m_Sockid);
 
     CloseHandle(m_CompletionPort);
 
@@ -825,7 +808,6 @@ bool network::Client::_InitCompletionPort() {
 }
 
 SOCKET network::Client::_InitSock(unsigned int *_Port) {
-
     //SOCKET
     SOCKET _Socket = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
     if (_Socket == INVALID_SOCKET) {

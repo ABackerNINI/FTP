@@ -225,14 +225,6 @@ namespace network {
         LPFN_GETACCEPTEXSOCKADDRS	m_pGetAcceptExSockAddrs;
     };
 
-    struct IP_PORT {
-        const char *	M0_Ip_String;
-        unsigned long	M0_Ip_ULong;
-        unsigned int	M_Port;
-
-        IP_PORT();
-    };
-
     struct ClientConfig {
         /*	M:Mandatory
             O:Optional
@@ -291,13 +283,11 @@ namespace network {
 
         void SetConfig(const ClientConfig &_ClientConfig);
 
-        SOCKET Connect(const IP_PORT *_IpPort, unsigned int *_LocalPort = NULL);
+        SOCKET Connect(const char *_Address, unsigned int _Port, unsigned int *_LocalPort = NULL);
 
-        SOCKET Connect(const char *_Address, unsigned int *_LocalPort);
+        bool Send(const char *_SendBuffer, size_t _BufferLen);
 
-        bool Send(SOCKET _Sockid, const char *_SendBuffer, size_t _BufferLen);
-
-        bool Close(SOCKET _Sockid);//TODO bool Close(void);
+        bool Close();
 
         virtual void OnConnected(CLT_SOCKET_CONTEXT *_SocketContext);
 
@@ -336,6 +326,8 @@ namespace network {
         HANDLE				m_CompletionPort;
 
         ClientConfig		m_ClientConfig;
+
+        SOCKET              m_Sockid;
 
         LPFN_CONNECTEX		m_ConnectEx;
     };
