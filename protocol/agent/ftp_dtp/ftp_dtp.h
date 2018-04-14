@@ -7,7 +7,11 @@
 
 namespace ftp_dtp {
     enum STATUS {
-
+        STA_NULL,
+        STA_ERROR,
+        STA_SENDING,
+        STA_ABORTED,
+        STA_COMPLETED
     };
 
     enum STRUCTURE_TYPE {
@@ -37,7 +41,6 @@ namespace ftp_dtp {
         virtual void OnRecvd(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
 
         virtual void OnClosed(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
-
     };
 
     class ftp_dtp_server : public network::Server {
