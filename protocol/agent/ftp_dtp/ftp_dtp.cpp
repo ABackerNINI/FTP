@@ -16,9 +16,22 @@ bool ftp_dtp::ftp_dtp_client::stop() {
 }
 
 void ftp_dtp::ftp_dtp_client::OnConnected(network::CLT_SOCKET_CONTEXT * _SocketContext) {
-    for (int i = 0; i < 10; ++i) {
-        Send("123", 3);
+    m_fr.open("1.txt");
+
+    char buffer[10240];
+    size_t count;
+
+    while (!m_fr.feof()) {
+        count = m_fr.read(buffer, sizeof(char), 10240);
+
+        if (m_fr.ferror()) {
+            break;
+        }
+
+        Send(buffer, count);
     }
+
+    m_fr.close();
 }
 
 void ftp_dtp::ftp_dtp_client::OnSent(network::CLT_SOCKET_CONTEXT * _SocketContext) {
@@ -46,21 +59,18 @@ bool ftp_dtp::ftp_dtp_server::stop() {
 }
 
 void ftp_dtp::ftp_dtp_server::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
-    if (_SocketContext->m_BytesTransferred) {
-        _SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
-        printf("%s\n", _SocketContext->m_szBuffer);
-    }
+    m_fw.open("test");
 }
 
 void ftp_dtp::ftp_dtp_server::OnRecvd(network::SVR_SOCKET_CONTEXT * _SocketContext) {
-    _SocketContext->m_szBuffer[_SocketContext->m_BytesTransferred] = '\0';
-    printf("%s\n", _SocketContext->m_szBuffer);
+    m_fw.write(_SocketContext->m_szBuffer, sizeof(char), _SocketContext->m_BytesTransferred);
 }
 
 void ftp_dtp::ftp_dtp_server::OnSent(network::SVR_SOCKET_CONTEXT * _SocketContext) {
 }
 
 void ftp_dtp::ftp_dtp_server::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+    m_fw.close();
     printf("done\n");
 }
 

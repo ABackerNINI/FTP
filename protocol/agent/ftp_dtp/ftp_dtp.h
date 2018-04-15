@@ -3,6 +3,7 @@
 #ifndef _NINI_FTP_DTP_H_
 #define _NINI_FTP_DTP_H_
 
+#include "../../../utility/file/file.h"
 #include "../../../utility/network/network.h"
 
 namespace ftp_dtp {
@@ -41,6 +42,9 @@ namespace ftp_dtp {
         virtual void OnRecvd(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
 
         virtual void OnClosed(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
+
+    protected:
+        file::file_reader m_fr;
     };
 
     class ftp_dtp_server : public network::Server {
@@ -58,6 +62,9 @@ namespace ftp_dtp {
         virtual void OnSent(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
 
         virtual void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+
+    protected:
+        file::file_writer m_fw;
     };
 
     class ftp_dtp {
