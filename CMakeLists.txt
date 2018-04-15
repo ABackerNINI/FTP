@@ -12,6 +12,11 @@ set(FTP_COMMON
 	common/common.cpp
 )
 #
+set(FTP_UTILITY_FILE
+	utility/file/file.h
+	utility/file/file.cpp
+)
+#
 set(FTP_UTILITY_NETWORK
 	utility/network/network.h
 	utility/network/network.cpp
@@ -58,6 +63,7 @@ set(FTP_PROTOCOL_AGETN_DTP
 	protocol/agent/ftp_dtp/ftp_dtp.h
 	protocol/agent/ftp_dtp/ftp_dtp.cpp
 	
+	${FTP_UTILITY_FILE}
 	${FTP_UTILITY_NETWORK}
 )
 
