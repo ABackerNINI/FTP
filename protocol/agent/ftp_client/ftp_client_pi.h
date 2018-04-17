@@ -47,13 +47,13 @@ namespace ftp_client_pi {
         bool Close();
 
     protected:
-        void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
+        void OnConnected(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
 
-        void OnSent(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
+        void OnSent(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
 
-        void OnRecvd(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
+        void OnRecvd(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
 
-        void OnClosed(network::CLT_SOCKET_CONTEXT *_SocketContext)override;
+        void OnClosed(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
 
         void _HandleResponse();
 

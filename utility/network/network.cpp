@@ -11,49 +11,49 @@ int network::Cleanup() {
 /*
  * SVR_SOCKET_CONTEXT
  */
-network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(size_t _MaxBufferLen/* = DEFAULT_MAX_BUFFER_LEN*/) :
-    m_BytesTransferred(0),
-    m_OpType(SVR_OP::SVROP_NULL),
-    m_ClientSockid(INVALID_SOCKET),
-    m_Extra(NULL) {
-    m_szBuffer = new char[_MaxBufferLen];//TODO user-defined(upper layer) buffer len
-    m_wsaBuf.buf = m_szBuffer;
-    m_wsaBuf.len = (ULONG)_MaxBufferLen;
+network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(size_t max_buffer_len/* = DEFAULT_MAX_BUFFER_LEN*/) :
+    m_bytes_transferred(0),
+    m_op_type(SVR_OP::SVROP_NULL),
+    m_client_sockid(INVALID_SOCKET),
+    m_extra(NULL) {
+    m_buffer = new char[max_buffer_len];//TODO user-defined(upper layer) buffer len
+    m_wsaBuf.buf = m_buffer;
+    m_wsaBuf.len = (ULONG)max_buffer_len;
 
-    memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
-
-#if(DEBUG&DEBUG_TRACE)
-    _DEBUG_TRACE = network::_DEBUG_TRACE++;
-#endif
-}
-
-network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(SOCKET _Sockid, char *_Buffer, size_t _BufferLen) :
-    m_BytesTransferred(0),
-    m_OpType(SVR_OP::SVROP_NULL),
-    m_ClientSockid(_Sockid),
-    m_Extra(NULL) {
-    m_szBuffer = _Buffer;
-    m_wsaBuf.buf = m_szBuffer;
-    m_wsaBuf.len = (ULONG)_BufferLen;
-
-    memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+    memset(&m_OVERLAPPED, 0, sizeof(OVERLAPPED));
 
 #if(DEBUG&DEBUG_TRACE)
     _DEBUG_TRACE = network::_DEBUG_TRACE++;
 #endif
 }
 
-network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(SOCKET _Sockid, const char *_Buffer, size_t _BufferLen) :
-    m_BytesTransferred(0),
-    m_OpType(SVR_OP::SVROP_NULL),
-    m_ClientSockid(_Sockid),
-    m_Extra(NULL) {
-    m_szBuffer = new char[_BufferLen];
-    memcpy(m_szBuffer, _Buffer, sizeof(char)*_BufferLen);
-    m_wsaBuf.buf = m_szBuffer;
-    m_wsaBuf.len = (ULONG)_BufferLen;
+network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(SOCKET socket, char *buffer, size_t buffer_len) :
+    m_bytes_transferred(0),
+    m_op_type(SVR_OP::SVROP_NULL),
+    m_client_sockid(socket),
+    m_extra(NULL) {
+    m_buffer = buffer;
+    m_wsaBuf.buf = m_buffer;
+    m_wsaBuf.len = (ULONG)buffer_len;
 
-    memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+    memset(&m_OVERLAPPED, 0, sizeof(OVERLAPPED));
+
+#if(DEBUG&DEBUG_TRACE)
+    _DEBUG_TRACE = network::_DEBUG_TRACE++;
+#endif
+}
+
+network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(SOCKET socket, const char *buffer, size_t buffer_len) :
+    m_bytes_transferred(0),
+    m_op_type(SVR_OP::SVROP_NULL),
+    m_client_sockid(socket),
+    m_extra(NULL) {
+    m_buffer = new char[buffer_len];
+    memcpy(m_buffer, buffer, sizeof(char)*buffer_len);
+    m_wsaBuf.buf = m_buffer;
+    m_wsaBuf.len = (ULONG)buffer_len;
+
+    memset(&m_OVERLAPPED, 0, sizeof(OVERLAPPED));
 
 #if(DEBUG&DEBUG_TRACE)
     _DEBUG_TRACE = network::_DEBUG_TRACE++;
@@ -61,28 +61,28 @@ network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(SOCKET _Sockid, const char *_Buf
 }
 
 void network::SVR_SOCKET_CONTEXT::RESET_BUFFER() {
-    m_BytesTransferred = 0;
+    m_bytes_transferred = 0;
 }
 
 network::SVR_SOCKET_CONTEXT::~SVR_SOCKET_CONTEXT() {
-    if (m_szBuffer)
-        delete[] m_szBuffer;
+    if (m_buffer)
+        delete[] m_buffer;
 
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("PSC Dispose DEBUG_TRACE:%u Socket:%lld OP:%d\n", _DEBUG_TRACE, m_ClientSockid, m_OpType);
+    TRACE_PRINT("PSC Dispose DEBUG_TRACE:%u Socket:%lld OP:%d\n", _DEBUG_TRACE, m_client_sockid, m_op_type);
 #endif
 }
 
 /*
  * ServerConfig
  */
-network::ServerConfig::ServerConfig(unsigned int _Port/* = 0*/, unsigned int _MaxConnect/* = SOMAXCONN*/) :
-    M_Port(_Port),
-    O_MaxConnect(_MaxConnect),
-    O_MaxPostAccept(DEFAULT_MAX_POST_ACCEPT),
-    O_MaxBufferLen(DEFAULT_MAX_BUFFER_LEN),
-    O0_WorkerThreadsPerProcessor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
-    O0_WorkerThreads(0) {
+network::ServerConfig::ServerConfig(unsigned int port/* = 0*/, unsigned int max_connect/* = SOMAXCONN*/) :
+    m_port(port),
+    o_max_connect(max_connect),
+    o_max_post_accept(DEFAULT_MAX_POST_ACCEPT),
+    o_max_buffer_len(DEFAULT_MAX_BUFFER_LEN),
+    o0_worker_threads_per_processor(DEFAULT_WORKER_THREADS_PER_PROCESSOR),
+    o0_worker_threads(0) {
 }
 
 /*
@@ -91,102 +91,102 @@ network::ServerConfig::ServerConfig(unsigned int _Port/* = 0*/, unsigned int _Ma
 network::Server::Server() {
 }
 
-network::Server::Server(const ServerConfig &_ServerConfig) {
-    m_ServerConfig = _ServerConfig;
+network::Server::Server(const ServerConfig &serverconfig) {
+    m_server_config = serverconfig;
 }
 
-void network::Server::SetConfig(const ServerConfig &_ServerConfig) {
-    m_ServerConfig = _ServerConfig;
+void network::Server::SetConfig(const ServerConfig &serverconfig) {
+    m_server_config = serverconfig;
 }
 
 bool network::Server::Start() {
-    return _Start(m_ServerConfig.M_Port, m_ServerConfig.O_MaxConnect);
+    return _Start(m_server_config.m_port, m_server_config.o_max_connect);
 }
 
-bool network::Server::Send(SOCKET _Sockid, const char * _SendBuffer, size_t _BufferLen) {
-    SVR_SOCKET_CONTEXT *sock_ctx = new SVR_SOCKET_CONTEXT(_Sockid, _SendBuffer, _BufferLen);
+bool network::Server::Send(SOCKET socket, const char *buffer, size_t buffer_len) {
+    SVR_SOCKET_CONTEXT *sock_ctx = new SVR_SOCKET_CONTEXT(socket, buffer, buffer_len);
 
     return _PostSend(sock_ctx);
 }
 
-bool network::Server::CloseClient(SOCKET _Sockid) {
+bool network::Server::CloseClient(SOCKET socket) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("Close Socket:%lld @Close\n", _Sockid);
+    TRACE_PRINT("Close Socket:%lld @Close\n", socket);
 #endif
 
-    closesocket(_Sockid);
+    closesocket(socket);
 
     return true;
 }
 
 bool network::Server::Stop() {
     //TODO errcheck
-    closesocket(m_Sockid);
+    closesocket(m_socket);
 
-    CloseHandle(m_CompletionPort);
+    CloseHandle(m_completion_port);
 
     return true;
 }
 
-void network::Server::OnAccepted(SVR_SOCKET_CONTEXT * sock_ctx) {
+void network::Server::OnAccepted(SVR_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("OnAccepted DEBUG_TRACE %u BytesTransferred:%u @OnAccepted\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_BytesTransferred);
+    TRACE_PRINT("OnAccepted DEBUG_TRACE %u BytesTransferred:%u @OnAccepted\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_bytes_transferred);
 #endif
 
-    if (sock_ctx->m_BytesTransferred) {
-        sock_ctx->m_szBuffer[sock_ctx->m_BytesTransferred] = '\0';
-        printf("%s\n", sock_ctx->m_szBuffer);
+    if (sock_ctx->m_bytes_transferred) {
+        sock_ctx->m_buffer[sock_ctx->m_bytes_transferred] = '\0';
+        printf("%s\n", sock_ctx->m_buffer);
     }
 }
 
-void network::Server::OnRecvd(SVR_SOCKET_CONTEXT * sock_ctx) {
+void network::Server::OnRecvd(SVR_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("OnRecvd DEBUG_TRACE %u BytesTransferred:%u @OnRecvd\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_BytesTransferred);
+    TRACE_PRINT("OnRecvd DEBUG_TRACE %u BytesTransferred:%u @OnRecvd\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_bytes_transferred);
 #endif
-    sock_ctx->m_szBuffer[sock_ctx->m_BytesTransferred] = '\0';
-    printf("%s\n", sock_ctx->m_szBuffer);
+    sock_ctx->m_buffer[sock_ctx->m_bytes_transferred] = '\0';
+    printf("%s\n", sock_ctx->m_buffer);
 }
 
-void network::Server::OnSent(SVR_SOCKET_CONTEXT * sock_ctx) {
+void network::Server::OnSent(SVR_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("OnSent DEBUG_TRACE %u BytesTransferred:%u @OnSent\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_BytesTransferred);
+    TRACE_PRINT("OnSent DEBUG_TRACE %u BytesTransferred:%u @OnSent\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_bytes_transferred);
 #endif
 }
 
-void network::Server::OnClosed(SVR_SOCKET_CONTEXT * sock_ctx) {
+void network::Server::OnClosed(SVR_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("OnClosed DEBUG_TRACE %u BytesTransferred:%u @OnClosed\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_BytesTransferred);
+    TRACE_PRINT("OnClosed DEBUG_TRACE %u BytesTransferred:%u @OnClosed\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_bytes_transferred);
 #endif
 }
 
 bool network::Server::_InitComplitionPort() {
     //Completion Port
-    m_CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
-    if (m_CompletionPort == NULL) {
+    m_completion_port = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
+    if (m_completion_port == NULL) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Create ComplitionPort @_InitComplitionPort\n");
 #endif
         return false;
     }
 
-    unsigned int _WorkerThreadsNum = m_ServerConfig.O0_WorkerThreads > 0 ? m_ServerConfig.O0_WorkerThreads : (_GetProcessorNum()*m_ServerConfig.O0_WorkerThreadsPerProcessor);
-    if (_WorkerThreadsNum <= 0) {
+    unsigned int worker_threads_num = m_server_config.o0_worker_threads > 0 ? m_server_config.o0_worker_threads : (_GetProcessorNum()*m_server_config.o0_worker_threads_per_processor);
+    if (worker_threads_num <= 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Invalid Worker Threads Number @_InitComplitionPort\n");
 #endif
         return false;
     }
 
-    HANDLE* _WorkerThreads = new HANDLE[_WorkerThreadsNum];
-    memset(_WorkerThreads, 0, sizeof(HANDLE)*_WorkerThreadsNum);
+    HANDLE* worker_threads = new HANDLE[worker_threads_num];
+    memset(worker_threads, 0, sizeof(HANDLE)*worker_threads_num);
     DWORD ThreadId;
-    for (unsigned int i = 0; i < _WorkerThreadsNum; ++i) {
+    for (unsigned int i = 0; i < worker_threads_num; ++i) {
         WORKER_PARAMS<Server> *_pWorkerParams = new WORKER_PARAMS<Server>();
-        _pWorkerParams->m_Instance = this;
-        _pWorkerParams->m_ThreadNo = i;
+        _pWorkerParams->m_instance = this;
+        _pWorkerParams->m_thread_num = i;
 
-        _WorkerThreads[i] = CreateThread(NULL, 0, ServerWorkThread, _pWorkerParams, 0, &ThreadId);
-        if (_WorkerThreads[i] == NULL) {
+        worker_threads[i] = CreateThread(NULL, 0, ServerWorkThread, _pWorkerParams, 0, &ThreadId);
+        if (worker_threads[i] == NULL) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "Failed to Start Thread%u @_InitComplitionPort\n", i);
 #endif
@@ -196,7 +196,7 @@ bool network::Server::_InitComplitionPort() {
     return true;
 }
 
-bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
+bool network::Server::_InitSock(unsigned int port, unsigned int max_connect) {
     //WSADATA
     WSADATA Wsadata;
     WORD wVersionRequested = MAKEWORD(2, 2);
@@ -215,22 +215,22 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     }
 
     //SOCKET
-    m_Sockid = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-    if (m_Sockid == INVALID_SOCKET) {
+    m_socket = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    if (m_socket == INVALID_SOCKET) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Create Socket @_InitSock\n");
 #endif
         return false;
     }
 
-    SOCKADDR_IN _Addr;
-    memset(&_Addr, 0, sizeof(_Addr));
-    _Addr.sin_family = AF_INET;
-    _Addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
-    _Addr.sin_port = htons(_Port);
+    SOCKADDR_IN addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(port);
 
     //BIND
-    if (bind(m_Sockid, (SOCKADDR*)&_Addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
+    if (bind(m_socket, (SOCKADDR*)&addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket @_InitSock\n");
 #endif
@@ -238,15 +238,15 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     }
 
     //LISTEN
-    if (listen(m_Sockid, _MaxConnect) == SOCKET_ERROR) {
+    if (listen(m_socket, max_connect) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Listen Port %d @_InitSock\n", _Port);
+        LOG(CC_RED, "Faild to Listen Port %d @_InitSock\n", port);
 #endif
         return false;
     }
 
     //COMPLETIONPORT
-    if (CreateIoCompletionPort((HANDLE)m_Sockid, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
+    if (CreateIoCompletionPort((HANDLE)m_socket, m_completion_port, (ULONG_PTR)NULL, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_InitSock\n");
 #endif
@@ -258,7 +258,7 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     GUID GuidGetAcceptExSockAddrs = WSAID_GETACCEPTEXSOCKADDRS;
     DWORD dwBytes = 0;
     if (SOCKET_ERROR == WSAIoctl(
-        m_Sockid,
+        m_socket,
         SIO_GET_EXTENSION_FUNCTION_POINTER,
         &GuidAcceptEx,
         sizeof(GuidAcceptEx),
@@ -274,7 +274,7 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     }
 
     if (SOCKET_ERROR == WSAIoctl(
-        m_Sockid,
+        m_socket,
         SIO_GET_EXTENSION_FUNCTION_POINTER,
         &GuidGetAcceptExSockAddrs,
         sizeof(GuidGetAcceptExSockAddrs),
@@ -290,7 +290,7 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     }
 
     //POST ACCEPT
-    for (unsigned int i = 0; i < m_ServerConfig.O_MaxPostAccept; ++i) {
+    for (unsigned int i = 0; i < m_server_config.o_max_connect; ++i) {
         SVR_SOCKET_CONTEXT *sock_ctx = new SVR_SOCKET_CONTEXT();
         if (_PostAccept(sock_ctx) == false) {
 #if(DEBUG&DEBUG_LOG)
@@ -302,7 +302,7 @@ bool network::Server::_InitSock(unsigned int _Port, unsigned int _MaxConnect) {
     return true;
 }
 
-bool network::Server::_Start(unsigned int _Port, unsigned int _MaxConnect) {
+bool network::Server::_Start(unsigned int port, unsigned int max_connect) {
     if (_InitComplitionPort() == false) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Init ComplitionPort @_Start\n");
@@ -310,7 +310,7 @@ bool network::Server::_Start(unsigned int _Port, unsigned int _MaxConnect) {
         return false;
     }
 
-    if (_InitSock(_Port, _MaxConnect) == false) {
+    if (_InitSock(port, max_connect) == false) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Init Sock @_Start\n");
 #endif
@@ -325,13 +325,13 @@ bool network::Server::_PostAccept(SVR_SOCKET_CONTEXT *sock_ctx) {
     TRACE_PRINT("PostAccept DEBUG_TRACE %u\n", sock_ctx->_DEBUG_TRACE);
 #endif
 
-    DWORD _Flags = 0;
+    DWORD flags = 0;
 
-    sock_ctx->m_OpType = SVR_OP::SVROP_ACCEPTING;
-    sock_ctx->m_ClientSockid = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
+    sock_ctx->m_op_type = SVR_OP::SVROP_ACCEPTING;
+    sock_ctx->m_client_sockid = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED);
 
-    if (m_pAcceptEx(m_Sockid,
-        sock_ctx->m_ClientSockid,
+    if (m_pAcceptEx(m_socket,
+        sock_ctx->m_client_sockid,
         sock_ctx->m_wsaBuf.buf,
 #if(FEATURE_RECV_ON_ACCEPT)
         sock_ctx->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
@@ -340,11 +340,11 @@ bool network::Server::_PostAccept(SVR_SOCKET_CONTEXT *sock_ctx) {
 #endif
         sizeof(SOCKADDR_IN) + 16,
         sizeof(SOCKADDR_IN) + 16,
-        &_Flags,
-        &(sock_ctx->m_Overlapped)) == false) {
+        &flags,
+        &(sock_ctx->m_OVERLAPPED)) == false) {
         if (WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-            LOG(CC_RED, "Faild to Post Accept Socket:%lld @PostAccept\n", sock_ctx->m_ClientSockid);
+            LOG(CC_RED, "Faild to Post Accept Socket:%lld @PostAccept\n", sock_ctx->m_client_sockid);
 #endif
             return false;
         }
@@ -358,15 +358,15 @@ bool network::Server::_PostRecv(SVR_SOCKET_CONTEXT *sock_ctx) {
     TRACE_PRINT("PostRecv DEBUG_TRACE %u\n", sock_ctx->_DEBUG_TRACE);
 #endif
 
-    DWORD dwFlags = 0;
-    DWORD dwBytes = 0;
+    DWORD bytes = 0;
+    DWORD flags = 0;
 
-    sock_ctx->m_OpType = SVR_OP::SVROP_RECVING;
+    sock_ctx->m_op_type = SVR_OP::SVROP_RECVING;
 
-    if (WSARecv(sock_ctx->m_ClientSockid, &(sock_ctx->m_wsaBuf), 1, &dwBytes, &dwFlags, &(sock_ctx->m_Overlapped), NULL) == SOCKET_ERROR &&
+    if (WSARecv(sock_ctx->m_client_sockid, &(sock_ctx->m_wsaBuf), 1, &bytes, &flags, &(sock_ctx->m_OVERLAPPED), NULL) == SOCKET_ERROR &&
         WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_PostRecv\n", sock_ctx->m_ClientSockid);
+        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_PostRecv\n", sock_ctx->m_client_sockid);
 #endif
         return false;
     }
@@ -383,15 +383,15 @@ bool network::Server::_PostSend(SVR_SOCKET_CONTEXT *sock_ctx) {
         return true;
     }
 
-    DWORD dwFlags = 0;
-    DWORD dwBytes = 0;
+    DWORD bytes = 0;
+    DWORD flags = 0;
 
-    sock_ctx->m_OpType = SVR_OP::SVROP_SENDING;
+    sock_ctx->m_op_type = SVR_OP::SVROP_SENDING;
 
-    if (WSASend(sock_ctx->m_ClientSockid, &(sock_ctx->m_wsaBuf), 1, &dwBytes, dwFlags, &(sock_ctx->m_Overlapped), NULL) == SOCKET_ERROR &&
+    if (WSASend(sock_ctx->m_client_sockid, &(sock_ctx->m_wsaBuf), 1, &bytes, flags, &(sock_ctx->m_OVERLAPPED), NULL) == SOCKET_ERROR &&
         WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Post Send Socket:%lld @_PostSend\n", sock_ctx->m_ClientSockid);
+        LOG(CC_RED, "Faild to Post Send Socket:%lld @_PostSend\n", sock_ctx->m_client_sockid);
 #endif
         return false;
     }
@@ -401,26 +401,26 @@ bool network::Server::_PostSend(SVR_SOCKET_CONTEXT *sock_ctx) {
 
 bool network::Server::_DoAccepted(SVR_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("DoAccept DEBUG_TRACE %u Socket:%d @_DoAccepted\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_ClientSockid);
+    TRACE_PRINT("DoAccept DEBUG_TRACE %u Socket:%d @_DoAccepted\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_client_sockid);
 #endif
 
 #if(DEBUG&DEBUG_LOG)
-    LOG(CC_YELLOW, "Accepted a Client Socket:%lld @_DoAccepted\n", sock_ctx->m_ClientSockid);
+    LOG(CC_YELLOW, "Accepted a Client Socket:%lld @_DoAccepted\n", sock_ctx->m_client_sockid);
 #endif
 
     OnAccepted(sock_ctx);
 
     sock_ctx->RESET_BUFFER();
 
-    SVR_SOCKET_CONTEXT *_NewSocketContex = new SVR_SOCKET_CONTEXT();
-    _NewSocketContex->m_OpType = SVR_OP::SVROP_RECVING;
-    _NewSocketContex->m_ClientSockid = sock_ctx->m_ClientSockid;
-    _NewSocketContex->m_Extra = sock_ctx->m_Extra;
+    SVR_SOCKET_CONTEXT *new_sock_ctx = new SVR_SOCKET_CONTEXT();
+    new_sock_ctx->m_op_type = SVR_OP::SVROP_RECVING;
+    new_sock_ctx->m_client_sockid = sock_ctx->m_client_sockid;
+    new_sock_ctx->m_extra = sock_ctx->m_extra;
     SOCKADDR_IN *_ClientAddr, *_LocalAddr;//mark:need to delete?
     int _ClientAddrLen = sizeof(SOCKADDR_IN), _LocalAddrLen = sizeof(SOCKADDR_IN);
 
     m_pGetAcceptExSockAddrs(
-        _NewSocketContex->m_wsaBuf.buf,
+        new_sock_ctx->m_wsaBuf.buf,
 #if(FEATURE_RECV_ON_ACCEPT)
         _NewSocketContex->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
 #else
@@ -433,27 +433,27 @@ bool network::Server::_DoAccepted(SVR_SOCKET_CONTEXT *sock_ctx) {
         (LPSOCKADDR*)&_ClientAddr,
         &_ClientAddrLen);//mark:?
 
-    _NewSocketContex->m_ClientAddr = *_ClientAddr;//mark
+    new_sock_ctx->m_client_addr = *_ClientAddr;//mark
 
     //TODO save clientaddr
 
-    if (CreateIoCompletionPort((HANDLE)_NewSocketContex->m_ClientSockid, m_CompletionPort, (ULONG_PTR)_NewSocketContex, 0) == NULL) {
+    if (CreateIoCompletionPort((HANDLE)new_sock_ctx->m_client_sockid, m_completion_port, (ULONG_PTR)new_sock_ctx, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Bind Socket with CompletionPort Socket:%lld @_DoAccepted\n", sock_ctx->m_ClientSockid);
+        LOG(CC_RED, "Faild to Bind Socket with CompletionPort Socket:%lld @_DoAccepted\n", sock_ctx->m_client_sockid);
 #endif
         return false;
     }
 
-    if (_PostRecv(_NewSocketContex) == false) {
+    if (_PostRecv(new_sock_ctx) == false) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_DoAccepted\n", sock_ctx->m_ClientSockid);
+        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_DoAccepted\n", sock_ctx->m_client_sockid);
 #endif
         return false;
     }
 
     if (_PostAccept(sock_ctx) == false) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Post Accept Socket:%lld @_DoAccepted\n", sock_ctx->m_ClientSockid);
+        LOG(CC_RED, "Faild to Post Accept Socket:%lld @_DoAccepted\n", sock_ctx->m_client_sockid);
 #endif
         return false;
     }
@@ -470,11 +470,11 @@ bool network::Server::_DoRecvd(SVR_SOCKET_CONTEXT *sock_ctx) {
 
     sock_ctx->RESET_BUFFER();
 
-    sock_ctx->m_OpType = SVR_OP::SVROP_RECVING;
+    sock_ctx->m_op_type = SVR_OP::SVROP_RECVING;
 
     if (_PostRecv(sock_ctx) == false) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_DoRecvd\n", sock_ctx->m_ClientSockid);
+        LOG(CC_RED, "Faild to Post Recv Socket:%lld @_DoRecvd\n", sock_ctx->m_client_sockid);
 #endif
         return false;
     }
@@ -494,24 +494,24 @@ bool network::Server::_DoSent(SVR_SOCKET_CONTEXT *sock_ctx) {
     return true;
 }
 
-bool network::Server::_IsClientAlive(SOCKET _Sockid) {
-    int nByteSent = send(_Sockid, "", 0, 0);
+bool network::Server::_IsClientAlive(SOCKET socket) {
+    int bytes_sent = send(socket, "", 0, 0);
 
-    return nByteSent != -1;
+    return bytes_sent != -1;
 }
 
-DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
-    WORKER_PARAMS<Server> *_WorkerParams = (WORKER_PARAMS<Server>*)_LpParam;
+DWORD WINAPI network::Server::ServerWorkThread(LPVOID lpParam) {
+    WORKER_PARAMS<Server> *worker_params = (WORKER_PARAMS<Server>*)lpParam;
 
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("ServerWorkThread ThreadNo:%u @ServerWorkThread\n", _WorkerParams->m_ThreadNo);
+    TRACE_PRINT("ServerWorkThread ThreadNo:%u @ServerWorkThread\n", worker_params->m_thread_num);
 #endif
 
-    DWORD _BytesTransferred;
-    OVERLAPPED *_Overlapped;
+    DWORD bytes_transferred;
+    OVERLAPPED *overlapped;
     SVR_SOCKET_CONTEXT *sock_ctx;
-    HANDLE _CompletionPort = _WorkerParams->m_Instance->m_CompletionPort;
-    Server *_Server = _WorkerParams->m_Instance;
+    HANDLE completion_port = worker_params->m_instance->m_completion_port;
+    Server *server = worker_params->m_instance;
 
     typedef bool(*DoEvent)(Server*, SVR_SOCKET_CONTEXT*);
     typedef void(*OnEvent)(Server*, SVR_SOCKET_CONTEXT*);
@@ -522,47 +522,47 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 
     OnEvent _OnClosed = pointer_cast<OnEvent>(&Server::OnClosed);
 
-    BOOL _Ret;
-    DWORD _ErrCode;
+    BOOL ret;
+    DWORD err_code;
 
     while (true) {
-        _BytesTransferred = 0;
+        bytes_transferred = 0;
 
-        _Ret = GetQueuedCompletionStatus(_CompletionPort, &_BytesTransferred, (PULONG_PTR)&sock_ctx, (LPOVERLAPPED*)&_Overlapped, INFINITE);
+        ret = GetQueuedCompletionStatus(completion_port, &bytes_transferred, (PULONG_PTR)&sock_ctx, (LPOVERLAPPED*)&overlapped, INFINITE);
 
-        if (_Ret == false/* && _Overlapped == NULL*/) {
+        if (ret == false/* && _Overlapped == NULL*/) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "GetQueuedCompletionStatus Failed @ServerWorkThread\n");
 #endif
 
-            _ErrCode = GetLastError();
+            err_code = GetLastError();
 
-            if (_ErrCode == WAIT_TIMEOUT) {
-                if (!_IsClientAlive(sock_ctx->m_ClientSockid)) {
+            if (err_code == WAIT_TIMEOUT) {
+                if (!_IsClientAlive(sock_ctx->m_client_sockid)) {
 #if(DEBUG&DEBUG_LOG)
-                    LOG(CC_YELLOW, "Client Offline Error Code:%ld Socket:%lld @ServerWorkThread\n", WAIT_TIMEOUT, sock_ctx->m_ClientSockid);
+                    LOG(CC_YELLOW, "Client Offline Error Code:%ld Socket:%lld @ServerWorkThread\n", WAIT_TIMEOUT, sock_ctx->m_client_sockid);
 #endif
-                    _OnClosed(_Server, sock_ctx);
+                    _OnClosed(server, sock_ctx);
 
-                    closesocket(sock_ctx->m_ClientSockid);
+                    closesocket(sock_ctx->m_client_sockid);
 
                     delete sock_ctx;
                 }
                 continue;
-            } else if (_ErrCode == ERROR_NETNAME_DELETED) {
+            } else if (err_code == ERROR_NETNAME_DELETED) {
                 if (sock_ctx) {
 #if(DEBUG&DEBUG_LOG)
-                    LOG(CC_YELLOW, "Client Offline Error Code:%ld Socket:%lld @ServerWorkThread\n", ERROR_NETNAME_DELETED, sock_ctx->m_ClientSockid);
+                    LOG(CC_YELLOW, "Client Offline Error Code:%ld Socket:%lld @ServerWorkThread\n", ERROR_NETNAME_DELETED, sock_ctx->m_client_sockid);
 #endif
-                    _OnClosed(_Server, sock_ctx);
+                    _OnClosed(server, sock_ctx);
 
-                    closesocket(sock_ctx->m_ClientSockid);
+                    closesocket(sock_ctx->m_client_sockid);
 
                     delete sock_ctx;
                 } else {
                     // TODO
                 }
-            } else if (_ErrCode == ERROR_ABANDONED_WAIT_0) {
+            } else if (err_code == ERROR_ABANDONED_WAIT_0) {
                 // TODO
                 continue;
             } else {
@@ -573,30 +573,30 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
             continue;
         }
 
-        sock_ctx = CONTAINING_RECORD(_Overlapped, SVR_SOCKET_CONTEXT, m_Overlapped);
+        sock_ctx = CONTAINING_RECORD(overlapped, SVR_SOCKET_CONTEXT, m_OVERLAPPED);
 
-        if (_BytesTransferred == 0 && sock_ctx->m_OpType != SVR_OP::SVROP_ACCEPTING) {
+        if (bytes_transferred == 0 && sock_ctx->m_op_type != SVR_OP::SVROP_ACCEPTING) {
 #if(DEBUG&DEBUG_LOG)
-            LOG(CC_YELLOW, "Client Offline Zero Bytes Transferred Socket:%lld @ServerWorkThread\n", sock_ctx->m_ClientSockid);
+            LOG(CC_YELLOW, "Client Offline Zero Bytes Transferred Socket:%lld @ServerWorkThread\n", sock_ctx->m_client_sockid);
 #endif
-            _OnClosed(_Server, sock_ctx);
+            _OnClosed(server, sock_ctx);
 
-            closesocket(sock_ctx->m_ClientSockid);
+            closesocket(sock_ctx->m_client_sockid);
 
             delete sock_ctx;
         }
 
-        sock_ctx->m_BytesTransferred = _BytesTransferred;
+        sock_ctx->m_bytes_transferred = bytes_transferred;
 
-        switch (sock_ctx->m_OpType) {
+        switch (sock_ctx->m_op_type) {
         case SVR_OP::SVROP_ACCEPTING:
-            _DoAccepted(_Server, sock_ctx);
+            _DoAccepted(server, sock_ctx);
             break;
         case SVR_OP::SVROP_RECVING:
-            _DoRecvd(_Server, sock_ctx);
+            _DoRecvd(server, sock_ctx);
             break;
         case SVR_OP::SVROP_SENDING:
-            _DoSent(_Server, sock_ctx);
+            _DoSent(server, sock_ctx);
             break;
         default:
             break;
@@ -609,43 +609,43 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID _LpParam) {
 /*
  * CLT_SOCKET_CONTEXT
  */
-network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(size_t _MaxBufferLen /*= DEFAULT_MAX_BUFFER_LEN*/) :
-    m_OpType(CLT_OP::CLTOP_NULL),
-    m_Extra(NULL) {
-    m_szBuffer = new char[_MaxBufferLen];
+network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(size_t max_buffer_len /*= DEFAULT_MAX_BUFFER_LEN*/) :
+    m_op_type(CLT_OP::CLTOP_NULL),
+    m_extra(NULL) {
+    m_szBuffer = new char[max_buffer_len];
     m_wsaBuf.buf = m_szBuffer;
-    m_wsaBuf.len = (ULONG)_MaxBufferLen;
+    m_wsaBuf.len = (ULONG)max_buffer_len;
 
-    memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+    memset(&m_OVERLAPPED, 0, sizeof(OVERLAPPED));
 
 #if(DEBUG&DEBUG_TRACE)
     _DEBUG_TRACE = network::_DEBUG_TRACE++;
 #endif
 }
 
-network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(char *_Buffer, size_t _BufferLen) :
-    m_OpType(CLT_OP::CLTOP_NULL),
-    m_Extra(NULL) {
+network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(char *buffer, size_t buffer_len) :
+    m_op_type(CLT_OP::CLTOP_NULL),
+    m_extra(NULL) {
     m_szBuffer = NULL;
-    m_wsaBuf.buf = _Buffer;
-    m_wsaBuf.len = (ULONG)_BufferLen;
+    m_wsaBuf.buf = buffer;
+    m_wsaBuf.len = (ULONG)buffer_len;
 
-    memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+    memset(&m_OVERLAPPED, 0, sizeof(OVERLAPPED));
 
 #if(DEBUG&DEBUG_TRACE)
     _DEBUG_TRACE = network::_DEBUG_TRACE++;
 #endif
 }
 
-network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(const char *_Buffer, size_t _BufferLen) :
-    m_OpType(CLT_OP::CLTOP_NULL),
-    m_Extra(NULL) {
-    m_szBuffer = new char[_BufferLen];
-    memcpy(m_szBuffer, _Buffer, sizeof(char)*_BufferLen);
+network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(const char *buffer, size_t buffer_len) :
+    m_op_type(CLT_OP::CLTOP_NULL),
+    m_extra(NULL) {
+    m_szBuffer = new char[buffer_len];
+    memcpy(m_szBuffer, buffer, sizeof(char)*buffer_len);
     m_wsaBuf.buf = m_szBuffer;
-    m_wsaBuf.len = (ULONG)_BufferLen;
+    m_wsaBuf.len = (ULONG)buffer_len;
 
-    memset(&m_Overlapped, 0, sizeof(OVERLAPPED));
+    memset(&m_OVERLAPPED, 0, sizeof(OVERLAPPED));
 
 #if(DEBUG&DEBUG_TRACE)
     _DEBUG_TRACE = network::_DEBUG_TRACE++;
@@ -653,15 +653,13 @@ network::CLT_SOCKET_CONTEXT::CLT_SOCKET_CONTEXT(const char *_Buffer, size_t _Buf
 }
 
 void network::CLT_SOCKET_CONTEXT::RESET_BUFFER() {
-    m_BytesTransferred = 0;
+    m_bytes_transferred = 0;
 }
 
 network::CLT_SOCKET_CONTEXT::~CLT_SOCKET_CONTEXT() {
     if (m_szBuffer)
         delete[] m_szBuffer;
 
-    static int count = 0;
-    printf("socket context disposed,%d\n", count++);
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("PSC Dispose DEBUG_TRACE:%d\n", _DEBUG_TRACE);
 #endif
@@ -671,25 +669,25 @@ network::CLT_SOCKET_CONTEXT::~CLT_SOCKET_CONTEXT() {
  * ClientConfig
  */
 network::ClientConfig::ClientConfig() :
-    O0_WorkerThreadsPerProcessor(0),
-    O0_WorkerThreads(2) {
+    o0_worker_threads_per_processor(0),
+    o0_Worker_threads(2) {
 }
 
 /*
  * Client
  */
-network::Client::Client() :m_CompletionPort(NULL) {
+network::Client::Client() :m_completion_port(NULL) {
     _Init();
 }
 
-network::Client::Client(const ClientConfig &_ClientConfig) : m_CompletionPort(NULL) {
-    m_ClientConfig = _ClientConfig;
+network::Client::Client(const ClientConfig &client_config) : m_completion_port(NULL) {
+    m_client_config = client_config;
 
     _Init();
 }
 
-void network::Client::SetConfig(const ClientConfig &_ClientConfig) {
-    m_ClientConfig = _ClientConfig;
+void network::Client::SetConfig(const ClientConfig &client_config) {
+    m_client_config = client_config;
 }
 
 int network::Client::_Init() {
@@ -720,119 +718,119 @@ int network::Client::_Init() {
     return 0;
 }
 
-SOCKET network::Client::Connect(const char * _Address, unsigned int _Port, unsigned int * _LocalPort/* = NULL*/) {
-    unsigned int _LocalPort1 = 0;
-    if (!_LocalPort) {
-        _LocalPort = &_LocalPort1;
+SOCKET network::Client::Connect(const char *addr, unsigned int port, unsigned int *local_port/* = NULL*/) {
+    unsigned int tmp_local_port = 0;
+    if (!local_port) {
+        local_port = &tmp_local_port;
     }
 
-    m_Sockid = _InitSock(_LocalPort);
-    if (*_LocalPort < 0) {
+    m_socket = _InitSock(local_port);
+    if (*local_port < 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Init Sock @Connect\n");
 #endif
         return -2;
     }
 
-    if (_PostConnect(m_Sockid, inet_addr(_Address), _Port) == false) {
+    if (_PostConnect(m_socket, inet_addr(addr), port) == false) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Post Connect @Connect\n");
 #endif
         return -3;
     }
 
-    return m_Sockid;
+    return m_socket;
 }
 
-bool network::Client::Send(char *_SendBuffer, size_t _BufferLen) {
-    CLT_SOCKET_CONTEXT *sock_ctx = new CLT_SOCKET_CONTEXT(_SendBuffer, _BufferLen);
+bool network::Client::Send(char *buffer, size_t buffer_len) {
+    CLT_SOCKET_CONTEXT *sock_ctx = new CLT_SOCKET_CONTEXT(buffer, buffer_len);
 
     return _PostSend(sock_ctx);
 }
 
-bool network::Client::Send(const char *_SendBuffer, size_t _BufferLen) {
-    CLT_SOCKET_CONTEXT *sock_ctx = new CLT_SOCKET_CONTEXT(_SendBuffer, _BufferLen);
+bool network::Client::Send(const char *buffer, size_t buffer_len) {
+    CLT_SOCKET_CONTEXT *sock_ctx = new CLT_SOCKET_CONTEXT(buffer, buffer_len);
 
     return _PostSend(sock_ctx);
 }
 
 bool network::Client::Close() {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("Close Socket:%lld @Close\n", m_Sockid);
+    TRACE_PRINT("Close Socket:%lld @Close\n", m_socket);
 #endif
 
-    //shutdown(m_Sockid, SD_BOTH);
+    //shutdown(m_socket, SD_BOTH);
 
     //LINGER _Linger = { 1,0 };
     //_Linger.l_onoff = 0;
-    //setsockopt(m_Sockid, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
+    //setsockopt(m_socket, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
 
-    closesocket(m_Sockid);
+    closesocket(m_socket);
 
-    CloseHandle(m_CompletionPort);
+    CloseHandle(m_completion_port);
 
     return true;
 }
 
-void network::Client::OnConnected(CLT_SOCKET_CONTEXT * sock_ctx) {
+void network::Client::OnConnected(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("OnConnected DEBUG_TRACE %u BytesTransferred:%u @OnConnected\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_BytesTransferred);
+    TRACE_PRINT("OnConnected DEBUG_TRACE %u BytesTransferred:%u @OnConnected\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_bytes_transferred);
 #endif
 
-    if (sock_ctx->m_BytesTransferred) {
-        sock_ctx->m_szBuffer[sock_ctx->m_BytesTransferred] = '\0';
+    if (sock_ctx->m_bytes_transferred) {
+        sock_ctx->m_szBuffer[sock_ctx->m_bytes_transferred] = '\0';
         printf("%s\n", sock_ctx->m_szBuffer);
     }
 }
 
-void network::Client::OnSent(CLT_SOCKET_CONTEXT * sock_ctx) {
+void network::Client::OnSent(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("OnSent DEBUG_TRACE %u BytesTransferred:%u @OnSent\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_BytesTransferred);
+    TRACE_PRINT("OnSent DEBUG_TRACE %u BytesTransferred:%u @OnSent\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_bytes_transferred);
 #endif
 }
 
-void network::Client::OnRecvd(CLT_SOCKET_CONTEXT * sock_ctx) {
+void network::Client::OnRecvd(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("OnRecvd DEBUG_TRACE %u BytesTransferred:%u @OnRecvd\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_BytesTransferred);
+    TRACE_PRINT("OnRecvd DEBUG_TRACE %u BytesTransferred:%u @OnRecvd\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_bytes_transferred);
 #endif
 
-    sock_ctx->m_szBuffer[sock_ctx->m_BytesTransferred] = '\0';
+    sock_ctx->m_szBuffer[sock_ctx->m_bytes_transferred] = '\0';
     printf("%s\n", sock_ctx->m_szBuffer);
 }
 
-void network::Client::OnClosed(CLT_SOCKET_CONTEXT * sock_ctx) {
+void network::Client::OnClosed(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("OnClosed DEBUG_TRACE %u BytesTransferred:%u @OnClosed\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_BytesTransferred);
+    TRACE_PRINT("OnClosed DEBUG_TRACE %u BytesTransferred:%u @OnClosed\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_bytes_transferred);
 #endif
 }
 
 bool network::Client::_InitCompletionPort() {
-    m_CompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, (ULONG_PTR)NULL, 0);
-    if (m_CompletionPort == NULL) {
+    m_completion_port = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, (ULONG_PTR)NULL, 0);
+    if (m_completion_port == NULL) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Create CompletionPort @_InitCompletionPort\n");
 #endif
         return false;
     }
 
-    unsigned int _WorkerThreadsNum = m_ClientConfig.O0_WorkerThreads > 0 ? m_ClientConfig.O0_WorkerThreads : (m_ClientConfig.O0_WorkerThreadsPerProcessor * _GetProcessorNum());
-    if (_WorkerThreadsNum <= 0) {
+    unsigned int worker_threads_num = m_client_config.o0_Worker_threads > 0 ? m_client_config.o0_Worker_threads : (m_client_config.o0_worker_threads_per_processor * _GetProcessorNum());
+    if (worker_threads_num <= 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Invalid Worker Threads Number @_InitCompletionPort\n");
 #endif
         return false;
     }
 
-    HANDLE* _WorkerThreads = new HANDLE[_WorkerThreadsNum];
-    memset(_WorkerThreads, 0, sizeof(HANDLE)*_WorkerThreadsNum);
+    HANDLE* worker_threads = new HANDLE[worker_threads_num];
+    memset(worker_threads, 0, sizeof(HANDLE)*worker_threads_num);
     DWORD ThreadId;
-    for (unsigned int i = 0; i < _WorkerThreadsNum; ++i) {
-        WORKER_PARAMS<Client> *_WorkerParams = new WORKER_PARAMS<Client>();
-        _WorkerParams->m_Instance = this;
-        _WorkerParams->m_ThreadNo = i;
+    for (unsigned int i = 0; i < worker_threads_num; ++i) {
+        WORKER_PARAMS<Client> *worker_params = new WORKER_PARAMS<Client>();
+        worker_params->m_instance = this;
+        worker_params->m_thread_num = i;
 
-        _WorkerThreads[i] = CreateThread(NULL, 0, ClientWorkThread, _WorkerParams, 0, &ThreadId);
-        if (_WorkerThreads[i] == NULL) {
+        worker_threads[i] = CreateThread(NULL, 0, ClientWorkThread, worker_params, 0, &ThreadId);
+        if (worker_threads[i] == NULL) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "Faild to Start Thread%u @_InitCompletionPort\n", i);
 #endif
@@ -841,48 +839,48 @@ bool network::Client::_InitCompletionPort() {
     return true;
 }
 
-SOCKET network::Client::_InitSock(unsigned int *_Port) {
+SOCKET network::Client::_InitSock(unsigned int *port) {
     //SOCKET
-    SOCKET _Sockid = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-    if (_Sockid == INVALID_SOCKET) {
+    SOCKET socket = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    if (socket == INVALID_SOCKET) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Create Socket @_InitSock\n");
 #endif
         return -3;
     }
 
-    SOCKADDR_IN _LocalAddr;
-    memset(&_LocalAddr, 0, sizeof(_LocalAddr));
-    _LocalAddr.sin_family = AF_INET;
-    _LocalAddr.sin_addr.S_un.S_addr = INADDR_ANY;
-    _LocalAddr.sin_port = htons(_Port ? (short)*_Port : 0);
+    SOCKADDR_IN local_addr;
+    memset(&local_addr, 0, sizeof(local_addr));
+    local_addr.sin_family = AF_INET;
+    local_addr.sin_addr.S_un.S_addr = INADDR_ANY;
+    local_addr.sin_port = htons(port ? (short)*port : 0);
 
     //BIND
-    if (bind(_Sockid, (SOCKADDR*)&_LocalAddr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
+    if (bind(socket, (SOCKADDR*)&local_addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket @_InitSock\n");
 #endif
         return -4;
     }
 
-    if (CreateIoCompletionPort((HANDLE)_Sockid, m_CompletionPort, (ULONG_PTR)NULL, 0) == NULL) {
+    if (CreateIoCompletionPort((HANDLE)socket, m_completion_port, (ULONG_PTR)NULL, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_InitSock\n");
 #endif
         return -5;
     }
 
-    if (!m_ConnectEx) {
+    if (!m_pConnectEx) {
         //pACCEPTEX pGETACCEPTEXSOCKADDRS
         GUID GuidConnectEx = WSAID_CONNECTEX;
         DWORD dwBytes = 0;
         if (SOCKET_ERROR == WSAIoctl(
-            _Sockid,
+            socket,
             SIO_GET_EXTENSION_FUNCTION_POINTER,
             &GuidConnectEx,
             sizeof(GuidConnectEx),
-            &m_ConnectEx,
-            sizeof(m_ConnectEx),
+            &m_pConnectEx,
+            sizeof(m_pConnectEx),
             &dwBytes,
             NULL,
             NULL)) {
@@ -893,28 +891,28 @@ SOCKET network::Client::_InitSock(unsigned int *_Port) {
         }
     }
 
-    *_Port = _LocalAddr.sin_port;
+    *port = local_addr.sin_port;
 
-    return _Sockid;
+    return socket;
 }
 
-bool network::Client::_PostConnect(SOCKET _Sockid, unsigned long _Ip, unsigned int _Port) {
+bool network::Client::_PostConnect(SOCKET socket, unsigned long ip, unsigned int port) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("PostConnect @_PostConnect\n");
 #endif
 
-    SOCKADDR_IN _Addr;
-    memset(&_Addr, 0, sizeof(SOCKADDR_IN));
-    _Addr.sin_family = AF_INET;
-    _Addr.sin_addr.S_un.S_addr = _Ip;
-    _Addr.sin_port = htons(_Port);
+    SOCKADDR_IN addr;
+    memset(&addr, 0, sizeof(SOCKADDR_IN));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.S_un.S_addr = ip;
+    addr.sin_port = htons(port);
 
     CLT_SOCKET_CONTEXT *sock_ctx = new CLT_SOCKET_CONTEXT();
 
-    sock_ctx->m_OpType = CLT_OP::CLTOP_CONNECTING;
+    sock_ctx->m_op_type = CLT_OP::CLTOP_CONNECTING;
 
     DWORD dwBytes = 0;
-    if (m_ConnectEx(_Sockid, (SOCKADDR*)&_Addr, sizeof(_Addr), NULL, 0, &dwBytes, (LPOVERLAPPED)sock_ctx) == false) {
+    if (m_pConnectEx(socket, (SOCKADDR*)&addr, sizeof(addr), NULL, 0, &dwBytes, (LPOVERLAPPED)sock_ctx) == false) {
         if (WSAGetLastError() != ERROR_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "Faild to Post Connect%d @_PostConnect\n");
@@ -926,7 +924,7 @@ bool network::Client::_PostConnect(SOCKET _Sockid, unsigned long _Ip, unsigned i
     return true;
 }
 
-bool network::Client::_PostSend(CLT_SOCKET_CONTEXT * sock_ctx) {
+bool network::Client::_PostSend(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("PostSend DEBUG_TRACE %u @_PostSend\n", sock_ctx->_DEBUG_TRACE);
 #endif
@@ -935,12 +933,12 @@ bool network::Client::_PostSend(CLT_SOCKET_CONTEXT * sock_ctx) {
         return true;
     }*/
 
-    DWORD dwFlags = 0;
-    DWORD dwBytes = 0;
+    DWORD bytes = 0;
+    DWORD flags = 0;
 
-    sock_ctx->m_OpType = CLT_OP::CLTOP_SENDING;
+    sock_ctx->m_op_type = CLT_OP::CLTOP_SENDING;
 
-    if (WSASend(m_Sockid, &(sock_ctx->m_wsaBuf), 1, &dwBytes, dwFlags, &(sock_ctx->m_Overlapped), NULL) == SOCKET_ERROR) {
+    if (WSASend(m_socket, &(sock_ctx->m_wsaBuf), 1, &bytes, flags, &(sock_ctx->m_OVERLAPPED), NULL) == SOCKET_ERROR) {
         if (WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "Faild to Post Send %d @_PostSend\n", WSAGetLastError());
@@ -952,17 +950,17 @@ bool network::Client::_PostSend(CLT_SOCKET_CONTEXT * sock_ctx) {
     return true;
 }
 
-bool network::Client::_PostRecv(CLT_SOCKET_CONTEXT * sock_ctx) {
+bool network::Client::_PostRecv(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("PostRecv DEBUG_TRACE %u @_PostRecv\n", sock_ctx->_DEBUG_TRACE);
 #endif
 
-    DWORD dwFlags = 0;
-    DWORD dwBytes = 0;
+    DWORD bytes = 0;
+    DWORD flags = 0;
 
-    sock_ctx->m_OpType = CLT_OP::CLTOP_RECVING;
+    sock_ctx->m_op_type = CLT_OP::CLTOP_RECVING;
 
-    if (WSARecv(m_Sockid, &(sock_ctx->m_wsaBuf), 1, &dwBytes, &dwFlags, &(sock_ctx->m_Overlapped), NULL) == SOCKET_ERROR) {
+    if (WSARecv(m_socket, &(sock_ctx->m_wsaBuf), 1, &bytes, &flags, &(sock_ctx->m_OVERLAPPED), NULL) == SOCKET_ERROR) {
         if (WSAGetLastError() != WSA_IO_PENDING) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "Faild to Post Recv @_PostRecv\n");
@@ -974,7 +972,7 @@ bool network::Client::_PostRecv(CLT_SOCKET_CONTEXT * sock_ctx) {
     return true;
 }
 
-bool network::Client::_DoConnected(CLT_SOCKET_CONTEXT * sock_ctx) {
+bool network::Client::_DoConnected(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("DoConnected DEBUG_TRACE %u @_DoConnected\n", sock_ctx->_DEBUG_TRACE);
 #endif
@@ -993,7 +991,7 @@ bool network::Client::_DoConnected(CLT_SOCKET_CONTEXT * sock_ctx) {
     return true;
 }
 
-bool network::Client::_DoSent(CLT_SOCKET_CONTEXT * sock_ctx) {
+bool network::Client::_DoSent(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("DoSent DEBUG_TRACE %u @_DoSent\n", sock_ctx->_DEBUG_TRACE);
 #endif
@@ -1005,7 +1003,7 @@ bool network::Client::_DoSent(CLT_SOCKET_CONTEXT * sock_ctx) {
     return false;
 }
 
-bool network::Client::_DoRecvd(CLT_SOCKET_CONTEXT * sock_ctx) {
+bool network::Client::_DoRecvd(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("DoRecvd DEBUG_TRACE %u @_DoRecvd\n", sock_ctx->_DEBUG_TRACE);
 #endif
@@ -1017,18 +1015,18 @@ bool network::Client::_DoRecvd(CLT_SOCKET_CONTEXT * sock_ctx) {
     return false;
 }
 
-DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
-    WORKER_PARAMS<Client> *_WorkerParams = (WORKER_PARAMS<Client>*)_LpParam;
+DWORD network::Client::ClientWorkThread(LPVOID lpParam) {
+    WORKER_PARAMS<Client> *worker_params = (WORKER_PARAMS<Client>*)lpParam;
 
 #if(DEBUG&DEBUG_TRACE)
-    TRACE_PRINT("ClientWorkThread ThreadNo:%u @ClientWorkThread\n", _WorkerParams->m_ThreadNo);
+    TRACE_PRINT("ClientWorkThread ThreadNo:%u @ClientWorkThread\n", worker_params->m_thread_num);
 #endif
 
-    DWORD _BytesTransferred;
-    OVERLAPPED *_Overlapped;
+    DWORD bytes_transferred;
+    OVERLAPPED *overlapped;
     CLT_SOCKET_CONTEXT *sock_ctx;
-    HANDLE _CompletionPort = _WorkerParams->m_Instance->m_CompletionPort;
-    Client *_Client = _WorkerParams->m_Instance;
+    HANDLE completion_port = worker_params->m_instance->m_completion_port;
+    Client *client = worker_params->m_instance;
 
     typedef void(*DoEvent)(Client*, CLT_SOCKET_CONTEXT*);
     typedef void(*OnEvent)(Client*, CLT_SOCKET_CONTEXT*);
@@ -1039,48 +1037,48 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
 
     OnEvent _OnClosed = pointer_cast<OnEvent>(&Client::OnClosed);
 
-    BOOL _Ret;
+    BOOL ret;
 
-    DWORD _ErrCode;
+    DWORD err_code;
 
     while (true) {
-        _BytesTransferred = 0;
+        bytes_transferred = 0;
 
-        _Ret = GetQueuedCompletionStatus(_CompletionPort, &_BytesTransferred, (PULONG_PTR)&sock_ctx, (LPOVERLAPPED*)&_Overlapped, INFINITE);
+        ret = GetQueuedCompletionStatus(completion_port, &bytes_transferred, (PULONG_PTR)&sock_ctx, (LPOVERLAPPED*)&overlapped, INFINITE);
 
-        if (_Ret == false) {
+        if (ret == false) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "GetQueuedCompletionStatus Failed @ClientWorkThread\n");
 #endif
 
-            _ErrCode = GetLastError();
+            err_code = GetLastError();
 
-            if (_ErrCode == WAIT_TIMEOUT) {
-                if (!_IsServerAlive(_Client->m_Sockid)) {
+            if (err_code == WAIT_TIMEOUT) {
+                if (!_IsServerAlive(client->m_socket)) {
 #if(DEBUG&DEBUG_LOG)
-                    LOG(CC_YELLOW, "Server Error Socket:%lld @ClientWorkThread\n", _Client->m_Sockid);
+                    LOG(CC_YELLOW, "Server Error Socket:%lld @ClientWorkThread\n", client->m_socket);
 #endif
-                    _OnClosed(_Client, sock_ctx);
+                    _OnClosed(client, sock_ctx);
 
-                    closesocket(_Client->m_Sockid);
+                    closesocket(client->m_socket);
 
                     delete sock_ctx;
                 }
                 continue;
-            } else if (_ErrCode == ERROR_NETNAME_DELETED) {
+            } else if (err_code == ERROR_NETNAME_DELETED) {
                 if (sock_ctx) {
 #if(DEBUG&DEBUG_LOG)
-                    LOG(CC_YELLOW, "Server Error Socket:%lld @ClientWorkThread\n", _Client->m_Sockid);
+                    LOG(CC_YELLOW, "Server Error Socket:%lld @ClientWorkThread\n", client->m_socket);
 #endif
-                    _OnClosed(_Client, sock_ctx);
+                    _OnClosed(client, sock_ctx);
 
-                    closesocket(_Client->m_Sockid);
+                    closesocket(client->m_socket);
 
                     delete sock_ctx;
                 }
 
                 continue;
-            } else if (_ErrCode == ERROR_ABANDONED_WAIT_0) {
+            } else if (err_code == ERROR_ABANDONED_WAIT_0) {
                 // TODO
                 continue;
             } else {
@@ -1089,32 +1087,32 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
             }
         }
 
-        sock_ctx = CONTAINING_RECORD(_Overlapped, CLT_SOCKET_CONTEXT, m_Overlapped);
+        sock_ctx = CONTAINING_RECORD(overlapped, CLT_SOCKET_CONTEXT, m_OVERLAPPED);
 
-        if (_BytesTransferred == 0 && sock_ctx->m_OpType != CLT_OP::CLTOP_CONNECTING) {
+        if (bytes_transferred == 0 && sock_ctx->m_op_type != CLT_OP::CLTOP_CONNECTING) {
 #if(DEBUG&DEBUG_LOG)
-            LOG(CC_YELLOW, "Server Offline Socket:%lld @ClientWorkThread\n", _Client->m_Sockid);
+            LOG(CC_YELLOW, "Server Offline Socket:%lld @ClientWorkThread\n", client->m_socket);
 #endif
-            _OnClosed(_Client, sock_ctx);
+            _OnClosed(client, sock_ctx);
 
-            closesocket(_Client->m_Sockid);
+            closesocket(client->m_socket);
 
             delete sock_ctx;
 
             continue;
         }
 
-        sock_ctx->m_BytesTransferred = _BytesTransferred;
+        sock_ctx->m_bytes_transferred = bytes_transferred;
 
-        switch (sock_ctx->m_OpType) {
+        switch (sock_ctx->m_op_type) {
         case CLT_OP::CLTOP_CONNECTING:
-            _DoConnected(_Client, sock_ctx);
+            _DoConnected(client, sock_ctx);
             break;
         case CLT_OP::CLTOP_SENDING:
-            _DoSent(_Client, sock_ctx);
+            _DoSent(client, sock_ctx);
             break;
         case CLT_OP::CLTOP_RECVING:
-            _DoRecvd(_Client, sock_ctx);
+            _DoRecvd(client, sock_ctx);
             break;
         default:
             break;
@@ -1124,7 +1122,7 @@ DWORD network::Client::ClientWorkThread(LPVOID _LpParam) {
     return 0;
 }
 
-bool network::Client::_IsServerAlive(SOCKET _Sockid) {
+bool network::Client::_IsServerAlive(SOCKET socket) {
     return true;
 }
 

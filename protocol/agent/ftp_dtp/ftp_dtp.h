@@ -35,13 +35,13 @@ namespace ftp_dtp {
 
         bool stop();
 
-        virtual void OnConnected(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
+        virtual void OnConnected(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
 
-        virtual void OnSent(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
+        virtual void OnSent(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
 
-        virtual void OnRecvd(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
+        virtual void OnRecvd(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
 
-        virtual void OnClosed(network::CLT_SOCKET_CONTEXT *_SocketContext) override;
+        virtual void OnClosed(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
 
     protected:
         file::file_reader m_fr;
@@ -55,13 +55,13 @@ namespace ftp_dtp {
 
         bool stop();
 
-        virtual void OnAccepted(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+        virtual void OnAccepted(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
 
-        virtual void OnRecvd(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+        virtual void OnRecvd(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
 
-        virtual void OnSent(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+        virtual void OnSent(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
 
-        virtual void OnClosed(network::SVR_SOCKET_CONTEXT *_SocketContext) override;
+        virtual void OnClosed(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
 
     protected:
         file::file_writer m_fw;

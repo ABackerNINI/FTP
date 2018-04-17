@@ -14,12 +14,14 @@
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "Kernel32.lib")
 
+//TODO timeout
+
 namespace network {
 
     //TODO #define T_PORT unsigned short
 
 #define DEBUG 1
-#define DEBUG_TRACE 0
+#define DEBUG_TRACE 1
 #define DEBUG_LOG 1
 
 #define FEATURE_RECV_ON_ACCEPT 0		//Recv Data on Accept.
@@ -61,11 +63,11 @@ namespace network {
 
 #define TRACE_PRINT _TRACE_PRINT
     template<class... T>
-    inline void _TRACE_PRINT(T&&... _Args) {
+    inline void _TRACE_PRINT(T&&... args) {
         //EnterCriticalSection(&CRITICAL_PRINT);
 
         SetColor(CC_GREEN);
-        printf(std::forward<T>(_Args)...);
+        printf(std::forward<T>(args)...);
         SetColor(CC_WHITE);
         fflush(stdout);
 
@@ -79,9 +81,9 @@ namespace network {
 #define LOG _LOG
 
     template<class... T>
-    inline void _LOG(CONSOLE_COLOR _Color, T&&... _Args) {
-        SetColor(_Color);
-        printf(std::forward<T>(_Args)...);
+    inline void _LOG(CONSOLE_COLOR color, T&&... args) {
+        SetColor(color);
+        printf(std::forward<T>(args)...);
         SetColor(CC_WHITE);
         fflush(stdout);
     }
@@ -96,16 +98,16 @@ namespace network {
     }
 
     inline unsigned int _GetProcessorNum() {
-        SYSTEM_INFO SysInfo;
-        GetSystemInfo(&SysInfo);
+        SYSTEM_INFO sys_inf;
+        GetSystemInfo(&sys_inf);
 
-        return SysInfo.dwNumberOfProcessors;
+        return sys_inf.dwNumberOfProcessors;
     }
 
     template<typename _Type>
     struct WORKER_PARAMS {
-        _Type *m_Instance;
-        unsigned int m_ThreadNo;
+        _Type *m_instance;
+        unsigned int m_thread_num;
     };
 
     enum SVR_OP {
@@ -116,34 +118,25 @@ namespace network {
         SVROP_CLOSING
     };
 
-    //enum SVR_EV {
-    //    SVREV_ACCEPTED,
-    //    SVREV_RECEIVED,
-    //    SVREV_SENT,
-    //    SVREV_CLOSED,
-    //    SVREV_TIMEOUT
-    //};
-
     struct SVR_SOCKET_CONTEXT {
-        OVERLAPPED		m_Overlapped;
+        OVERLAPPED		m_OVERLAPPED;
         WSABUF			m_wsaBuf;
-        char*			m_szBuffer;
-        unsigned int	m_BytesTransferred;
-        SVR_OP			m_OpType;
-        SOCKET			m_ClientSockid;
-        SOCKADDR_IN		m_ClientAddr;
-        void*			m_Extra;
-
+        char*			m_buffer;
+        unsigned int	m_bytes_transferred;
+        SVR_OP			m_op_type;
+        SOCKET			m_client_sockid;
+        SOCKADDR_IN		m_client_addr;
+        void*			m_extra;
 
 #if(DEBUG&DEBUG_TRACE)
         unsigned int _DEBUG_TRACE;
 #endif
 
-        SVR_SOCKET_CONTEXT(size_t _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN);
+        SVR_SOCKET_CONTEXT(size_t max_buffer_len = DEFAULT_MAX_BUFFER_LEN);
 
-        SVR_SOCKET_CONTEXT(SOCKET _Sockid, char *_Buffer, size_t _BufferLen);
+        SVR_SOCKET_CONTEXT(SOCKET socket, char *buffer, size_t buffer_len);
 
-        SVR_SOCKET_CONTEXT(SOCKET _Sockid, const char *_Buffer, size_t _BufferLen);
+        SVR_SOCKET_CONTEXT(SOCKET socket, const char *buffer, size_t buffer_len);
 
         void RESET_BUFFER();
 
@@ -155,29 +148,29 @@ namespace network {
             O:Optional
             O[n]:Optional Set [n]
          */
-        unsigned int M_Port;
-        unsigned int O_MaxConnect;
-        unsigned int O_MaxPostAccept;
-        unsigned int O_MaxBufferLen;
-        unsigned int O0_WorkerThreadsPerProcessor;
-        unsigned int O0_WorkerThreads;
+        unsigned int m_port;
+        unsigned int o_max_connect;
+        unsigned int o_max_post_accept;
+        unsigned int o_max_buffer_len;
+        unsigned int o0_worker_threads_per_processor;
+        unsigned int o0_worker_threads;
 
-        ServerConfig(unsigned int _Port = 0, unsigned int _MaxConnect = SOMAXCONN);
+        ServerConfig(unsigned int port = 0, unsigned int max_connect = SOMAXCONN);
     };
 
     class Server {
     public:
         Server();
 
-        Server(const ServerConfig &_ServerConfig);
+        Server(const ServerConfig &server_config);
 
-        void SetConfig(const ServerConfig &_ServerConfig);
+        void SetConfig(const ServerConfig &server_config);
 
         bool Start();
 
-        bool Send(SOCKET _Sockid, const char *_SendBuffer, size_t _BufferLen);
+        bool Send(SOCKET socket, const char *buffer, size_t buffer_len);
 
-        bool CloseClient(SOCKET _Sockid);
+        bool CloseClient(SOCKET socket);
 
         bool Stop();
 
@@ -190,9 +183,9 @@ namespace network {
         virtual void OnClosed(SVR_SOCKET_CONTEXT *sock_ctx);
 
     protected:
-        bool _Start(unsigned int _Port, unsigned int _MaxConnect);
+        bool _Start(unsigned int port, unsigned int max_connect);
 
-        bool _InitSock(unsigned int _Port, unsigned int _MaxConnect);
+        bool _InitSock(unsigned int port, unsigned int max_connect);
 
         bool _InitComplitionPort();
 
@@ -208,18 +201,18 @@ namespace network {
 
         bool _DoSent(SVR_SOCKET_CONTEXT* sock_ctx);
 
-        static bool _IsClientAlive(SOCKET _Sockid);
+        static bool _IsClientAlive(SOCKET socket);
 
-        static DWORD WINAPI ServerWorkThread(LPVOID _LpParam);
+        static DWORD WINAPI ServerWorkThread(LPVOID lpParam);
 
     protected:
         //TODO Event Register
 
-        ServerConfig				m_ServerConfig;
+        ServerConfig				m_server_config;
 
-        SOCKET						m_Sockid;
+        SOCKET						m_socket;
 
-        HANDLE						m_CompletionPort;
+        HANDLE						m_completion_port;
 
         LPFN_ACCEPTEX				m_pAcceptEx;
 
@@ -232,8 +225,8 @@ namespace network {
             O[n]:Optional Set [n]
             A[n]:Alternative Set [n]
         */
-        unsigned int				O0_WorkerThreadsPerProcessor;
-        unsigned int				O0_WorkerThreads;
+        unsigned int				o0_worker_threads_per_processor;
+        unsigned int				o0_Worker_threads;
 
         ClientConfig();
     };
@@ -246,31 +239,23 @@ namespace network {
         CLTOP_CLOSING
     };
 
-    //enum CLT_EV {
-    //    CLTEV_CONNECTED,
-    //    CLTEV_SENT,
-    //    CLTEV_RECVD,
-    //    CLTEV_CLOSED,
-    //    CLTEV_TIMEOUT
-    //};
-
     struct CLT_SOCKET_CONTEXT {
-        OVERLAPPED		m_Overlapped;
+        OVERLAPPED		m_OVERLAPPED;
         char*			m_szBuffer;
         WSABUF			m_wsaBuf;
-        size_t	        m_BytesTransferred;
-        CLT_OP          m_OpType;
-        void*           m_Extra;
+        size_t	        m_bytes_transferred;
+        CLT_OP          m_op_type;
+        void*           m_extra;
 
 #if(DEBUG&DEBUG_TRACE)
         int _DEBUG_TRACE;
 #endif
 
-        CLT_SOCKET_CONTEXT(size_t _MaxBufferLen = DEFAULT_MAX_BUFFER_LEN);
+        CLT_SOCKET_CONTEXT(size_t max_buffer_len = DEFAULT_MAX_BUFFER_LEN);
 
-        CLT_SOCKET_CONTEXT(char *_Buffer, size_t _BufferLen);
+        CLT_SOCKET_CONTEXT(char *buffer, size_t buffer_len);
 
-        CLT_SOCKET_CONTEXT(const char *_Buffer, size_t _BufferLen);
+        CLT_SOCKET_CONTEXT(const char *buffer, size_t buffer_len);
 
         void RESET_BUFFER();
 
@@ -281,15 +266,15 @@ namespace network {
     public:
         Client();
 
-        Client(const ClientConfig &_ClientConfig);
+        Client(const ClientConfig &client_config);
 
-        void SetConfig(const ClientConfig &_ClientConfig);
+        void SetConfig(const ClientConfig &client_config);
 
-        SOCKET Connect(const char *_Address, unsigned int _Port, unsigned int *_LocalPort = NULL);
+        SOCKET Connect(const char *addr, unsigned int port, unsigned int *local_port = NULL);
 
-        bool Send(char *_SendBuffer, size_t _BufferLen);
+        bool Send(char *buffer, size_t buffer_len);
 
-        bool Send(const char *_SendBuffer, size_t _BufferLen);
+        bool Send(const char *buffer, size_t buffer_len);
 
         bool Close();
 
@@ -306,11 +291,11 @@ namespace network {
     protected:
         int _Init();
 
-        SOCKET _InitSock(unsigned int *_Port);
+        SOCKET _InitSock(unsigned int *port);
 
         bool _InitCompletionPort();
 
-        bool _PostConnect(SOCKET _Sockid, unsigned long _Ip, unsigned int _Port);
+        bool _PostConnect(SOCKET socket, unsigned long ip, unsigned int port);
 
         bool _PostSend(CLT_SOCKET_CONTEXT *sock_ctx);
 
@@ -322,18 +307,18 @@ namespace network {
 
         bool _DoRecvd(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        static DWORD WINAPI ClientWorkThread(LPVOID _LpParam);
+        static DWORD WINAPI ClientWorkThread(LPVOID lpParam);
 
-        static bool _IsServerAlive(SOCKET _Sockid);
+        static bool _IsServerAlive(SOCKET socket);
 
     protected:
-        HANDLE				m_CompletionPort;
+        HANDLE				m_completion_port;
 
-        ClientConfig		m_ClientConfig;
+        ClientConfig		m_client_config;
 
-        SOCKET              m_Sockid;
+        SOCKET              m_socket;
 
-        LPFN_CONNECTEX		m_ConnectEx;
+        LPFN_CONNECTEX		m_pConnectEx;
     };
 }
 

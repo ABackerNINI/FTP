@@ -15,14 +15,14 @@ bool ftp_dtp::ftp_dtp_client::stop() {
     return false;
 }
 
-void ftp_dtp::ftp_dtp_client::OnConnected(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+void ftp_dtp::ftp_dtp_client::OnConnected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
     m_fr.open("1.txt");
 
-    char buffer[10240];
+    char buffer[1024];
     size_t count;
 
     while (!m_fr.feof()) {
-        count = m_fr.read(buffer, sizeof(char), 10240);
+        count = m_fr.read(buffer, sizeof(char), 1024);
 
         if (m_fr.ferror()) {
             break;
@@ -34,13 +34,13 @@ void ftp_dtp::ftp_dtp_client::OnConnected(network::CLT_SOCKET_CONTEXT * _SocketC
     m_fr.close();
 }
 
-void ftp_dtp::ftp_dtp_client::OnSent(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+void ftp_dtp::ftp_dtp_client::OnSent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
 }
 
-void ftp_dtp::ftp_dtp_client::OnRecvd(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+void ftp_dtp::ftp_dtp_client::OnRecvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
 }
 
-void ftp_dtp::ftp_dtp_client::OnClosed(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+void ftp_dtp::ftp_dtp_client::OnClosed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
 }
 
 /*
@@ -58,18 +58,18 @@ bool ftp_dtp::ftp_dtp_server::stop() {
     return false;
 }
 
-void ftp_dtp::ftp_dtp_server::OnAccepted(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+void ftp_dtp::ftp_dtp_server::OnAccepted(network::SVR_SOCKET_CONTEXT *sock_ctx) {
     m_fw.open("test");
 }
 
-void ftp_dtp::ftp_dtp_server::OnRecvd(network::SVR_SOCKET_CONTEXT * _SocketContext) {
-    m_fw.write(_SocketContext->m_szBuffer, sizeof(char), _SocketContext->m_BytesTransferred);
+void ftp_dtp::ftp_dtp_server::OnRecvd(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+    m_fw.write(sock_ctx->m_buffer, sizeof(char), sock_ctx->m_bytes_transferred);
 }
 
-void ftp_dtp::ftp_dtp_server::OnSent(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+void ftp_dtp::ftp_dtp_server::OnSent(network::SVR_SOCKET_CONTEXT *sock_ctx) {
 }
 
-void ftp_dtp::ftp_dtp_server::OnClosed(network::SVR_SOCKET_CONTEXT * _SocketContext) {
+void ftp_dtp::ftp_dtp_server::OnClosed(network::SVR_SOCKET_CONTEXT *sock_ctx) {
     m_fw.close();
     printf("done\n");
 }
@@ -128,7 +128,7 @@ void ftp_dtp::ftp_dtp::set_structure_type(STRUCTURE_TYPE sturcture_type) {
 void ftp_dtp::ftp_dtp::set_data_type(DATA_TYPE data_type) {
 }
 
-void ftp_dtp::ftp_dtp::set_ip(const char * ip) {
+void ftp_dtp::ftp_dtp::set_ip(const char *ip) {
 }
 
 void ftp_dtp::ftp_dtp::set_port(int port) {

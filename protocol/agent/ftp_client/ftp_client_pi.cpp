@@ -27,7 +27,7 @@ bool ftp_client_pi::ftp_client_pi::FtpConnect(const char *_Address, unsigned int
     return false;
 }
 
-bool ftp_client_pi::ftp_client_pi::FtpSend(const char * _Buffer, size_t _Count) {
+bool ftp_client_pi::ftp_client_pi::FtpSend(const char *_Buffer, size_t _Count) {
     bool _Sending = false;
     while (true) {
         if (!_Sending && (m_ClientStatus == CIS_RSP_HANDLED || m_ClientStatus == CIS_CONNECTED)) {
@@ -53,29 +53,29 @@ bool ftp_client_pi::ftp_client_pi::Close() {
     return network::Client::Close();
 }
 
-void ftp_client_pi::ftp_client_pi::OnConnected(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+void ftp_client_pi::ftp_client_pi::OnConnected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
     m_ClientStatus = CIS_CONNECTED;
 
-    if (_SocketContext->m_BytesTransferred > 0) {
-        m_ClientInf.m_CmdBuffer.push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
+    if (sock_ctx->m_bytes_transferred > 0) {
+        m_ClientInf.m_CmdBuffer.push(sock_ctx->m_szBuffer, sock_ctx->m_bytes_transferred);
 
         _HandleResponse();
     }
 }
 
-void ftp_client_pi::ftp_client_pi::OnSent(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+void ftp_client_pi::ftp_client_pi::OnSent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
     m_ClientStatus = CIS_SENT;
 }
 
-void ftp_client_pi::ftp_client_pi::OnRecvd(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+void ftp_client_pi::ftp_client_pi::OnRecvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
     m_ClientStatus = CIS_RECVD;
 
-    m_ClientInf.m_CmdBuffer.push(_SocketContext->m_szBuffer, _SocketContext->m_BytesTransferred);
+    m_ClientInf.m_CmdBuffer.push(sock_ctx->m_szBuffer, sock_ctx->m_bytes_transferred);
 
     _HandleResponse();
 }
 
-void ftp_client_pi::ftp_client_pi::OnClosed(network::CLT_SOCKET_CONTEXT * _SocketContext) {
+void ftp_client_pi::ftp_client_pi::OnClosed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
     m_ClientStatus = CIS_CLOSED;
     printf("OnClosed\n");
 }

@@ -7,8 +7,8 @@ ftp_server_pi::ftp_server_pi _Server;
 
 int main() {
     network::ServerConfig config;
-    config.M_Port = 21;
-    config.O_MaxConnect = 10;
+    config.m_port = 21;
+    config.o_max_connect = 10;
 
     _Server.SetConfig(config);
     _Server.Start();
