@@ -53,7 +53,7 @@ void ftp_client_pi::ftp_client_pi::on_connected(network::CLT_SOCKET_CONTEXT *soc
     m_client_status = CIS_CONNECTED;
 
     if (sock_ctx->m_bytes_transferred > 0) {
-        m_client_inf.m_cmd_buffer.push(sock_ctx->m_szBuffer, sock_ctx->m_bytes_transferred);
+        m_client_inf.m_cmd_buffer.push(sock_ctx->m_buffer, sock_ctx->m_bytes_transferred);
 
         _handle_response();
     }
@@ -66,7 +66,7 @@ void ftp_client_pi::ftp_client_pi::on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx
 void ftp_client_pi::ftp_client_pi::on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
     m_client_status = CIS_RECVD;
 
-    m_client_inf.m_cmd_buffer.push(sock_ctx->m_szBuffer, sock_ctx->m_bytes_transferred);
+    m_client_inf.m_cmd_buffer.push(sock_ctx->m_buffer, sock_ctx->m_bytes_transferred);
 
     _handle_response();
 }

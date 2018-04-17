@@ -12,7 +12,7 @@ int main() {
 
     _getch();
 
-    dtp_server.stop();
+    dtp_server.close();
 
     network::Cleanup();
 

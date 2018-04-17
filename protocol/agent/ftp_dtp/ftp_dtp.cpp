@@ -23,6 +23,8 @@ void ftp_dtp::ftp_dtp_client::on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx
     }
 
     m_fr.close();
+
+    close();
 }
 
 void ftp_dtp::ftp_dtp_client::on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx) {

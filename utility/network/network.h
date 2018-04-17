@@ -120,7 +120,7 @@ namespace network {
 
     struct SVR_SOCKET_CONTEXT {
         OVERLAPPED		m_OVERLAPPED;
-        WSABUF			m_wsaBuf;
+        WSABUF			m_wsa_buf;
         char*			m_buffer;
         unsigned int	m_bytes_transferred;
         SVR_OP			m_op_type;
@@ -134,9 +134,9 @@ namespace network {
 
         SVR_SOCKET_CONTEXT(size_t max_buffer_len = DEFAULT_MAX_BUFFER_LEN);
 
-        SVR_SOCKET_CONTEXT(SOCKET socket, char *buffer, size_t buffer_len);
+        SVR_SOCKET_CONTEXT(SOCKET sockid, char *buffer, size_t buffer_len);
 
-        SVR_SOCKET_CONTEXT(SOCKET socket, const char *buffer, size_t buffer_len);
+        SVR_SOCKET_CONTEXT(SOCKET sockid, const char *buffer, size_t buffer_len);
 
         void RESET_BUFFER();
 
@@ -168,11 +168,11 @@ namespace network {
 
         bool start();
 
-        bool send(SOCKET socket, const char *buffer, size_t buffer_len);
+        bool send(SOCKET sockid, const char *buffer, size_t buffer_len);
 
-        bool close_client(SOCKET socket);
+        bool close_client(SOCKET sockid);
 
-        bool stop();
+        bool close();
 
         virtual void on_accepted(SVR_SOCKET_CONTEXT *sock_ctx);
 
@@ -201,7 +201,7 @@ namespace network {
 
         bool _do_sent(SVR_SOCKET_CONTEXT* sock_ctx);
 
-        static bool _is_client_alive(SOCKET socket);
+        static bool _is_client_alive(SOCKET sockid);
 
         static DWORD WINAPI ServerWorkThread(LPVOID lpParam);
 
@@ -210,7 +210,7 @@ namespace network {
 
         ServerConfig				m_server_config;
 
-        SOCKET						m_socket;
+        SOCKET						m_sockid;
 
         HANDLE						m_completion_port;
 
@@ -241,8 +241,8 @@ namespace network {
 
     struct CLT_SOCKET_CONTEXT {
         OVERLAPPED		m_OVERLAPPED;
-        char*			m_szBuffer;
-        WSABUF			m_wsaBuf;
+        char*			m_buffer;
+        WSABUF			m_wsa_buf;
         size_t	        m_bytes_transferred;
         CLT_OP          m_op_type;
         void*           m_extra;
@@ -295,7 +295,7 @@ namespace network {
 
         bool _init_completion_port();
 
-        bool _post_connect(SOCKET socket, unsigned long ip, unsigned int port);
+        bool _post_connect(SOCKET sockid, unsigned long ip, unsigned int port);
 
         bool _post_send(CLT_SOCKET_CONTEXT *sock_ctx);
 
@@ -307,14 +307,14 @@ namespace network {
 
         bool _do_recvd(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        static bool _is_server_alive(SOCKET socket);
+        static bool _is_server_alive(SOCKET sockid);
 
         static DWORD WINAPI ClientWorkThread(LPVOID lpParam);
 
     protected:
         HANDLE				m_completion_port;
-        ClientConfig		m_client_config;
         SOCKET              m_sockid;
+        ClientConfig		m_client_config;
         LPFN_CONNECTEX		m_pConnectEx;
     };
 }
