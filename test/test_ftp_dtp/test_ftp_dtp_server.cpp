@@ -6,13 +6,15 @@ ftp_dtp::ftp_dtp_server dtp_server;
 
 int main() {
     server_config.m_port = 20;
-    dtp_server.SetConfig(server_config);
+    dtp_server.set_config(server_config);
 
-    dtp_server.Start();
+    dtp_server.start();
 
     _getch();
 
-    dtp_server.Stop();
+    dtp_server.stop();
+
+    network::Cleanup();
 
     return 0;
 }

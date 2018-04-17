@@ -31,36 +31,34 @@ namespace ftp_client_pi {
     };
 
     struct ClientInf {
-        string_buffer m_CmdBuffer;
+        string_buffer m_cmd_buffer;
     };
 
     class ftp_client_pi :public network::Client {
     public:
         ftp_client_pi();
 
-        bool FtpConnect(const char *_Address, unsigned int _Port, unsigned int *_LocalPort = NULL);
+        bool ftp_connect(const char *addr, unsigned int port, unsigned int *local_port = NULL);
 
-        bool FtpSend(const char *_Buffer, size_t _Count);
+        bool ftp_send(const char *buffer, size_t count);
 
-        CLIENT_IO_STATUS GetIoStatus();
-
-        bool Close();
+        CLIENT_IO_STATUS get_io_status();
 
     protected:
-        void OnConnected(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
+        void on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
 
-        void OnSent(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
+        void on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
 
-        void OnRecvd(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
+        void on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
 
-        void OnClosed(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
+        void on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
 
-        void _HandleResponse();
+        void _handle_response();
 
     protected:
-        ftp_cmds::FTP_CMDS	m_LastCmd;
-        ClientInf			m_ClientInf;
-        CLIENT_IO_STATUS	m_ClientStatus;
+        ftp_cmds::FTP_CMDS	m_last_cmd;
+        ClientInf			m_client_inf;
+        CLIENT_IO_STATUS	m_client_status;
     };
 }
 

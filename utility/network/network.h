@@ -164,44 +164,44 @@ namespace network {
 
         Server(const ServerConfig &server_config);
 
-        void SetConfig(const ServerConfig &server_config);
+        void set_config(const ServerConfig &server_config);
 
-        bool Start();
+        bool start();
 
-        bool Send(SOCKET socket, const char *buffer, size_t buffer_len);
+        bool send(SOCKET socket, const char *buffer, size_t buffer_len);
 
-        bool CloseClient(SOCKET socket);
+        bool close_client(SOCKET socket);
 
-        bool Stop();
+        bool stop();
 
-        virtual void OnAccepted(SVR_SOCKET_CONTEXT *sock_ctx);
+        virtual void on_accepted(SVR_SOCKET_CONTEXT *sock_ctx);
 
-        virtual void OnRecvd(SVR_SOCKET_CONTEXT *sock_ctx);
+        virtual void on_recvd(SVR_SOCKET_CONTEXT *sock_ctx);
 
-        virtual void OnSent(SVR_SOCKET_CONTEXT *sock_ctx);
+        virtual void on_sent(SVR_SOCKET_CONTEXT *sock_ctx);
 
-        virtual void OnClosed(SVR_SOCKET_CONTEXT *sock_ctx);
+        virtual void on_closed(SVR_SOCKET_CONTEXT *sock_ctx);
 
     protected:
-        bool _Start(unsigned int port, unsigned int max_connect);
+        bool _start(unsigned int port, unsigned int max_connect);
 
-        bool _InitSock(unsigned int port, unsigned int max_connect);
+        bool _init_sock(unsigned int port, unsigned int max_connect);
 
-        bool _InitComplitionPort();
+        bool _init_complition_port();
 
-        bool _PostAccept(SVR_SOCKET_CONTEXT *sock_ctx);
+        bool _post_accept(SVR_SOCKET_CONTEXT *sock_ctx);
 
-        bool _PostRecv(SVR_SOCKET_CONTEXT *sock_ctx);
+        bool _post_recv(SVR_SOCKET_CONTEXT *sock_ctx);
 
-        bool _PostSend(SVR_SOCKET_CONTEXT *sock_ctx);
+        bool _post_send(SVR_SOCKET_CONTEXT *sock_ctx);
 
-        bool _DoAccepted(SVR_SOCKET_CONTEXT *sock_ctx);
+        bool _do_accepted(SVR_SOCKET_CONTEXT *sock_ctx);
 
-        bool _DoRecvd(SVR_SOCKET_CONTEXT* sock_ctx);
+        bool _do_recvd(SVR_SOCKET_CONTEXT* sock_ctx);
 
-        bool _DoSent(SVR_SOCKET_CONTEXT* sock_ctx);
+        bool _do_sent(SVR_SOCKET_CONTEXT* sock_ctx);
 
-        static bool _IsClientAlive(SOCKET socket);
+        static bool _is_client_alive(SOCKET socket);
 
         static DWORD WINAPI ServerWorkThread(LPVOID lpParam);
 
@@ -268,56 +268,53 @@ namespace network {
 
         Client(const ClientConfig &client_config);
 
-        void SetConfig(const ClientConfig &client_config);
+        void set_config(const ClientConfig &client_config);
 
-        SOCKET Connect(const char *addr, unsigned int port, unsigned int *local_port = NULL);
+        SOCKET connect(const char *addr, unsigned int port, unsigned int *local_port = NULL);
 
-        bool Send(char *buffer, size_t buffer_len);
+        bool send(char *buffer, size_t buffer_len);
 
-        bool Send(const char *buffer, size_t buffer_len);
+        bool send(const char *buffer, size_t buffer_len);
 
-        bool Close();
+        bool close();
 
-        virtual void OnConnected(CLT_SOCKET_CONTEXT *sock_ctx);
+        virtual void on_connected(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        virtual void OnSent(CLT_SOCKET_CONTEXT *sock_ctx);
+        virtual void on_sent(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        virtual void OnRecvd(CLT_SOCKET_CONTEXT *sock_ctx);
+        virtual void on_recvd(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        virtual void OnClosed(CLT_SOCKET_CONTEXT *sock_ctx);
+        virtual void on_closed(CLT_SOCKET_CONTEXT *sock_ctx);
 
         ~Client();
 
     protected:
-        int _Init();
+        int _init();
 
-        SOCKET _InitSock(unsigned int *port);
+        SOCKET _init_sock(unsigned int *port);
 
-        bool _InitCompletionPort();
+        bool _init_completion_port();
 
-        bool _PostConnect(SOCKET socket, unsigned long ip, unsigned int port);
+        bool _post_connect(SOCKET socket, unsigned long ip, unsigned int port);
 
-        bool _PostSend(CLT_SOCKET_CONTEXT *sock_ctx);
+        bool _post_send(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        bool _PostRecv(CLT_SOCKET_CONTEXT *sock_ctx);
+        bool _post_recv(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        bool _DoConnected(CLT_SOCKET_CONTEXT *sock_ctx);
+        bool _do_connected(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        bool _DoSent(CLT_SOCKET_CONTEXT *sock_ctx);
+        bool _do_sent(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        bool _DoRecvd(CLT_SOCKET_CONTEXT *sock_ctx);
+        bool _do_recvd(CLT_SOCKET_CONTEXT *sock_ctx);
+
+        static bool _is_server_alive(SOCKET socket);
 
         static DWORD WINAPI ClientWorkThread(LPVOID lpParam);
 
-        static bool _IsServerAlive(SOCKET socket);
-
     protected:
         HANDLE				m_completion_port;
-
         ClientConfig		m_client_config;
-
-        SOCKET              m_socket;
-
+        SOCKET              m_sockid;
         LPFN_CONNECTEX		m_pConnectEx;
     };
 }

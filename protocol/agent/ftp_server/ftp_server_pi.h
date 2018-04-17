@@ -15,7 +15,7 @@ namespace ftp_server_pi {
 #define DEFAULT_PASSWD_BUFFER_LEN 100
 #define DEFAULT_DIR_BUFFER_LEN 100
 
-#define _CMD(CMD)  network::pointer_cast<_CmdHandler>(&ftp_server_pi::_CmdHandler##CMD)
+#define _CMD(CMD)  network::pointer_cast<cmd_handler>(&ftp_server_pi::cmd_handler_##CMD)
 
     enum CLIENT_LOGIN_STATUS {
         CLS_CONNECTED,
@@ -24,14 +24,14 @@ namespace ftp_server_pi {
     };
 
     struct ClientInf {
-        char	m_Usrname[100];
-        char	m_Passwd[100];
-        char	m_Dir[100];
-        bool	m_IsPasv;
-        int		m_Port;
-        unsigned long  m_Ip;
-        CLIENT_LOGIN_STATUS m_Status;
-        string_buffer m_CmdBuffer;
+        char	                m_user_name[100];
+        char	                m_passwd[100];
+        char	                m_working_dir[100];
+        bool	                m_is_pasv;
+        int		                m_port;
+        unsigned long           m_ip;
+        CLIENT_LOGIN_STATUS     m_status;
+        string_buffer           m_cmd_buffer;
 
         ClientInf();
     };
@@ -41,89 +41,89 @@ namespace ftp_server_pi {
         ftp_server_pi();
 
     protected:
-        void OnAccepted(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        void on_accepted(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
 
-        void OnRecvd(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        void on_recvd(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
 
-        void OnSent(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        void on_sent(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
 
-        void OnClosed(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        void on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
 
-        bool _Handle(SOCKET _Sockid, ClientInf *_ClientInf);
+        bool _handle(SOCKET sockid, ClientInf *client_inf);
 
-        bool _FtpSend(SOCKET _Sockid, const char *_Buffer);
+        bool _ftp_send(SOCKET sockid, const char *buffer);
 
     protected:
-        typedef void(*_CmdHandler)(ftp_server_pi*, SOCKET, ClientInf*, char *);
+        typedef void(*cmd_handler)(ftp_server_pi*, SOCKET, ClientInf*, char *);
 
-        const _CmdHandler m_CmdHandler[ftp_cmds::FTP_CMDS_NUM + 1] = {//Need to Handle FTP_CMD_ERR
-            { _CMD(_USER)},
-            { _CMD(_PASS)},
-            { _CMD(_NOT_IMPLEMENTED)},//ACCT
-            { _CMD(_CWD)},
-            { _CMD(_NOT_IMPLEMENTED)},//CDUP
-            { _CMD(_NOT_IMPLEMENTED)},//SMNT
-            { _CMD(_NOT_IMPLEMENTED)},//QUIT
-            { _CMD(_NOT_IMPLEMENTED)},//REIN
-            { _CMD(_PORT)},//PORT
-            { _CMD(_PASV)},
-            { _CMD(_NOT_IMPLEMENTED)},//TYPE
-            { _CMD(_NOT_IMPLEMENTED)},//STRU
-            { _CMD(_NOT_IMPLEMENTED)},//MODE
-            { _CMD(_RETR)},
-            { _CMD(_STOR)},
-            { _CMD(_NOT_IMPLEMENTED)},//STOU
-            { _CMD(_NOT_IMPLEMENTED)},//APPE
-            { _CMD(_NOT_IMPLEMENTED)},//ALLO
-            { _CMD(_NOT_IMPLEMENTED)},//REST
-            { _CMD(_NOT_IMPLEMENTED)},//RNFR
-            { _CMD(_NOT_IMPLEMENTED)},//RNTO
-            { _CMD(_NOT_IMPLEMENTED)},//ABOR
-            { _CMD(_NOT_IMPLEMENTED)},//DELE
-            { _CMD(_NOT_IMPLEMENTED)},//RMD
-            { _CMD(_NOT_IMPLEMENTED)},//MKD
-            { _CMD(_NOT_IMPLEMENTED)},//PWD
-            { _CMD(_NOT_IMPLEMENTED)},//LIST
-            { _CMD(_NOT_IMPLEMENTED)},//NLST
-            { _CMD(_NOT_IMPLEMENTED)},//SITE
-            { _CMD(_NOT_IMPLEMENTED)},//SYST
-            { _CMD(_NOT_IMPLEMENTED)},//STAT
-            { _CMD(_HELP)},
-            { _CMD(_NOOP)},
-            { _CMD(_ERR)}
+        const cmd_handler m_cmd_handler[ftp_cmds::FTP_CMDS_NUM + 1] = {//Need to Handle FTP_CMD_ERR
+            { _CMD(USER)},
+            { _CMD(PASS)},
+            { _CMD(NOT_IMPLEMENTED)},//ACCT
+            { _CMD(CWD)},
+            { _CMD(NOT_IMPLEMENTED)},//CDUP
+            { _CMD(NOT_IMPLEMENTED)},//SMNT
+            { _CMD(NOT_IMPLEMENTED)},//QUIT
+            { _CMD(NOT_IMPLEMENTED)},//REIN
+            { _CMD(PORT)},//PORT
+            { _CMD(PASV)},
+            { _CMD(NOT_IMPLEMENTED)},//TYPE
+            { _CMD(NOT_IMPLEMENTED)},//STRU
+            { _CMD(NOT_IMPLEMENTED)},//MODE
+            { _CMD(RETR)},
+            { _CMD(STOR)},
+            { _CMD(NOT_IMPLEMENTED)},//STOU
+            { _CMD(NOT_IMPLEMENTED)},//APPE
+            { _CMD(NOT_IMPLEMENTED)},//ALLO
+            { _CMD(NOT_IMPLEMENTED)},//REST
+            { _CMD(NOT_IMPLEMENTED)},//RNFR
+            { _CMD(NOT_IMPLEMENTED)},//RNTO
+            { _CMD(NOT_IMPLEMENTED)},//ABOR
+            { _CMD(NOT_IMPLEMENTED)},//DELE
+            { _CMD(NOT_IMPLEMENTED)},//RMD
+            { _CMD(NOT_IMPLEMENTED)},//MKD
+            { _CMD(NOT_IMPLEMENTED)},//PWD
+            { _CMD(NOT_IMPLEMENTED)},//LIST
+            { _CMD(NOT_IMPLEMENTED)},//NLST
+            { _CMD(NOT_IMPLEMENTED)},//SITE
+            { _CMD(NOT_IMPLEMENTED)},//SYST
+            { _CMD(NOT_IMPLEMENTED)},//STAT
+            { _CMD(HELP)},
+            { _CMD(NOOP)},
+            { _CMD(ERR)}
         };
 
-        void _CmdHandler_USER(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_USER(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_PASS(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_PASS(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_CWD(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_CWD(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_PORT(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_PORT(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_PASV(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_PASV(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_RETR(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_RETR(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_STOR(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_STOR(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_DELE(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_DELE(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_RMD(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_RMD(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_MKD(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_MKD(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_PWD(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_PWD(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_LIST(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_LIST(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_HELP(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_HELP(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_NOOP(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_NOOP(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_ERR(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_ERR(SOCKET sockid, ClientInf *client_inf, char *args);
 
-        void _CmdHandler_NOT_IMPLEMENTED(SOCKET _Sockid, ClientInf*, char *_Args);
+        void cmd_handler_NOT_IMPLEMENTED(SOCKET sockid, ClientInf *client_inf, char *args);
     };
 }
 

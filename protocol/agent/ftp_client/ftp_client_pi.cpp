@@ -3,11 +3,11 @@
 ftp_client_pi::ftp_client_pi::ftp_client_pi() :network::Client() {
 }
 
-bool ftp_client_pi::ftp_client_pi::FtpConnect(const char *_Address, unsigned int _Port, unsigned int *_LocalPort/* = NULL*/) {
-    if (Connect(_Address, _Port, _LocalPort) != SOCKET_ERROR) {
+bool ftp_client_pi::ftp_client_pi::ftp_connect(const char *addr, unsigned int port, unsigned int *local_port/* = NULL*/) {
+    if (connect(addr, port, local_port) != SOCKET_ERROR) {
         for (int i = 0; i < 10; ++i) {
 
-            if (m_ClientStatus == CLIENT_IO_STATUS::CIS_RSP_HANDLED) {
+            if (m_client_status == CLIENT_IO_STATUS::CIS_RSP_HANDLED) {
                 printf("\n");
 
                 return true;
@@ -27,16 +27,16 @@ bool ftp_client_pi::ftp_client_pi::FtpConnect(const char *_Address, unsigned int
     return false;
 }
 
-bool ftp_client_pi::ftp_client_pi::FtpSend(const char *_Buffer, size_t _Count) {
-    bool _Sending = false;
+bool ftp_client_pi::ftp_client_pi::ftp_send(const char *buffer, size_t count) {
+    bool sending = false;
     while (true) {
-        if (!_Sending && (m_ClientStatus == CIS_RSP_HANDLED || m_ClientStatus == CIS_CONNECTED)) {
-            if (Send(_Buffer, _Count) == false) {
+        if (!sending && (m_client_status == CIS_RSP_HANDLED || m_client_status == CIS_CONNECTED)) {
+            if (send(buffer, count) == false) {
                 return false;
             }
-            m_ClientStatus = CIS_SENDING;
-            _Sending = true;
-        } else if (_Sending && m_ClientStatus == CIS_RSP_HANDLED) {
+            m_client_status = CIS_SENDING;
+            sending = true;
+        } else if (sending && m_client_status == CIS_RSP_HANDLED) {
             break;
         }
         Sleep(100);
@@ -45,49 +45,45 @@ bool ftp_client_pi::ftp_client_pi::FtpSend(const char *_Buffer, size_t _Count) {
     return true;
 }
 
-ftp_client_pi::CLIENT_IO_STATUS ftp_client_pi::ftp_client_pi::GetIoStatus() {
-    return m_ClientStatus;
+ftp_client_pi::CLIENT_IO_STATUS ftp_client_pi::ftp_client_pi::get_io_status() {
+    return m_client_status;
 }
 
-bool ftp_client_pi::ftp_client_pi::Close() {
-    return network::Client::Close();
-}
-
-void ftp_client_pi::ftp_client_pi::OnConnected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
-    m_ClientStatus = CIS_CONNECTED;
+void ftp_client_pi::ftp_client_pi::on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+    m_client_status = CIS_CONNECTED;
 
     if (sock_ctx->m_bytes_transferred > 0) {
-        m_ClientInf.m_CmdBuffer.push(sock_ctx->m_szBuffer, sock_ctx->m_bytes_transferred);
+        m_client_inf.m_cmd_buffer.push(sock_ctx->m_szBuffer, sock_ctx->m_bytes_transferred);
 
-        _HandleResponse();
+        _handle_response();
     }
 }
 
-void ftp_client_pi::ftp_client_pi::OnSent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
-    m_ClientStatus = CIS_SENT;
+void ftp_client_pi::ftp_client_pi::on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+    m_client_status = CIS_SENT;
 }
 
-void ftp_client_pi::ftp_client_pi::OnRecvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
-    m_ClientStatus = CIS_RECVD;
+void ftp_client_pi::ftp_client_pi::on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+    m_client_status = CIS_RECVD;
 
-    m_ClientInf.m_CmdBuffer.push(sock_ctx->m_szBuffer, sock_ctx->m_bytes_transferred);
+    m_client_inf.m_cmd_buffer.push(sock_ctx->m_szBuffer, sock_ctx->m_bytes_transferred);
 
-    _HandleResponse();
+    _handle_response();
 }
 
-void ftp_client_pi::ftp_client_pi::OnClosed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
-    m_ClientStatus = CIS_CLOSED;
+void ftp_client_pi::ftp_client_pi::on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+    m_client_status = CIS_CLOSED;
     printf("OnClosed\n");
 }
 
-void ftp_client_pi::ftp_client_pi::_HandleResponse() {
-    const char *_Str;
+void ftp_client_pi::ftp_client_pi::_handle_response() {
+    const char *str;
 
-    while (_Str = m_ClientInf.m_CmdBuffer.pop(), _Str) {
-        printf("\t%s\n", _Str);
+    while (str = m_client_inf.m_cmd_buffer.pop(), str) {
+        printf("\t%s\n", str);
         fflush(stdout);
 
-        m_ClientStatus = CIS_RSP_HANDLED;
+        m_client_status = CIS_RSP_HANDLED;
     }
 
     //TODO ERR CHECK

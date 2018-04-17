@@ -8,11 +8,13 @@ int main() {
     const char *addr = "192.168.1.107";
     unsigned int port = 20;
 
-    dtp_client.Connect(addr, port);
+    dtp_client.connect(addr, port);
 
     _getch();
 
-    dtp_client.Close();
+    dtp_client.close();
+
+    network::Cleanup();
 
     return 0;
 }

@@ -3,19 +3,10 @@
 /*
  *  ftp_dtp_client
  */
-bool ftp_dtp::ftp_dtp_client::start() {
-    return false;
-}
-
 bool ftp_dtp::ftp_dtp_client::abort() {
     return false;
 }
-
-bool ftp_dtp::ftp_dtp_client::stop() {
-    return false;
-}
-
-void ftp_dtp::ftp_dtp_client::OnConnected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+void ftp_dtp::ftp_dtp_client::on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
     m_fr.open("1.txt");
 
     char buffer[1024];
@@ -28,48 +19,40 @@ void ftp_dtp::ftp_dtp_client::OnConnected(network::CLT_SOCKET_CONTEXT *sock_ctx)
             break;
         }
 
-        Send(buffer, count);
+        send(buffer, count);
     }
 
     m_fr.close();
 }
 
-void ftp_dtp::ftp_dtp_client::OnSent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+void ftp_dtp::ftp_dtp_client::on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
 }
 
-void ftp_dtp::ftp_dtp_client::OnRecvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+void ftp_dtp::ftp_dtp_client::on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
 }
 
-void ftp_dtp::ftp_dtp_client::OnClosed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+void ftp_dtp::ftp_dtp_client::on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
 }
 
 /*
  *  ftp_dtp_server
  */
-bool ftp_dtp::ftp_dtp_server::start() {
-    return false;
-}
-
 bool ftp_dtp::ftp_dtp_server::abort() {
     return false;
 }
 
-bool ftp_dtp::ftp_dtp_server::stop() {
-    return false;
-}
-
-void ftp_dtp::ftp_dtp_server::OnAccepted(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+void ftp_dtp::ftp_dtp_server::on_accepted(network::SVR_SOCKET_CONTEXT *sock_ctx) {
     m_fw.open("test");
 }
 
-void ftp_dtp::ftp_dtp_server::OnRecvd(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+void ftp_dtp::ftp_dtp_server::on_recvd(network::SVR_SOCKET_CONTEXT *sock_ctx) {
     m_fw.write(sock_ctx->m_buffer, sizeof(char), sock_ctx->m_bytes_transferred);
 }
 
-void ftp_dtp::ftp_dtp_server::OnSent(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+void ftp_dtp::ftp_dtp_server::on_sent(network::SVR_SOCKET_CONTEXT *sock_ctx) {
 }
 
-void ftp_dtp::ftp_dtp_server::OnClosed(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+void ftp_dtp::ftp_dtp_server::on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) {
     m_fw.close();
     printf("done\n");
 }

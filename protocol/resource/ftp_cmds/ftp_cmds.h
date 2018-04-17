@@ -86,9 +86,9 @@ namespace ftp_cmds {
     };
 
     struct _FTP_CMDS_INF {
-        const char *			m_Cmd;
-        FTP_CMDS_NEED_ARGS		m_NeedArgs;
-        const char *			m_HelpMsg;
+        const char *			m_cmd;
+        FTP_CMDS_NEED_ARGS		m_need_args;
+        const char *			m_help_msg;
     };
 
     static const int FTP_CMDS_NUM = 34 - 1;//FTP_CMD_ERR Is Not a CMD
@@ -142,7 +142,7 @@ namespace ftp_cmds {
         ""
         "214 HELP command successful.\r\n";
 
-    enum FTP_CMDS CmdDispatch(char **_Str);
+    enum FTP_CMDS cmd_dispatch(char **str);
 }
 
 #endif //_NINI_FTP_RESOURCE_FTP_CMD_H_

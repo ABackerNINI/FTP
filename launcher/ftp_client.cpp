@@ -4,19 +4,19 @@
 
 #include "../protocol/agent/ftp_client/ftp_client_pi.h"
 
-ftp_client_pi::ftp_client_pi _Client;
+ftp_client_pi::ftp_client_pi client;
 
-BOOL CALLBACK ConsoleHandler(DWORD _Ev) {
-    BOOL _Ret = FALSE;
-    switch (_Ev) {
+BOOL CALLBACK ConsoleHandler(DWORD ev) {
+    BOOL ret = FALSE;
+    switch (ev) {
     case CTRL_CLOSE_EVENT:
-        _Client.Close();
-        _Ret = TRUE;
+        client.close();
+        ret = TRUE;
         break;
     default:
         break;
     }
-    return _Ret;
+    return ret;
 }
 
 int main() {
@@ -25,35 +25,35 @@ int main() {
     const char *addr = "192.168.1.107";
     unsigned int port = 21;
 
-    char _Cmd[1000 + 1];
-    size_t _Strlen;
+    char cmd[1000 + 1];
+    size_t len;
 
-    _Client.FtpConnect(addr, port);
+    client.ftp_connect(addr, port);
 
     while (true) {
         printf(">");
-        fgets(_Cmd, 1000, stdin);
+        fgets(cmd, 1000, stdin);
 
-        if (_stricmp(_Cmd, "QUIT\n") == 0) {
-            _Client.Close();
+        if (_stricmp(cmd, "QUIT\n") == 0) {
+            client.close();
             break;
-        } else if (_stricmp(_Cmd, "RECONN\n") == 0) {
-            _Client.FtpConnect(addr, port);
+        } else if (_stricmp(cmd, "RECONN\n") == 0) {
+            client.ftp_connect(addr, port);
             continue;
         }
 
-        _Strlen = strlen(_Cmd);
-        if (_Strlen > 1) {
-            _Cmd[_Strlen - 1] = '\r';
-            _Cmd[_Strlen] = '\n';
-            _Cmd[_Strlen + 1] = '\0';
-            _Client.FtpSend(_Cmd, _Strlen + 2);
+        len = strlen(cmd);
+        if (len > 1) {
+            cmd[len - 1] = '\r';
+            cmd[len] = '\n';
+            cmd[len + 1] = '\0';
+            client.ftp_send(cmd, len + 2);
         }
     }
 
     _getch();
 
-    _Client.Close();
+    client.close();
 
     network::Cleanup();
 
