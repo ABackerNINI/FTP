@@ -32,6 +32,18 @@ inline int file::ferror(FILE *stream) {
     return ::ferror(stream);
 }
 
+inline int file::fseek(FILE *stream, long offset, int origin) {
+    return ::fseek(stream, offset, origin);
+}
+
+inline long file::ftell(FILE *stream) {
+    return ::ftell(stream);
+}
+
+inline void file::rewind(FILE *stream) {
+    ::rewind(stream);
+}
+
 /*
  *  file_reader
  */
@@ -46,6 +58,14 @@ FILE *file::file_reader::open(const char *path, const char *mode) {
     m_File = ::fopen(path, mode);
 
     return m_File;
+}
+
+size_t file::file_reader::size() {
+    ::fseek(m_File, 0, SEEK_END);
+    size_t size = ::ftell(m_File);
+    ::rewind(m_File);
+
+    return size;
 }
 
 bool file::file_reader::jump(size_t bytes) {
@@ -65,7 +85,12 @@ int file::file_reader::ferror() {
 }
 
 int file::file_reader::close() {
-    return m_File ? ::fclose(m_File) : 0;
+    int ret = 0;
+    if (m_File) {
+        ret = ::fclose(m_File);
+        m_File = NULL;
+    }
+    return ret;
 }
 
 /*
@@ -88,5 +113,10 @@ size_t file::file_writer::write(const void *buffer, size_t size, size_t count) {
 }
 
 int file::file_writer::close() {
-    return m_File ? ::fclose(m_File) : 0;
+    int ret = 0;
+    if (m_File) {
+        ret = ::fclose(m_File);
+        m_File = NULL;
+    }
+    return ret;
 }

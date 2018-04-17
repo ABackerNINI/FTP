@@ -8,7 +8,13 @@ int main() {
     server_config.m_port = 20;
     dtp_server.set_config(server_config);
 
+    dtp_server.set_fpath("file_recvd");
+
     dtp_server.start();
+
+    _getch();
+
+    dtp_server.abort();
 
     _getch();
 

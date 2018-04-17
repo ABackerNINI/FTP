@@ -21,7 +21,7 @@ namespace network {
     //TODO #define T_PORT unsigned short
 
 #define DEBUG 1
-#define DEBUG_TRACE 1
+#define DEBUG_TRACE 0
 #define DEBUG_LOG 1
 
 #define FEATURE_RECV_ON_ACCEPT 0		//Recv Data on Accept.

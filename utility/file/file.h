@@ -81,11 +81,37 @@ namespace file {
     //https://msdn.microsoft.com/en-us/library/y2wc3w90.aspx
     int ferror(FILE *stream);
 
+    //The fseek functions moves the file pointer (if any) associated with stream to a new location that is offset bytes from origin. The next operation on the stream takes place at the new location. On a stream open for update, the next operation can be either a read or a write. 
+    //The argument origin must be one of the following constants, defined in STDIO.H:
+    //SEEK_CUR, Current position of file pointer.
+    //SEEK_END, End of file.
+    //SEEK_SET, Beginning of file.
+    //If successful, fseek returns 0. Otherwise, it returns a nonzero value. 
+    //On devices incapable of seeking, the return value is undefined. If stream is a null pointer, or if origin is not one of allowed values described below, fseek invoke the invalid parameter handler, as described in Parameter Validation. 
+    //If execution is allowed to continue, these functions set errno to EINVAL and return -1.
+    //https://msdn.microsoft.com/en-us/library/75yw9bf3.aspx
+    int fseek(FILE *stream,long offset,int origin);
+
+    //ftell return the current file position.The value returned by ftell may not reflect the physical byte offset for streams opened in text mode, because text mode causes carriage return¨Clinefeed translation.
+    //Use ftell with fseek to return to file locations correctly.On error, ftell invoke the invalid parameter handler, as described in Parameter Validation.
+    //If execution is allowed to continue, these function return ¨C1L and set errno to one of two constants, defined in ERRNO.H.The EBADF constant means the stream argument is not a valid file pointer value or does not refer to an open file.
+    //EINVAL means an invalid stream argument was passed to the function.On devices incapable of seeking(such as terminals and printers), or when stream does not refer to an open file, the return value is undefined.
+    //https://msdn.microsoft.com/en-us/library/0ys3hc0b.aspx
+    long ftell(FILE *stream);
+
+    //The rewind function repositions the file pointer associated with stream to the beginning of the file. A call to rewind is similar to (void)fseek(stream, 0L, SEEK_SET);
+    //However, unlike fseek, rewind clears the error indicators for the stream as well as the end - of - file indicator.Also, unlike fseek, rewind does not return a value to indicate whether the pointer was successfully moved.
+    //To clear the keyboard buffer, use rewind with the stream stdin, which is associated with the keyboard by default.
+    //If stream is a NULL pointer, the invalid parameter handler is invoked, as described in Parameter Validation.If execution is allowed to continue, this function returns and errno is set to EINVAL.
+    void rewind(FILE *stream);
+
     class file_reader {
     public:
         file_reader();
 
         FILE *open(const char *path, const char *mode = "rb");
+
+        size_t size();
 
         bool jump(size_t bytes);
 
