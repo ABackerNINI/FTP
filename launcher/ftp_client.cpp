@@ -44,10 +44,7 @@ int main() {
 
         len = strlen(cmd);
         if (len > 1) {
-            cmd[len - 1] = '\r';
-            cmd[len] = '\n';
-            cmd[len + 1] = '\0';
-            client.ftp_input(cmd, len + 2);
+            client.ftp_input(cmd, len);
         }
     }
 
