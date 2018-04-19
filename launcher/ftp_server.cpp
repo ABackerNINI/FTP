@@ -6,12 +6,12 @@
 ftp_server_pi::ftp_server_pi server;
 
 int main() {
+    unsigned int port = 21;
     network::ServerConfig config;
-    config.m_port = 21;
     config.o_max_connect = 10;
 
     server.set_config(config);
-    server.start();
+    server.start_listen(port);
 
     _getch();
 
