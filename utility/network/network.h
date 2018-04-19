@@ -138,6 +138,7 @@ namespace network {
 
         SVR_SOCKET_CONTEXT(SOCKET sockid, const char *buffer, size_t buffer_len);
 
+        //TODO is there any needs to reset buffer?
         void RESET_BUFFER();
 
         ~SVR_SOCKET_CONTEXT();
@@ -148,14 +149,13 @@ namespace network {
             O:Optional
             O[n]:Optional Set [n]
          */
-        unsigned int m_port;
         unsigned int o_max_connect;
         unsigned int o_max_post_accept;
         unsigned int o_max_buffer_len;
         unsigned int o0_worker_threads_per_processor;
         unsigned int o0_worker_threads;
 
-        ServerConfig(unsigned int port = 0, unsigned int max_connect = SOMAXCONN);
+        ServerConfig(unsigned int max_connect = SOMAXCONN);
     };
 
     class Server {
@@ -166,7 +166,7 @@ namespace network {
 
         void set_config(const ServerConfig &server_config);
 
-        bool start();
+        bool start_listen(unsigned int port);
 
         bool send(SOCKET sockid, const char *buffer, size_t buffer_len);
 

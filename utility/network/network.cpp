@@ -76,8 +76,7 @@ network::SVR_SOCKET_CONTEXT::~SVR_SOCKET_CONTEXT() {
 /*
  * ServerConfig
  */
-network::ServerConfig::ServerConfig(unsigned int port/* = 0*/, unsigned int max_connect/* = SOMAXCONN*/) :
-    m_port(port),
+network::ServerConfig::ServerConfig(unsigned int max_connect/* = SOMAXCONN*/) :
     o_max_connect(max_connect),
     o_max_post_accept(DEFAULT_MAX_POST_ACCEPT),
     o_max_buffer_len(DEFAULT_MAX_BUFFER_LEN),
@@ -99,8 +98,8 @@ void network::Server::set_config(const ServerConfig &serverconfig) {
     m_server_config = serverconfig;
 }
 
-bool network::Server::start() {
-    return _start(m_server_config.m_port, m_server_config.o_max_connect);
+bool network::Server::start_listen(unsigned int port) {
+    return _start(port, m_server_config.o_max_connect);
 }
 
 bool network::Server::send(SOCKET sockid, const char *buffer, size_t buffer_len) {
@@ -411,10 +410,6 @@ bool network::Server::_do_accepted(SVR_SOCKET_CONTEXT *sock_ctx) {
     LOG(CC_YELLOW, "Accepted a Client Socket:%lld @_DoAccepted\n", sock_ctx->m_client_sockid);
 #endif
 
-    on_accepted(sock_ctx);
-
-    sock_ctx->RESET_BUFFER();
-
     SVR_SOCKET_CONTEXT *new_sock_ctx = new SVR_SOCKET_CONTEXT();
     new_sock_ctx->m_op_type = SVR_OP::SVROP_RECVING;
     new_sock_ctx->m_client_sockid = sock_ctx->m_client_sockid;
@@ -460,6 +455,10 @@ bool network::Server::_do_accepted(SVR_SOCKET_CONTEXT *sock_ctx) {
 #endif
         return false;
     }
+
+    on_accepted(sock_ctx);
+
+    //sock_ctx->RESET_BUFFER();
 
     return true;
 }
@@ -986,9 +985,8 @@ bool network::Client::_do_connected(CLT_SOCKET_CONTEXT *sock_ctx) {
     TRACE_PRINT("DoConnected DEBUG_TRACE %u @_DoConnected\n", sock_ctx->_DEBUG_TRACE);
 #endif
 
-    on_connected(sock_ctx);
 
-    sock_ctx->RESET_BUFFER();
+    //sock_ctx->RESET_BUFFER();
 
     if (_post_recv(sock_ctx) == false) {
 #if(DEBUG&DEBUG_LOG)
@@ -996,6 +994,10 @@ bool network::Client::_do_connected(CLT_SOCKET_CONTEXT *sock_ctx) {
 #endif
         return false;
     }
+
+    on_connected(sock_ctx);
+
+    //sock_ctx->RESET_BUFFER();
 
     return true;
 }
