@@ -3,6 +3,7 @@
 #ifndef _NINI_FTP_SERVER_PI_H_
 #define _NINI_FTP_SERVER_PI_H_
 
+#include "../ftp_dtp/ftp_dtp.h"
 #include "../../resource/ftp_cmds/ftp_cmds.h"
 #include "../../../common/common.h"
 #include "../../../utility/network/network.h"
@@ -24,6 +25,7 @@ namespace ftp_server_pi {
     };
 
     struct ClientInf {
+        //TODO seperate user&passwd with others
         char	                m_user_name[100];
         char	                m_passwd[100];
         char	                m_working_dir[100];
@@ -32,6 +34,7 @@ namespace ftp_server_pi {
         unsigned long           m_ip;
         CLIENT_LOGIN_STATUS     m_status;
         string_buffer           m_cmd_buffer;
+        ftp_dtp::ftp_dtp        m_dtp;
 
         ClientInf();
     };
