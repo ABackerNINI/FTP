@@ -1,4 +1,3 @@
-
 #include "network.h"
 
 /*
@@ -298,6 +297,7 @@ bool network::Server::_init_sock(unsigned int port, unsigned int max_connect) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "Faild to Post Accept%d @_InitSock\n", i);
 #endif
+            return false;
         }
     }
 
@@ -381,9 +381,9 @@ bool network::Server::_post_send(SVR_SOCKET_CONTEXT *sock_ctx) {
     TRACE_PRINT("PostSend DEBUG_TRACE %u\n", sock_ctx->_DEBUG_TRACE);
 #endif
 
-    if (sock_ctx->m_wsa_buf.len == 0) {
-        return true;
-    }
+    //if (sock_ctx->m_wsa_buf.len == 0) {
+    //    return true;
+    //}
 
     DWORD bytes = 0;
     DWORD flags = 0;
@@ -410,30 +410,43 @@ bool network::Server::_do_accepted(SVR_SOCKET_CONTEXT *sock_ctx) {
     LOG(CC_YELLOW, "Accepted a Client Socket:%lld @_DoAccepted\n", sock_ctx->m_client_sockid);
 #endif
 
+    on_accepted(sock_ctx);
+
+    //sock_ctx->RESET_BUFFER();
+
     SVR_SOCKET_CONTEXT *new_sock_ctx = new SVR_SOCKET_CONTEXT();
     new_sock_ctx->m_op_type = SVR_OP::SVROP_RECVING;
     new_sock_ctx->m_client_sockid = sock_ctx->m_client_sockid;
     new_sock_ctx->m_extra = sock_ctx->m_extra;
-    SOCKADDR_IN *_ClientAddr, *_LocalAddr;//mark:need to delete?
-    int _ClientAddrLen = sizeof(SOCKADDR_IN), _LocalAddrLen = sizeof(SOCKADDR_IN);
-
-    m_pGetAcceptExSockAddrs(
-        new_sock_ctx->m_wsa_buf.buf,
-#if(FEATURE_RECV_ON_ACCEPT)
-        _NewSocketContex->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
-#else
-        0,
-#endif
-        sizeof(SOCKADDR_IN) + 16,
-        sizeof(SOCKADDR_IN) + 16,
-        (LPSOCKADDR*)&_LocalAddr,
-        &_LocalAddrLen,
-        (LPSOCKADDR*)&_ClientAddr,
-        &_ClientAddrLen);//mark:?
-
-    new_sock_ctx->m_client_addr = *_ClientAddr;//mark
 
     //TODO save clientaddr
+    //    SOCKADDR_IN *client_addr, *local_addr;//mark:need to delete
+    //    int client_addr_len = sizeof(SOCKADDR_IN), local_addr_len = sizeof(SOCKADDR_IN);
+    //
+    //    m_pGetAcceptExSockAddrs(
+    //        sock_ctx->m_wsa_buf.buf,
+    //#if(FEATURE_RECV_ON_ACCEPT)
+    //        sock_ctx->m_wsaBuf.len - ((sizeof(SOCKADDR_IN) + 16) * 2),
+    //#else
+    //        0,
+    //#endif
+    //        sizeof(SOCKADDR_IN) + 16,
+    //        sizeof(SOCKADDR_IN) + 16,
+    //        (LPSOCKADDR*)&local_addr,
+    //        &local_addr_len,
+    //        (LPSOCKADDR*)&client_addr,
+    //        &client_addr_len);//mark:?
+    //
+    //    new_sock_ctx->m_client_addr = *client_addr;//mark
+
+    //post accept anyhow
+#if(DEBUG&DEBUG_LOG)
+    if (_post_accept(sock_ctx) == false) {
+        LOG(CC_RED, "Faild to Post Accept Socket:%lld @_DoAccepted\n", sock_ctx->m_client_sockid);
+    }
+#else
+    _post_accept(sock_ctx);
+#endif
 
     if (CreateIoCompletionPort((HANDLE)new_sock_ctx->m_client_sockid, m_completion_port, (ULONG_PTR)new_sock_ctx, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
@@ -449,17 +462,6 @@ bool network::Server::_do_accepted(SVR_SOCKET_CONTEXT *sock_ctx) {
         return false;
     }
 
-    if (_post_accept(sock_ctx) == false) {
-#if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Post Accept Socket:%lld @_DoAccepted\n", sock_ctx->m_client_sockid);
-#endif
-        return false;
-    }
-
-    on_accepted(sock_ctx);
-
-    //sock_ctx->RESET_BUFFER();
-
     return true;
 }
 
@@ -470,7 +472,7 @@ bool network::Server::_do_recvd(SVR_SOCKET_CONTEXT *sock_ctx) {
 
     on_recvd(sock_ctx);
 
-    sock_ctx->RESET_BUFFER();
+    //sock_ctx->RESET_BUFFER();
 
     sock_ctx->m_op_type = SVR_OP::SVROP_RECVING;
 
@@ -579,13 +581,15 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID lpParam) {
 
         if (bytes_transferred == 0 && sock_ctx->m_op_type != SVR_OP::SVROP_ACCEPTING) {
 #if(DEBUG&DEBUG_LOG)
-            LOG(CC_YELLOW, "Client Offline Zero Bytes Transferred Socket:%lld @ServerWorkThread\n", sock_ctx->m_client_sockid);
+            LOG(CC_YELLOW, "Zero Bytes Transferred Socket:%lld @ServerWorkThread\n", sock_ctx->m_client_sockid);
 #endif
             _OnClosed(server, sock_ctx);
 
             closesocket(sock_ctx->m_client_sockid);
 
             delete sock_ctx;
+
+            continue;
         }
 
         sock_ctx->m_bytes_transferred = bytes_transferred;
@@ -985,8 +989,9 @@ bool network::Client::_do_connected(CLT_SOCKET_CONTEXT *sock_ctx) {
     TRACE_PRINT("DoConnected DEBUG_TRACE %u @_DoConnected\n", sock_ctx->_DEBUG_TRACE);
 #endif
 
+    on_connected(sock_ctx);
 
-    //sock_ctx->RESET_BUFFER();
+    sock_ctx->RESET_BUFFER();
 
     if (_post_recv(sock_ctx) == false) {
 #if(DEBUG&DEBUG_LOG)
@@ -994,10 +999,6 @@ bool network::Client::_do_connected(CLT_SOCKET_CONTEXT *sock_ctx) {
 #endif
         return false;
     }
-
-    on_connected(sock_ctx);
-
-    //sock_ctx->RESET_BUFFER();
 
     return true;
 }
@@ -1102,7 +1103,7 @@ DWORD network::Client::ClientWorkThread(LPVOID lpParam) {
 
         if (bytes_transferred == 0 && sock_ctx->m_op_type != CLT_OP::CLTOP_CONNECTING) {
 #if(DEBUG&DEBUG_LOG)
-            LOG(CC_YELLOW, "Server Offline Socket:%lld @ClientWorkThread\n", client->m_sockid);
+            LOG(CC_YELLOW, "Zero Bytes Transferred Socket:%lld @ClientWorkThread\n", client->m_sockid);
 #endif
             _OnClosed(client, sock_ctx);
 
