@@ -39,10 +39,6 @@ namespace ftp_dtp {
         bool abort();
 
     public:
-        //void set_ip(const char *ip);
-
-        //void set_port(const char *port);
-
         void set_fpath(const char *fpath);
 
         size_t get_bytes_sent();
@@ -59,8 +55,6 @@ namespace ftp_dtp {
         virtual void on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
 
     protected:
-        //const char *        m_ip;
-        //const char *        m_port;
         const char *        m_fpath;
         size_t              m_bytes_sent;
         size_t              m_fsize;
@@ -74,10 +68,6 @@ namespace ftp_dtp {
         bool abort();
 
     public:
-        //void set_ip(const char *ip);
-
-        //void set_port(const char *port);
-
         void set_fpath(const char *fpath);
 
         size_t get_bytes_recvd();
@@ -92,8 +82,6 @@ namespace ftp_dtp {
         virtual void on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
 
     protected:
-        //const char *        m_ip;
-        //const char *        m_port;
         const char *        m_fpath;
         size_t              m_bytes_recvd;
         file::file_writer   m_fwriter;

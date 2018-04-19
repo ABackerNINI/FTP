@@ -8,14 +8,9 @@ ftp_dtp::ftp_dtp_client::ftp_dtp_client() {
 
 bool ftp_dtp::ftp_dtp_client::abort() {
     close();
-    //m_freader.close();
 
     return true;
 }
-
-//void ftp_dtp::ftp_dtp_client::set_ip(const char *ip) { m_ip = ip; }
-//
-//void ftp_dtp::ftp_dtp_client::set_port(const char *port) { m_port = port; }
 
 void ftp_dtp::ftp_dtp_client::set_fpath(const char *fpath) { m_fpath = fpath; }
 
@@ -64,14 +59,9 @@ ftp_dtp::ftp_dtp_server::ftp_dtp_server() {
 
 bool ftp_dtp::ftp_dtp_server::abort() {
     close();
-    //m_fwriter.close();
 
     return true;
 }
-
-//void ftp_dtp::ftp_dtp_server::set_ip(const char *ip) { m_ip = ip; }
-//
-//void ftp_dtp::ftp_dtp_server::set_port(const char *port) { m_port = port; }
 
 void ftp_dtp::ftp_dtp_server::set_fpath(const char *fpath) { m_fpath = fpath; }
 
@@ -103,8 +93,17 @@ ftp_dtp::ftp_dtp::ftp_dtp() :m_passive(false), m_client(NULL), m_server(NULL) {
 bool ftp_dtp::ftp_dtp::start() {
     close();
 
+    static network::ServerConfig *server_config;
+    if (!server_config) {
+        server_config = new network::ServerConfig();
+        server_config->o0_worker_threads = 2;
+        server_config->o_max_post_accept = 1;
+        server_config->o_max_connect = 1;
+    }
+
     if (m_passive) {
         m_server = new ftp_dtp_server();
+        m_server->set_config(*server_config);
         m_server->set_fpath(m_fpath);
         m_server->start_listen(m_port);
     } else {
