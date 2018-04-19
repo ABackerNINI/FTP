@@ -3,16 +3,19 @@
 /*
  *  ftp_dtp_client
  */
+ftp_dtp::ftp_dtp_client::ftp_dtp_client() {
+}
+
 bool ftp_dtp::ftp_dtp_client::abort() {
     close();
-    m_freader.close();
+    //m_freader.close();
 
     return true;
 }
 
-void ftp_dtp::ftp_dtp_client::set_ip(const char *ip) { m_ip = ip; }
-
-void ftp_dtp::ftp_dtp_client::set_port(const char *port) { m_port = port; }
+//void ftp_dtp::ftp_dtp_client::set_ip(const char *ip) { m_ip = ip; }
+//
+//void ftp_dtp::ftp_dtp_client::set_port(const char *port) { m_port = port; }
 
 void ftp_dtp::ftp_dtp_client::set_fpath(const char *fpath) { m_fpath = fpath; }
 
@@ -27,17 +30,15 @@ void ftp_dtp::ftp_dtp_client::on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx
     if (m_freader.open(m_fpath) == NULL) {
         return;
     }
-   
+
     m_fsize = m_freader.size();
 
     while (!m_freader.feof()) {
         count = m_freader.read(buffer, sizeof(char), DEFAULT_BUFFER_LEN);
 
-        if (m_freader.ferror()) {
+        if (m_freader.ferror() || !send(buffer, count)) {
             break;
         }
-
-        send(buffer, count);
         m_bytes_sent += count;
     }
 
@@ -58,16 +59,19 @@ void ftp_dtp::ftp_dtp_client::on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
 /*
  *  ftp_dtp_server
  */
+ftp_dtp::ftp_dtp_server::ftp_dtp_server() {
+}
+
 bool ftp_dtp::ftp_dtp_server::abort() {
     close();
-    m_fwriter.close();
+    //m_fwriter.close();
 
     return true;
 }
 
-void ftp_dtp::ftp_dtp_server::set_ip(const char *ip) { m_ip = ip; }
-
-void ftp_dtp::ftp_dtp_server::set_port(const char *port) { m_port = port; }
+//void ftp_dtp::ftp_dtp_server::set_ip(const char *ip) { m_ip = ip; }
+//
+//void ftp_dtp::ftp_dtp_server::set_port(const char *port) { m_port = port; }
 
 void ftp_dtp::ftp_dtp_server::set_fpath(const char *fpath) { m_fpath = fpath; }
 
@@ -93,49 +97,79 @@ void ftp_dtp::ftp_dtp_server::on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) {
 /*
  *  ftp_dtp
  */
- //ftp_dtp::ftp_dtp::ftp_dtp() {
- //}
- //
- //bool ftp_dtp::ftp_dtp::start() {
- //    return false;
- //}
- //
- //bool ftp_dtp::ftp_dtp::abort() {
- //    return false;
- //}
- //
- //bool ftp_dtp::ftp_dtp::stop() {
- //    return false;
- //}
- //
- //ftp_dtp::ftp_dtp::~ftp_dtp() {
- //}
- //
+ftp_dtp::ftp_dtp::ftp_dtp() :m_passive(false), m_client(NULL), m_server(NULL) {
+}
+ 
+bool ftp_dtp::ftp_dtp::start() {
+    close();
+
+    if (m_passive) {
+        m_server = new ftp_dtp_server();
+        m_server->set_fpath(m_fpath);
+        m_server->start_listen(m_port);
+    } else {
+        m_client = new ftp_dtp_client();
+        m_client->set_fpath(m_fpath);
+        m_client->connect(m_addr, m_port);
+    }
+
+    return true;
+}
+ 
+ bool ftp_dtp::ftp_dtp::abort() {
+     return close();
+ }
+ 
+ bool ftp_dtp::ftp_dtp::close() {
+     if (m_server) {
+         m_server->close();
+         delete m_server;
+         m_server = NULL;
+     }
+     if (m_client) {
+         m_client->close();
+         delete m_client;
+         m_client = NULL;
+     }
+
+     return true;
+ }
+ 
+ bool ftp_dtp::ftp_dtp::get_passive() {
+     return m_passive;
+ }
+
+ const char *ftp_dtp::ftp_dtp::get_addr() {
+     return m_addr;
+ }
+ 
+ int ftp_dtp::ftp_dtp::get_port() {
+     return m_port;
+ }
+ 
+ void ftp_dtp::ftp_dtp::set_passive(bool passive) {
+     m_passive = passive;
+ }
+
+ void ftp_dtp::ftp_dtp::set_fpath(const char *fpath) {
+     m_fpath = fpath;
+ }
+
+ void ftp_dtp::ftp_dtp::set_addr(const char *addr) {
+     m_addr = addr;
+ }
+
+ void ftp_dtp::ftp_dtp::set_port(unsigned int port) {
+     m_port = port;
+ }
+
+ ftp_dtp::ftp_dtp::~ftp_dtp() {
+     close();
+ }
+
+
  //enum ftp_dtp::STATUS ftp_dtp::ftp_dtp::get_status() {
  //    return STATUS(0);
- //}
- //
- //bool ftp_dtp::ftp_dtp::get_passive() {
- //    return false;
- //}
- //
- //enum ftp_dtp::STRUCTURE_TYPE ftp_dtp::ftp_dtp::get_structure_type() {
- //    return STRUCTURE_TYPE(0);
- //}
- //
- //enum ftp_dtp::DATA_TYPE ftp_dtp::ftp_dtp::get_data_type() {
- //    return DATA_TYPE(0);
- //}
- //
- //const char * ftp_dtp::ftp_dtp::get_ip() {
- //    return nullptr;
- //}
- //
- //int ftp_dtp::ftp_dtp::get_port() {
- //    return 0;
- //}
- //
- //void ftp_dtp::ftp_dtp::set_passive(bool passive) {
  //}
  //
  //void ftp_dtp::ftp_dtp::set_structure_type(STRUCTURE_TYPE sturcture_type) {
@@ -143,9 +177,10 @@ void ftp_dtp::ftp_dtp_server::on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) {
  //
  //void ftp_dtp::ftp_dtp::set_data_type(DATA_TYPE data_type) {
  //}
- //
- //void ftp_dtp::ftp_dtp::set_ip(const char *ip) {
+ //enum ftp_dtp::STRUCTURE_TYPE ftp_dtp::ftp_dtp::get_structure_type() {
+ //    return STRUCTURE_TYPE(0);
  //}
  //
- //void ftp_dtp::ftp_dtp::set_port(int port) {
+ //enum ftp_dtp::DATA_TYPE ftp_dtp::ftp_dtp::get_data_type() {
+ //    return DATA_TYPE(0);
  //}

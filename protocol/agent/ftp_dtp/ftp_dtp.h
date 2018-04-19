@@ -8,6 +8,8 @@
 
 namespace ftp_dtp {
 
+#define DEBUG 1
+#define DEBUG_ERROR_CHECK 1
 #define DEFAULT_BUFFER_LEN 1024
 
     enum STATUS {
@@ -32,12 +34,14 @@ namespace ftp_dtp {
 
     class ftp_dtp_client : public network::Client {
     public:
+        ftp_dtp_client();
+
         bool abort();
 
     public:
-        void set_ip(const char *ip);
+        //void set_ip(const char *ip);
 
-        void set_port(const char *port);
+        //void set_port(const char *port);
 
         void set_fpath(const char *fpath);
 
@@ -55,8 +59,8 @@ namespace ftp_dtp {
         virtual void on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
 
     protected:
-        const char *        m_ip;
-        const char *        m_port;
+        //const char *        m_ip;
+        //const char *        m_port;
         const char *        m_fpath;
         size_t              m_bytes_sent;
         size_t              m_fsize;
@@ -65,12 +69,14 @@ namespace ftp_dtp {
 
     class ftp_dtp_server : public network::Server {
     public:
+        ftp_dtp_server();
+
         bool abort();
 
     public:
-        void set_ip(const char *ip);
+        //void set_ip(const char *ip);
 
-        void set_port(const char *port);
+        //void set_port(const char *port);
 
         void set_fpath(const char *fpath);
 
@@ -86,51 +92,55 @@ namespace ftp_dtp {
         virtual void on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
 
     protected:
-        const char *        m_ip;
-        const char *        m_port;
+        //const char *        m_ip;
+        //const char *        m_port;
         const char *        m_fpath;
         size_t              m_bytes_recvd;
         file::file_writer   m_fwriter;
     };
 
-    //class ftp_dtp {
-    //public:
-    //    ftp_dtp();
+    class ftp_dtp {
+    public:
+        ftp_dtp();
 
-    //    bool start();
+        bool start();
 
-    //    bool abort();
+        bool abort();
 
-    //    bool stop();
+        bool close();
 
-    //    ~ftp_dtp();
+        ~ftp_dtp();
 
-    //public:
-    //    enum STATUS get_status();
-    //    bool get_passive();
-    //    enum STRUCTURE_TYPE get_structure_type();
-    //    enum DATA_TYPE get_data_type();
-    //    const char *get_ip();
-    //    int get_port();
+    public:
 
-    //    void set_passive(bool passive);
-    //    void set_structure_type(enum STRUCTURE_TYPE sturcture_type);
-    //    void set_data_type(enum DATA_TYPE data_type);
-    //    void set_ip(const char *ip);
-    //    void set_port(int port);
+        bool get_passive();
+        const char *get_addr();
+        int get_port();
 
-    //private:
-    //    STATUS              m_status;
-    //    bool                m_passive;
-    //    STRUCTURE_TYPE      m_sturcture_type;
-    //    DATA_TYPE           m_data_type;
+        void set_passive(bool passive);
+        void set_fpath(const char *fpath);
+        void set_addr(const char *addr);
+        void set_port(unsigned int port);
 
-    //    const char*         m_ip;
-    //    int                 m_port;
+    protected:
+        bool                m_passive;
 
-    //    ftp_dtp_client      m_client;
-    //    ftp_dtp_server      m_server;
-    //};
+        const char*         m_fpath;
+        const char*         m_addr;
+        int                 m_port;
+
+        ftp_dtp_client*     m_client;
+        ftp_dtp_server*     m_server;
+    };
 }
 
 #endif // _NINI_FTP_DTP_H_
+
+        //STATUS              m_status;
+        //STRUCTURE_TYPE      m_sturcture_type;
+        //DATA_TYPE           m_data_type;
+        //enum STATUS get_status();
+        //enum STRUCTURE_TYPE get_structure_type();
+        //enum DATA_TYPE get_data_type();
+        //void set_structure_type(enum STRUCTURE_TYPE sturcture_type);
+        //void set_data_type(enum DATA_TYPE data_type);

@@ -1,24 +1,23 @@
 #include <conio.h>
 #include "../../protocol/agent/ftp_dtp/ftp_dtp.h"
 
-network::ServerConfig server_config;
-ftp_dtp::ftp_dtp_server dtp_server;
+ftp_dtp::ftp_dtp dtp;
 
 int main() {
-    server_config.m_port = 20;
-    dtp_server.set_config(server_config);
+    unsigned int port = 20;
 
-    dtp_server.set_fpath("file_recvd");
-
-    dtp_server.start();
-
-    _getch();
-
-    dtp_server.abort();
+    dtp.set_fpath("file_recvd");
+    dtp.set_port(20);
+    dtp.set_passive(true);
+    dtp.start();
 
     _getch();
 
-    dtp_server.close();
+    dtp.abort();
+
+    _getch();
+
+    dtp.close();
 
     network::Cleanup();
 
