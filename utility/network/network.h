@@ -208,15 +208,11 @@ namespace network {
     protected:
         //TODO Event Register
 
-        ServerConfig				m_server_config;
-
-        SOCKET						m_sockid;
-
         HANDLE						m_completion_port;
-
+        SOCKET						m_sockid;
         LPFN_ACCEPTEX				m_pAcceptEx;
-
         LPFN_GETACCEPTEXSOCKADDRS	m_pGetAcceptExSockAddrs;
+        ServerConfig				m_server_config;
     };
 
     struct ClientConfig {
@@ -313,9 +309,9 @@ namespace network {
 
     protected:
         HANDLE				m_completion_port;
+        LPFN_CONNECTEX		m_pConnectEx;
         SOCKET              m_sockid;
         ClientConfig		m_client_config;
-        LPFN_CONNECTEX		m_pConnectEx;
     };
 }
 

@@ -86,10 +86,10 @@ network::ServerConfig::ServerConfig(unsigned int max_connect/* = SOMAXCONN*/) :
 /*
  * Server
  */
-network::Server::Server() {
+network::Server::Server() : m_completion_port(NULL), m_sockid(SOCKET_ERROR), m_pAcceptEx(NULL), m_pGetAcceptExSockAddrs(NULL) {
 }
 
-network::Server::Server(const ServerConfig &serverconfig) {
+network::Server::Server(const ServerConfig &serverconfig) : m_completion_port(NULL), m_sockid(SOCKET_ERROR), m_pAcceptEx(NULL), m_pGetAcceptExSockAddrs(NULL) {
     m_server_config = serverconfig;
 }
 
@@ -682,11 +682,11 @@ network::ClientConfig::ClientConfig() :
 /*
  * Client
  */
-network::Client::Client() :m_completion_port(NULL) {
+network::Client::Client() : m_completion_port(NULL), m_pConnectEx(NULL), m_sockid(SOCKET_ERROR) {
     _init();
 }
 
-network::Client::Client(const ClientConfig &client_config) : m_completion_port(NULL) {
+network::Client::Client(const ClientConfig &client_config) : m_completion_port(NULL), m_pConnectEx(NULL), m_sockid(SOCKET_ERROR) {
     m_client_config = client_config;
 
     _init();
