@@ -174,6 +174,8 @@ namespace network {
 
         bool close();
 
+        //TODO notify_work_threads_to_exit
+
         virtual void on_accepted(SVR_SOCKET_CONTEXT *sock_ctx);
 
         virtual void on_recvd(SVR_SOCKET_CONTEXT *sock_ctx);
@@ -273,6 +275,8 @@ namespace network {
         bool send(const char *buffer, size_t buffer_len);
 
         bool close();
+
+        //TODO notify_work_threads_to_exit
 
         virtual void on_connected(CLT_SOCKET_CONTEXT *sock_ctx);
 
