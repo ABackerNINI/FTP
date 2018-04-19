@@ -38,10 +38,21 @@ set(FTP_PROTOCOL_RESOURCE_FTP_CMD
 
 #############################################################
 
+set(FTP_PROTOCOL_AGETN_DTP
+	protocol/agent/ftp_dtp/ftp_dtp.h
+	protocol/agent/ftp_dtp/ftp_dtp.cpp
+	
+	${FTP_UTILITY_FILE}
+	${FTP_UTILITY_NETWORK}
+)
+
+#############################################################
+
 set(FTP_PROTOCOL_AGENT_CLIENT_PI
 	protocol/agent/ftp_client/ftp_client_pi.h
 	protocol/agent/ftp_client/ftp_client_pi.cpp
 
+	${FTP_PROTOCOL_AGETN_DTP}
 	${FTP_PROTOCOL_RESOURCE_FTP_CMD}
 	${FTP_UTILITY_NETWORK}
 	${FTP_UTILITY_STRING_BUFFER}
@@ -50,21 +61,12 @@ set(FTP_PROTOCOL_AGENT_CLIENT_PI
 set(FTP_PROTOCOL_AGENT_SERVER_PI
 	protocol/agent/ftp_server/ftp_server_pi.h
 	protocol/agent/ftp_server/ftp_server_pi.cpp
-
+	
+	${FTP_PROTOCOL_AGETN_DTP}
 	${FTP_COMMON}
 	${FTP_PROTOCOL_RESOURCE_FTP_CMD}
 	${FTP_UTILITY_NETWORK}
 	${FTP_UTILITY_STRING_BUFFER}
-)
-
-#############################################################
-
-set(FTP_PROTOCOL_AGETN_DTP
-	protocol/agent/ftp_dtp/ftp_dtp.h
-	protocol/agent/ftp_dtp/ftp_dtp.cpp
-	
-	${FTP_UTILITY_FILE}
-	${FTP_UTILITY_NETWORK}
 )
 
 #############################################################
