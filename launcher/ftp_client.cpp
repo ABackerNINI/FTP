@@ -47,7 +47,7 @@ int main() {
             cmd[len - 1] = '\r';
             cmd[len] = '\n';
             cmd[len + 1] = '\0';
-            client.ftp_send(cmd, len + 2);
+            client.ftp_input(cmd, len + 2);
         }
     }
 
