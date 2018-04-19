@@ -14,7 +14,7 @@ namespace ftp_server_pi {
 #define DEFAULT_BUFFER_LEN 1024
 #define DEFAULT_USRNAME_BUFFER_LEN 100
 #define DEFAULT_PASSWD_BUFFER_LEN 100
-#define DEFAULT_DIR_BUFFER_LEN 100
+#define DEFAULT_DIR_BUFFER_LEN 500
 
 #define _CMD(CMD)  network::pointer_cast<cmd_handler>(&ftp_server_pi::cmd_handler_##CMD)
 
@@ -26,9 +26,9 @@ namespace ftp_server_pi {
 
     struct ClientInf {
         //TODO seperate user&passwd with others
-        char	                m_user_name[100];
-        char	                m_passwd[100];
-        char	                m_working_dir[100];
+        char	                m_user_name[DEFAULT_USRNAME_BUFFER_LEN];
+        char	                m_passwd[DEFAULT_PASSWD_BUFFER_LEN];
+        char	                m_working_dir[DEFAULT_DIR_BUFFER_LEN];
         bool	                m_is_pasv;
         int		                m_port;
         unsigned long           m_ip;

@@ -1,6 +1,10 @@
 #include "ftp_server_pi.h"
 #include <assert.h>
+#include <string>
 
+/*
+ *  ClientInf
+ */
 ftp_server_pi::ClientInf::ClientInf() :
     m_is_pasv(false),
     m_port(0),
@@ -11,8 +15,9 @@ ftp_server_pi::ClientInf::ClientInf() :
     m_working_dir[1] = '\0';
 }
 
-/*-----------------------------------------------------------FtpServer Section-----------------------------------------------------------*/
-
+/*
+ *  ftp_server_pi
+ */
 ftp_server_pi::ftp_server_pi::ftp_server_pi() :network::Server() {
 }
 
@@ -135,11 +140,17 @@ void ftp_server_pi::ftp_server_pi::cmd_handler_PASV(SOCKET sockid, ClientInf *cl
 
 void ftp_server_pi::ftp_server_pi::cmd_handler_RETR(SOCKET sockid, ClientInf *client_inf, char *args) {
     _ftp_send(sockid, "500 RETR.\r\n");
-    
+
 }
 
 void ftp_server_pi::ftp_server_pi::cmd_handler_STOR(SOCKET sockid, ClientInf *client_inf, char *args) {
-    _ftp_send(sockid, "500 STOR.\r\n");
+    _ftp_send(sockid, "500 STOR.\r\n");    
+
+    client_inf->m_dtp.set_passive(true);
+    client_inf->m_dtp.set_port(20);
+    client_inf->m_dtp.set_fpath(args);
+
+    client_inf->m_dtp.start();
 }
 
 void ftp_server_pi::ftp_server_pi::cmd_handler_DELE(SOCKET sockid, ClientInf *client_inf, char *args) {
