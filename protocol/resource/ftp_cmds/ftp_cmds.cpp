@@ -12,6 +12,7 @@ enum ftp_cmds::FTP_CMDS ftp_cmds::cmd_dispatch(char **str) {
         }
     }
 
+    //skip max-cmd-length + 1
     *str += 4;
 
     while (**str == ' ')++(*str);
