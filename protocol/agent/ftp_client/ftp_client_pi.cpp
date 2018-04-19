@@ -27,7 +27,23 @@ bool ftp_client_pi::ftp_client_pi::ftp_connect(const char *addr, unsigned int po
     return false;
 }
 
-bool ftp_client_pi::ftp_client_pi::ftp_send(const char *buffer, size_t count) {
+bool ftp_client_pi::ftp_client_pi::ftp_input(char *buffer, size_t count) {
+    _handle_input(buffer, count);
+
+    _ftp_send(buffer, count);
+
+    return true;
+}
+
+ftp_client_pi::CLIENT_IO_STATUS ftp_client_pi::ftp_client_pi::get_io_status() {
+    return m_client_status;
+}
+
+bool ftp_client_pi::ftp_client_pi::_ftp_send(char *buffer, size_t count) {
+    buffer[count - 1] = '\r';
+    buffer[count++] = '\n';
+    buffer[count++] = '\0';//mark:?
+
     bool sending = false;
     while (true) {
         if (!sending && (m_client_status == CIS_RSP_HANDLED || m_client_status == CIS_CONNECTED)) {
@@ -45,8 +61,30 @@ bool ftp_client_pi::ftp_client_pi::ftp_send(const char *buffer, size_t count) {
     return true;
 }
 
-ftp_client_pi::CLIENT_IO_STATUS ftp_client_pi::ftp_client_pi::get_io_status() {
-    return m_client_status;
+bool ftp_client_pi::ftp_client_pi::_handle_input(char *buffer, size_t count) {
+    char *args = buffer;
+    int cmd_id = ftp_cmds::cmd_dispatch(&args);
+
+    if ((ftp_cmds::FTP_CMDS_INF[cmd_id].m_need_args == ftp_cmds::FCNA_MANDATORY && args == NULL) || (ftp_cmds::FTP_CMDS_INF[cmd_id].m_need_args == ftp_cmds::FCNA_NONE && args)) {
+        return false;
+    }
+
+    m_cmd_handler[cmd_id](this, args);
+
+    return false;
+}
+
+void ftp_client_pi::ftp_client_pi::_handle_response() {
+    const char *str;
+
+    while (str = m_client_inf.m_cmd_buffer.pop(), str) {
+        printf("\t%s\n", str);
+        fflush(stdout);
+
+        m_client_status = CIS_RSP_HANDLED;
+    }
+
+    //TODO ERR CHECK
 }
 
 void ftp_client_pi::ftp_client_pi::on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
@@ -76,15 +114,54 @@ void ftp_client_pi::ftp_client_pi::on_closed(network::CLT_SOCKET_CONTEXT *sock_c
     printf("OnClosed\n");
 }
 
-void ftp_client_pi::ftp_client_pi::_handle_response() {
-    const char *str;
+void ftp_client_pi::ftp_client_pi::cmd_handler_USER(char *args) {
+}
 
-    while (str = m_client_inf.m_cmd_buffer.pop(), str) {
-        printf("\t%s\n", str);
-        fflush(stdout);
+void ftp_client_pi::ftp_client_pi::cmd_handler_PASS(char *args) {
+}
 
-        m_client_status = CIS_RSP_HANDLED;
-    }
+void ftp_client_pi::ftp_client_pi::cmd_handler_CWD(char *args) {
+}
 
-    //TODO ERR CHECK
+void ftp_client_pi::ftp_client_pi::cmd_handler_PORT(char *args) {
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_PASV(char *args) {
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_RETR(char *args) {
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_STOR(char *args) {
+    m_dtp.set_addr("192.168.1.107");
+    m_dtp.set_port(20);
+    m_dtp.set_fpath("file_to_be_sent");
+    m_dtp.start();
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_DELE(char *args) {
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_RMD(char *args) {
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_MKD(char *args) {
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_PWD(char *args) {
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_LIST(char *args) {
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_HELP(char *args) {
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_NOOP(char *args) {
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_ERR(char *args) {
+}
+
+void ftp_client_pi::ftp_client_pi::cmd_handler_NOT_IMPLEMENTED(char *args) {
 }
