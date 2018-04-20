@@ -106,8 +106,8 @@ namespace network {
 
     template<typename _Type>
     struct WORKER_PARAMS {
-        _Type *m_instance;
-        unsigned int m_thread_num;
+        _Type *         m_instance;
+        unsigned int    m_thread_num;
     };
 
     enum SVR_OP {
@@ -207,7 +207,7 @@ namespace network {
 
         static bool _is_client_alive(SOCKET sockid);
 
-        static DWORD WINAPI ServerWorkThread(LPVOID lpParam);
+        static DWORD WINAPI ServerWorkerThread(LPVOID lpParam);
 
     protected:
         //TODO Event Register
@@ -217,8 +217,8 @@ namespace network {
         LPFN_ACCEPTEX				m_pAcceptEx;
         LPFN_GETACCEPTEXSOCKADDRS	m_pGetAcceptExSockAddrs;
         HANDLE                      m_shutdown_event;
-        HANDLE*                     m_work_threads;
-        unsigned int                m_work_threads_num;
+        HANDLE*                     m_worker_threads;
+        unsigned int                m_worker_threads_num;
         ServerConfig				m_server_config;
     };
 
@@ -229,7 +229,7 @@ namespace network {
             A[n]:Alternative Set [n]
         */
         unsigned int				o0_worker_threads_per_processor;
-        unsigned int				o0_Worker_threads;//TODO rename
+        unsigned int				o0_worker_threads;
 
         ClientConfig();
     };
@@ -316,15 +316,15 @@ namespace network {
 
         static bool _is_server_alive(SOCKET sockid);
 
-        static DWORD WINAPI ClientWorkThread(LPVOID lpParam);
+        static DWORD WINAPI ClientWorkerThread(LPVOID lpParam);
 
     protected:
         HANDLE				m_completion_port;
         LPFN_CONNECTEX		m_pConnectEx;
         SOCKET              m_sockid;
         HANDLE              m_shutdown_event;
-        HANDLE*             m_work_threads;
-        unsigned int        m_work_threads_num;
+        HANDLE*             m_worker_threads;
+        unsigned int        m_worker_threads_num;
         ClientConfig		m_client_config;
     };
 }

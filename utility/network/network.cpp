@@ -92,8 +92,8 @@ network::Server::Server() :
     m_pAcceptEx(NULL),
     m_pGetAcceptExSockAddrs(NULL),
     m_shutdown_event(NULL),
-    m_work_threads(NULL),
-    m_work_threads_num(0) {
+    m_worker_threads(NULL),
+    m_worker_threads_num(0) {
 }
 
 network::Server::Server(const ServerConfig &serverconfig) :
@@ -102,8 +102,8 @@ network::Server::Server(const ServerConfig &serverconfig) :
     m_pAcceptEx(NULL),
     m_pGetAcceptExSockAddrs(NULL),
     m_shutdown_event(NULL),
-    m_work_threads(NULL),
-    m_work_threads_num(0) {
+    m_worker_threads(NULL),
+    m_worker_threads_num(0) {
     m_server_config = serverconfig;
 }
 
@@ -147,7 +147,7 @@ bool network::Server::close() {
     LOG(CC_YELLOW, "Waiting for work threads to exit\n");
 #endif
 
-    WaitForMultipleObjects(m_work_threads_num, m_work_threads, true, INFINITE);
+    WaitForMultipleObjects(m_worker_threads_num, m_worker_threads, true, INFINITE);
 
     //TODO errcheck & CRITICAL_SECTION
     if (m_sockid != INVALID_SOCKET) {
@@ -164,7 +164,7 @@ bool network::Server::close() {
 bool network::Server::notify_work_threads_to_exit() {
     SetEvent(m_shutdown_event);
 
-    for (unsigned int i = 0; i < m_work_threads_num + 1; ++i) {
+    for (unsigned int i = 0; i < m_worker_threads_num + 1; ++i) {
         PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
     }
 
@@ -212,28 +212,28 @@ bool network::Server::_init_complition_port() {
         return false;
     }
 
-    m_work_threads_num = m_server_config.o0_worker_threads > 0 ? m_server_config.o0_worker_threads : (_GetProcessorNum()*m_server_config.o0_worker_threads_per_processor);
-    if (m_work_threads_num <= 0) {
+    m_worker_threads_num = m_server_config.o0_worker_threads > 0 ? m_server_config.o0_worker_threads : (_GetProcessorNum()*m_server_config.o0_worker_threads_per_processor);
+    if (m_worker_threads_num <= 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Invalid Worker Threads Number @_InitComplitionPort\n");
 #endif
         return false;
     }
 
-    m_work_threads = new HANDLE[m_work_threads_num];
-    memset(m_work_threads, 0, sizeof(HANDLE)*m_work_threads_num);
+    m_worker_threads = new HANDLE[m_worker_threads_num];
+
     DWORD ThreadId;
-    for (unsigned int i = 0; i < m_work_threads_num; ++i) {
+    for (unsigned int i = 0; i < m_worker_threads_num; ++i) {
         WORKER_PARAMS<Server> *_pWorkerParams = new WORKER_PARAMS<Server>();
         _pWorkerParams->m_instance = this;
         _pWorkerParams->m_thread_num = i;
 
-        m_work_threads[i] = CreateThread(NULL, 0, ServerWorkThread, _pWorkerParams, 0, &ThreadId);
-        if (m_work_threads[i] == NULL) {
+        m_worker_threads[i] = CreateThread(NULL, 0, ServerWorkerThread, _pWorkerParams, 0, &ThreadId);
 #if(DEBUG&DEBUG_LOG)
+        if (m_worker_threads[i] == NULL) {
             LOG(CC_RED, "Failed to Start Thread%u @_InitComplitionPort\n", i);
-#endif
         }
+#endif
     }
 
     return true;
@@ -423,10 +423,6 @@ bool network::Server::_post_send(SVR_SOCKET_CONTEXT *sock_ctx) {
     TRACE_PRINT("PostSend DEBUG_TRACE %u\n", sock_ctx->_DEBUG_TRACE);
 #endif
 
-    //if (sock_ctx->m_wsa_buf.len == 0) {
-    //    return true;
-    //}
-
     DWORD bytes = 0;
     DWORD flags = 0;
 
@@ -546,7 +542,7 @@ bool network::Server::_is_client_alive(SOCKET sockid) {
     return bytes_sent != -1;
 }
 
-DWORD WINAPI network::Server::ServerWorkThread(LPVOID lpParam) {
+DWORD WINAPI network::Server::ServerWorkerThread(LPVOID lpParam) {
     WORKER_PARAMS<Server> *worker_params = (WORKER_PARAMS<Server>*)lpParam;
 
 #if(DEBUG&DEBUG_TRACE)
@@ -733,7 +729,7 @@ network::CLT_SOCKET_CONTEXT::~CLT_SOCKET_CONTEXT() {
  */
 network::ClientConfig::ClientConfig() :
     o0_worker_threads_per_processor(0),
-    o0_Worker_threads(2) {
+    o0_worker_threads(2) {
 }
 
 /*
@@ -744,8 +740,8 @@ network::Client::Client() :
     m_pConnectEx(NULL),
     m_sockid(INVALID_SOCKET),
     m_shutdown_event(NULL),
-    m_work_threads(NULL),
-    m_work_threads_num(0) {
+    m_worker_threads(NULL),
+    m_worker_threads_num(0) {
     _init();
 }
 
@@ -754,8 +750,8 @@ network::Client::Client(const ClientConfig &client_config) :
     m_pConnectEx(NULL),
     m_sockid(INVALID_SOCKET),
     m_shutdown_event(NULL),
-    m_work_threads(NULL),
-    m_work_threads_num(0) {
+    m_worker_threads(NULL),
+    m_worker_threads_num(0) {
     m_client_config = client_config;
 
     _init();
@@ -855,7 +851,7 @@ bool network::Client::close() {
     LOG(CC_YELLOW, "Waiting for work threads to exit\n");
 #endif
 
-    WaitForMultipleObjects(m_work_threads_num, m_work_threads, true, INFINITE);
+    WaitForMultipleObjects(m_worker_threads_num, m_worker_threads, true, INFINITE);
 
     if (m_sockid != INVALID_SOCKET) {
         closesocket(m_sockid);
@@ -873,7 +869,7 @@ bool network::Client::close() {
 bool network::Client::notify_work_threads_to_exit() {
     SetEvent(m_shutdown_event);
 
-    for (unsigned int i = 0; i < m_work_threads_num + 1; ++i) {
+    for (unsigned int i = 0; i < m_worker_threads_num + 1; ++i) {
         PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
     }
 
@@ -921,25 +917,25 @@ bool network::Client::_init_completion_port() {
         return false;
     }
 
-    m_work_threads_num = m_client_config.o0_Worker_threads > 0 ? m_client_config.o0_Worker_threads : (m_client_config.o0_worker_threads_per_processor * _GetProcessorNum());
-    if (m_work_threads_num <= 0) {
+    m_worker_threads_num = m_client_config.o0_worker_threads > 0 ? m_client_config.o0_worker_threads : (m_client_config.o0_worker_threads_per_processor * _GetProcessorNum());
+    if (m_worker_threads_num <= 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Invalid Worker Threads Number @_InitCompletionPort\n");
 #endif
         return false;
     }
 
-    m_work_threads = new HANDLE[m_work_threads_num];
-    //memset(m_work_threads, 0, sizeof(HANDLE)*m_work_threads_num);
+    m_worker_threads = new HANDLE[m_worker_threads_num];
+
     DWORD ThreadId;
-    for (unsigned int i = 0; i < m_work_threads_num; ++i) {
+    for (unsigned int i = 0; i < m_worker_threads_num; ++i) {
         WORKER_PARAMS<Client> *worker_params = new WORKER_PARAMS<Client>();
         worker_params->m_instance = this;
         worker_params->m_thread_num = i;
 
-        m_work_threads[i] = CreateThread(NULL, 0, ClientWorkThread, worker_params, 0, &ThreadId);
+        m_worker_threads[i] = CreateThread(NULL, 0, ClientWorkerThread, worker_params, 0, &ThreadId);
 #if(DEBUG&DEBUG_LOG)
-        if (m_work_threads[i] == NULL) {
+        if (m_worker_threads[i] == NULL) {
             LOG(CC_RED, "Faild to Start Thread%u @_InitCompletionPort\n", i);
         }
 #endif
@@ -1123,7 +1119,7 @@ bool network::Client::_do_recvd(CLT_SOCKET_CONTEXT *sock_ctx) {
     return false;
 }
 
-DWORD network::Client::ClientWorkThread(LPVOID lpParam) {
+DWORD network::Client::ClientWorkerThread(LPVOID lpParam) {
     WORKER_PARAMS<Client> *worker_params = (WORKER_PARAMS<Client>*)lpParam;
 
 #if(DEBUG&DEBUG_TRACE)
