@@ -41,7 +41,7 @@ void ftp_dtp::ftp_dtp_client::on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx
 
     close_connection();
 
-    notify_work_threads_to_exit();
+    notify_worker_threads_to_exit();
 }
 
 void ftp_dtp::ftp_dtp_client::on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
@@ -85,7 +85,7 @@ void ftp_dtp::ftp_dtp_server::on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) {
     m_fwriter.close();
     close_connection(sock_ctx->m_client_sockid);
     close_listen();
-    notify_work_threads_to_exit();
+    notify_worker_threads_to_exit();
     printf("done\n");
 }
 
