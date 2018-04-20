@@ -172,9 +172,10 @@ namespace network {
 
         bool send(SOCKET sockid, const char *buffer, size_t buffer_len);
 
-        bool close_connection(SOCKET sockid);
+        int close_connection(SOCKET sockid);
 
-        bool close_listen();
+        //This func will close the listening socket and set it to INVALID_SOCKET
+        int close_listen();
 
         bool notify_worker_threads_to_exit();
 
@@ -287,7 +288,8 @@ namespace network {
 
         bool send(const char *buffer, size_t buffer_len);
 
-        bool close_connection();
+        //This func will close the connecting socket and set it to INVALID_SOCKET
+        int close_connection();
 
         bool notify_worker_threads_to_exit();
 

@@ -1,5 +1,7 @@
 #include "network.h"
 
+#define CLOSE_SOCKET(SOCKID) {if(SOCKID!=INVALID_SOCKET){closesocket(SOCKID);}}
+
 /*
  * SVR_SOCKET_CONTEXT
  */
@@ -57,9 +59,9 @@ void network::SVR_SOCKET_CONTEXT::RESET_BUFFER() {
 }
 
 network::SVR_SOCKET_CONTEXT::~SVR_SOCKET_CONTEXT() {
-    if (m_buffer)
+    if (m_buffer) {
         delete[] m_buffer;
-
+    }
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("PSC Dispose DEBUG_TRACE:%u Socket:%lld OP:%d\n", _DEBUG_TRACE, m_client_sockid, m_op_type);
 #endif
@@ -114,23 +116,22 @@ bool network::Server::send(SOCKET sockid, const char *buffer, size_t buffer_len)
     return _post_send(sock_ctx);
 }
 
-bool network::Server::close_connection(SOCKET sockid) {
+int network::Server::close_connection(SOCKET sockid) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("Close Socket:%lld @Close\n", sockid);
 #endif
 
-    closesocket(sockid);
-
-    return true;
+    return closesocket(sockid);
 }
 
-bool network::Server::close_listen() {
+int network::Server::close_listen() {
+    int ret = 0;
     if (m_sockid != INVALID_SOCKET) {
-        closesocket(m_sockid);
+        ret = closesocket(m_sockid);
         m_sockid = INVALID_SOCKET;
     }
 
-    return true;
+    return ret;
 }
 
 bool network::Server::notify_worker_threads_to_exit() {
@@ -708,9 +709,9 @@ void network::CLT_SOCKET_CONTEXT::RESET_BUFFER() {
 }
 
 network::CLT_SOCKET_CONTEXT::~CLT_SOCKET_CONTEXT() {
-    if (m_buffer)
+    if (m_buffer) {
         delete[] m_buffer;
-
+    }
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("PSC Dispose DEBUG_TRACE:%d\n", _DEBUG_TRACE);
 #endif
@@ -817,13 +818,15 @@ bool network::Client::send(const char *buffer, size_t buffer_len) {
     return _post_send(sock_ctx);
 }
 
-bool network::Client::close_connection() {
+int network::Client::close_connection() {
+    //TODO CRITICAL_SECTION?
+    int ret = 0;
     if (m_sockid != INVALID_SOCKET) {
-        closesocket(m_sockid);
+        ret = closesocket(m_sockid);
         m_sockid = INVALID_SOCKET;
     }
 
-    return true;
+    return ret;
 }
 
 bool network::Client::notify_worker_threads_to_exit() {
@@ -1124,7 +1127,7 @@ DWORD network::Client::ClientWorkerThread(LPVOID lpParam) {
     typedef void(*DoEvent)(Client*, CLT_SOCKET_CONTEXT*);
     typedef void(*OnEvent)(Client*, CLT_SOCKET_CONTEXT*);
 
-    DoEvent _DoConnected = pointer_cast<DoEvent>(&(Client::_do_connected));
+    DoEvent _DoConnected = pointer_cast<DoEvent>(&(Client::_do_connected));//TODO rename
     DoEvent _DoSent = pointer_cast<DoEvent>(&(Client::_do_sent));
     DoEvent _DoRecvd = pointer_cast<DoEvent>(&(Client::_do_recvd));
 
@@ -1138,6 +1141,8 @@ DWORD network::Client::ClientWorkerThread(LPVOID lpParam) {
         bytes_transferred = 0;
 
         ret = GetQueuedCompletionStatus(completion_port, &bytes_transferred, (PULONG_PTR)&sock_ctx, (LPOVERLAPPED*)&overlapped, INFINITE);
+
+        //TODO opt close
 
         if (ret == false) {
 #if(DEBUG&DEBUG_LOG)
