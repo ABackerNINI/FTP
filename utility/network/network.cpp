@@ -86,10 +86,20 @@ network::ServerConfig::ServerConfig(unsigned int max_connect/* = SOMAXCONN*/) :
 /*
  * Server
  */
-network::Server::Server() : m_completion_port(NULL), m_sockid(SOCKET_ERROR), m_pAcceptEx(NULL), m_pGetAcceptExSockAddrs(NULL) {
+network::Server::Server() :
+    m_completion_port(NULL),
+    m_sockid(SOCKET_ERROR),
+    m_pAcceptEx(NULL),
+    m_pGetAcceptExSockAddrs(NULL),
+    m_thread_num(0) {
 }
 
-network::Server::Server(const ServerConfig &serverconfig) : m_completion_port(NULL), m_sockid(SOCKET_ERROR), m_pAcceptEx(NULL), m_pGetAcceptExSockAddrs(NULL) {
+network::Server::Server(const ServerConfig &serverconfig) :
+    m_completion_port(NULL),
+    m_sockid(SOCKET_ERROR),
+    m_pAcceptEx(NULL),
+    m_pGetAcceptExSockAddrs(NULL),
+    m_thread_num(0) {
     m_server_config = serverconfig;
 }
 
@@ -118,6 +128,8 @@ bool network::Server::close_client(SOCKET sockid) {
 }
 
 bool network::Server::close() {
+    if (m_thread_num > 0)notify_work_threads_to_exit();
+
     //TODO errcheck
     if (m_sockid != SOCKET_ERROR) {
         closesocket(m_sockid);
@@ -130,6 +142,8 @@ bool network::Server::close() {
 }
 
 bool network::Server::notify_work_threads_to_exit() {
+    if (m_thread_num == 0)return true;
+
     for (unsigned int i = 0; i < m_thread_num; ++i) {
         PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
     }
@@ -710,11 +724,19 @@ network::ClientConfig::ClientConfig() :
 /*
  * Client
  */
-network::Client::Client() : m_completion_port(NULL), m_pConnectEx(NULL), m_sockid(SOCKET_ERROR) {
+network::Client::Client() :
+    m_completion_port(NULL),
+    m_pConnectEx(NULL),
+    m_sockid(SOCKET_ERROR),
+    m_thread_num(0) {
     _init();
 }
 
-network::Client::Client(const ClientConfig &client_config) : m_completion_port(NULL), m_pConnectEx(NULL), m_sockid(SOCKET_ERROR) {
+network::Client::Client(const ClientConfig &client_config) :
+    m_completion_port(NULL),
+    m_pConnectEx(NULL),
+    m_sockid(SOCKET_ERROR),
+    m_thread_num(0) {
     m_client_config = client_config;
 
     _init();
@@ -799,6 +821,8 @@ bool network::Client::close() {
     //_Linger.l_onoff = 0;
     //setsockopt(m_sockid, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
 
+    if (m_thread_num > 0)notify_work_threads_to_exit();
+
     if (m_sockid != SOCKET_ERROR) {
         closesocket(m_sockid);
         m_sockid = SOCKET_ERROR;
@@ -813,6 +837,8 @@ bool network::Client::close() {
 }
 
 bool network::Client::notify_work_threads_to_exit() {
+    if (m_thread_num == 0)return true;
+
     for (unsigned int i = 0; i < m_thread_num; ++i) {
         PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
     }
