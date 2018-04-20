@@ -40,6 +40,7 @@ void ftp_dtp::ftp_dtp_client::on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx
     m_freader.close();
 
     close_connection();
+
     notify_work_threads_to_exit();
 }
 
@@ -125,13 +126,11 @@ bool ftp_dtp::ftp_dtp::start() {
  
  bool ftp_dtp::ftp_dtp::close() {
      if (m_server) {
-         m_server->notify_work_threads_to_exit();
          m_server->close();
          delete m_server;
          m_server = NULL;
      }
      if (m_client) {
-         //m_client->notify_work_threads_to_exit();
          m_client->close();
          delete m_client;
          m_client = NULL;
