@@ -1,13 +1,6 @@
 #include "network.h"
 
 /*
- * Cleanup
- */
-int network::Cleanup() {
-    return WSACleanup();
-}
-
-/*
  * SVR_SOCKET_CONTEXT
  */
 network::SVR_SOCKET_CONTEXT::SVR_SOCKET_CONTEXT(size_t max_buffer_len/* = DEFAULT_MAX_BUFFER_LEN*/) :
@@ -121,15 +114,6 @@ bool network::Server::send(SOCKET sockid, const char *buffer, size_t buffer_len)
     return _post_send(sock_ctx);
 }
 
-bool network::Server::close_listen() {
-    if (m_sockid != INVALID_SOCKET) {
-        closesocket(m_sockid);
-        m_sockid = INVALID_SOCKET;
-    }
-
-    return true;
-}
-
 bool network::Server::close_connection(SOCKET sockid) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("Close Socket:%lld @Close\n", sockid);
@@ -140,8 +124,29 @@ bool network::Server::close_connection(SOCKET sockid) {
     return true;
 }
 
+bool network::Server::close_listen() {
+    if (m_sockid != INVALID_SOCKET) {
+        closesocket(m_sockid);
+        m_sockid = INVALID_SOCKET;
+    }
+
+    return true;
+}
+
+bool network::Server::notify_worker_threads_to_exit() {
+    SetEvent(m_shutdown_event);
+
+    for (unsigned int i = 0; i < m_worker_threads_num + 1; ++i) {
+        PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
+    }
+
+    return true;
+}
+
 bool network::Server::close() {
-    notify_work_threads_to_exit();
+    close_listen();
+
+    notify_worker_threads_to_exit();
 
 #if(DEBUG&DEBUG_LOG)
     LOG(CC_YELLOW, "Waiting for work threads to exit\n");
@@ -150,24 +155,11 @@ bool network::Server::close() {
     WaitForMultipleObjects(m_worker_threads_num, m_worker_threads, true, INFINITE);
 
     //TODO errcheck & CRITICAL_SECTION
-    if (m_sockid != INVALID_SOCKET) {
-        closesocket(m_sockid);
-        m_sockid = INVALID_SOCKET;
-    }
+
     if (m_completion_port) {
         CloseHandle(m_completion_port);
         m_completion_port = NULL;
     }
-    return true;
-}
-
-bool network::Server::notify_work_threads_to_exit() {
-    SetEvent(m_shutdown_event);
-
-    for (unsigned int i = 0; i < m_worker_threads_num + 1; ++i) {
-        PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
-    }
-
     return true;
 }
 
@@ -212,7 +204,7 @@ bool network::Server::_init_complition_port() {
         return false;
     }
 
-    m_worker_threads_num = m_server_config.o0_worker_threads > 0 ? m_server_config.o0_worker_threads : (_GetProcessorNum()*m_server_config.o0_worker_threads_per_processor);
+    m_worker_threads_num = m_server_config.o0_worker_threads > 0 ? m_server_config.o0_worker_threads : (get_processor_num()*m_server_config.o0_worker_threads_per_processor);
     if (m_worker_threads_num <= 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Invalid Worker Threads Number @_InitComplitionPort\n");
@@ -834,6 +826,16 @@ bool network::Client::close_connection() {
     return true;
 }
 
+bool network::Client::notify_worker_threads_to_exit() {
+    SetEvent(m_shutdown_event);
+
+    for (unsigned int i = 0; i < m_worker_threads_num + 1; ++i) {
+        PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
+    }
+
+    return true;
+}
+
 bool network::Client::close() {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("Close Socket:%lld @Close\n", m_sockid);
@@ -845,7 +847,9 @@ bool network::Client::close() {
     //_Linger.l_onoff = 0;
     //setsockopt(m_sockid, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
 
-    notify_work_threads_to_exit();
+    close_connection();
+
+    notify_worker_threads_to_exit();
 
 #if(DEBUG&DEBUG_LOG)
     LOG(CC_YELLOW, "Waiting for work threads to exit\n");
@@ -853,24 +857,9 @@ bool network::Client::close() {
 
     WaitForMultipleObjects(m_worker_threads_num, m_worker_threads, true, INFINITE);
 
-    if (m_sockid != INVALID_SOCKET) {
-        closesocket(m_sockid);
-        m_sockid = INVALID_SOCKET;
-    }
-
     if (m_completion_port) {
         CloseHandle(m_completion_port);
         m_completion_port = NULL;
-    }
-
-    return true;
-}
-
-bool network::Client::notify_work_threads_to_exit() {
-    SetEvent(m_shutdown_event);
-
-    for (unsigned int i = 0; i < m_worker_threads_num + 1; ++i) {
-        PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
     }
 
     return true;
@@ -917,7 +906,7 @@ bool network::Client::_init_completion_port() {
         return false;
     }
 
-    m_worker_threads_num = m_client_config.o0_worker_threads > 0 ? m_client_config.o0_worker_threads : (m_client_config.o0_worker_threads_per_processor * _GetProcessorNum());
+    m_worker_threads_num = m_client_config.o0_worker_threads > 0 ? m_client_config.o0_worker_threads : (m_client_config.o0_worker_threads_per_processor * get_processor_num());
     if (m_worker_threads_num <= 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Invalid Worker Threads Number @_InitCompletionPort\n");

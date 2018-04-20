@@ -90,14 +90,16 @@ namespace network {
 #endif
 
     //Call it after all network jobs are done.
-    int Cleanup();
+    inline int Cleanup() {
+        return WSACleanup();
+    }
 
     template<typename dst_type, typename src_type>
     inline dst_type pointer_cast(src_type src) {
         return *static_cast<dst_type*>(static_cast<void*>(&src));
     }
 
-    inline unsigned int _GetProcessorNum() {
+    inline unsigned int get_processor_num() {
         SYSTEM_INFO sys_inf;
         GetSystemInfo(&sys_inf);
 
@@ -170,13 +172,19 @@ namespace network {
 
         bool send(SOCKET sockid, const char *buffer, size_t buffer_len);
 
-        bool close_listen();
-
         bool close_connection(SOCKET sockid);
 
-        bool close();
+        bool close_listen();
 
-        bool notify_work_threads_to_exit();
+        bool notify_worker_threads_to_exit();
+
+        //This func will do the following steps:
+        //1.call close_listen()
+        //2.call notify_work_threads_to_exit()
+        //3.wait all worker threads to exit
+        //4.close the complition port
+        //Don't call it in on-functions because of the 3-rd step.
+        bool close();
 
         virtual void on_accepted(SVR_SOCKET_CONTEXT *sock_ctx);
 
@@ -281,9 +289,15 @@ namespace network {
 
         bool close_connection();
 
-        bool close();
+        bool notify_worker_threads_to_exit();
 
-        bool notify_work_threads_to_exit();
+        //This func will do the following steps:
+        //1.call close_connection()
+        //2.call notify_worker_threads_to_exit()
+        //3.wait all worker threads to exit
+        //4.close the complition port
+        //Don't call it in on-functions because of the 3-rd step.
+        bool close();
 
         virtual void on_connected(CLT_SOCKET_CONTEXT *sock_ctx);
 
