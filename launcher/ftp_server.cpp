@@ -15,6 +15,8 @@ int main() {
 
     _getch();
 
+    server.close();
+
     network::Cleanup();
 
     return 0;
