@@ -129,6 +129,22 @@ bool network::Server::close() {
     return true;
 }
 
+bool network::Server::notify_work_threads_to_exit() {
+    for (unsigned int i = 0; i < m_thread_num; ++i) {
+        PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
+    }
+
+#if(DEBUG&DEBUG_LOG)
+    LOG(CC_YELLOW, "Waiting for work threads to exit\n");
+#endif
+
+    while (m_thread_num > 0) {
+        Sleep(50);
+    }
+
+    return true;
+}
+
 void network::Server::on_accepted(SVR_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("OnAccepted DEBUG_TRACE %u BytesTransferred:%u @OnAccepted\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_bytes_transferred);
@@ -170,18 +186,18 @@ bool network::Server::_init_complition_port() {
         return false;
     }
 
-    unsigned int worker_threads_num = m_server_config.o0_worker_threads > 0 ? m_server_config.o0_worker_threads : (_GetProcessorNum()*m_server_config.o0_worker_threads_per_processor);
-    if (worker_threads_num <= 0) {
+    m_thread_num = m_server_config.o0_worker_threads > 0 ? m_server_config.o0_worker_threads : (_GetProcessorNum()*m_server_config.o0_worker_threads_per_processor);
+    if (m_thread_num <= 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Invalid Worker Threads Number @_InitComplitionPort\n");
 #endif
         return false;
     }
 
-    HANDLE* worker_threads = new HANDLE[worker_threads_num];
-    memset(worker_threads, 0, sizeof(HANDLE)*worker_threads_num);
+    HANDLE* worker_threads = new HANDLE[m_thread_num];
+    memset(worker_threads, 0, sizeof(HANDLE)*m_thread_num);
     DWORD ThreadId;
-    for (unsigned int i = 0; i < worker_threads_num; ++i) {
+    for (unsigned int i = 0; i < m_thread_num; ++i) {
         WORKER_PARAMS<Server> *_pWorkerParams = new WORKER_PARAMS<Server>();
         _pWorkerParams->m_instance = this;
         _pWorkerParams->m_thread_num = i;
@@ -571,10 +587,22 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID lpParam) {
                 continue;
             } else {
                 // TODO
+#if(DEBUG&DEBUG_LOG)
+                LOG(CC_YELLOW, "Unkwon Error Occur ErrCode:%d ThreadNum:%d @ClientWorkThread\n", err_code, worker_params->m_thread_num);
+#endif
+                --server->m_thread_num;
                 break;
             }
 
             continue;
+        }
+
+        if (bytes_transferred == 0 && sock_ctx == 0 && overlapped == 0) {
+#if(DEBUG&DEBUG_LOG)
+            LOG(CC_YELLOW, "Exiting Notify Received ThreadNum:%d @ClientWorkThread\n", worker_params->m_thread_num);
+#endif
+            --server->m_thread_num;//mark:CRITICAL_SECTION?
+            break;
         }
 
         sock_ctx = CONTAINING_RECORD(overlapped, SVR_SOCKET_CONTEXT, m_OVERLAPPED);
@@ -784,6 +812,22 @@ bool network::Client::close() {
     return true;
 }
 
+bool network::Client::notify_work_threads_to_exit() {
+    for (unsigned int i = 0; i < m_thread_num; ++i) {
+        PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
+    }
+
+#if(DEBUG&DEBUG_LOG)
+    LOG(CC_YELLOW, "Waiting for work threads to exit\n");
+#endif
+
+    while (m_thread_num > 0) {
+        Sleep(50);
+    }
+
+    return true;
+}
+
 void network::Client::on_connected(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("OnConnected DEBUG_TRACE %u BytesTransferred:%u @OnConnected\n", sock_ctx->_DEBUG_TRACE, sock_ctx->m_bytes_transferred);
@@ -825,18 +869,20 @@ bool network::Client::_init_completion_port() {
         return false;
     }
 
-    unsigned int worker_threads_num = m_client_config.o0_Worker_threads > 0 ? m_client_config.o0_Worker_threads : (m_client_config.o0_worker_threads_per_processor * _GetProcessorNum());
-    if (worker_threads_num <= 0) {
+    m_thread_num = m_client_config.o0_Worker_threads > 0 ? m_client_config.o0_Worker_threads : (m_client_config.o0_worker_threads_per_processor * _GetProcessorNum());
+    if (m_thread_num <= 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Invalid Worker Threads Number @_InitCompletionPort\n");
 #endif
         return false;
     }
 
-    HANDLE* worker_threads = new HANDLE[worker_threads_num];
-    memset(worker_threads, 0, sizeof(HANDLE)*worker_threads_num);
+    m_client_config.o0_Worker_threads = m_thread_num;
+
+    HANDLE* worker_threads = new HANDLE[m_thread_num];
+    memset(worker_threads, 0, sizeof(HANDLE)*m_thread_num);
     DWORD ThreadId;
-    for (unsigned int i = 0; i < worker_threads_num; ++i) {
+    for (unsigned int i = 0; i < m_thread_num; ++i) {
         WORKER_PARAMS<Client> *worker_params = new WORKER_PARAMS<Client>();
         worker_params->m_instance = this;
         worker_params->m_thread_num = i;
@@ -1095,8 +1141,20 @@ DWORD network::Client::ClientWorkThread(LPVOID lpParam) {
                 continue;
             } else {
                 // TODO
+#if(DEBUG&DEBUG_LOG)
+                LOG(CC_YELLOW, "Unkwon Error Occur ErrCode:%d ThreadNum:%d @ClientWorkThread\n", err_code, worker_params->m_thread_num);
+#endif
+                --client->m_thread_num;
                 break;
             }
+        }
+
+        if (bytes_transferred == 0 && sock_ctx == NULL && overlapped == NULL) {
+#if(DEBUG&DEBUG_LOG)
+            LOG(CC_YELLOW, "Exiting Notify Received ThreadNum:%d @ClientWorkThread\n", worker_params->m_thread_num);
+#endif
+            --client->m_thread_num;
+            break;
         }
 
         sock_ctx = CONTAINING_RECORD(overlapped, CLT_SOCKET_CONTEXT, m_OVERLAPPED);

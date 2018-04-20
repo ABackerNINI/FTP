@@ -174,7 +174,7 @@ namespace network {
 
         bool close();
 
-        //TODO notify_work_threads_to_exit
+        bool notify_work_threads_to_exit();
 
         virtual void on_accepted(SVR_SOCKET_CONTEXT *sock_ctx);
 
@@ -214,6 +214,7 @@ namespace network {
         SOCKET						m_sockid;
         LPFN_ACCEPTEX				m_pAcceptEx;
         LPFN_GETACCEPTEXSOCKADDRS	m_pGetAcceptExSockAddrs;
+        volatile unsigned int       m_thread_num;
         ServerConfig				m_server_config;
     };
 
@@ -276,7 +277,7 @@ namespace network {
 
         bool close();
 
-        //TODO notify_work_threads_to_exit
+        bool notify_work_threads_to_exit();
 
         virtual void on_connected(CLT_SOCKET_CONTEXT *sock_ctx);
 
@@ -315,6 +316,7 @@ namespace network {
         HANDLE				m_completion_port;
         LPFN_CONNECTEX		m_pConnectEx;
         SOCKET              m_sockid;
+        volatile unsigned int m_thread_num;
         ClientConfig		m_client_config;
     };
 }
