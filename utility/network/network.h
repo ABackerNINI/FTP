@@ -170,7 +170,9 @@ namespace network {
 
         bool send(SOCKET sockid, const char *buffer, size_t buffer_len);
 
-        bool close_client(SOCKET sockid);
+        bool close_listen();
+
+        bool close_connection(SOCKET sockid);
 
         bool close();
 
@@ -214,7 +216,9 @@ namespace network {
         SOCKET						m_sockid;
         LPFN_ACCEPTEX				m_pAcceptEx;
         LPFN_GETACCEPTEXSOCKADDRS	m_pGetAcceptExSockAddrs;
-        volatile unsigned int       m_thread_num;
+        HANDLE                      m_shutdown_event;
+        HANDLE*                     m_work_threads;
+        unsigned int                m_work_threads_num;
         ServerConfig				m_server_config;
     };
 
@@ -225,7 +229,7 @@ namespace network {
             A[n]:Alternative Set [n]
         */
         unsigned int				o0_worker_threads_per_processor;
-        unsigned int				o0_Worker_threads;
+        unsigned int				o0_Worker_threads;//TODO rename
 
         ClientConfig();
     };
@@ -275,6 +279,8 @@ namespace network {
 
         bool send(const char *buffer, size_t buffer_len);
 
+        bool close_connection();
+
         bool close();
 
         bool notify_work_threads_to_exit();
@@ -316,7 +322,9 @@ namespace network {
         HANDLE				m_completion_port;
         LPFN_CONNECTEX		m_pConnectEx;
         SOCKET              m_sockid;
-        volatile unsigned int m_thread_num;
+        HANDLE              m_shutdown_event;
+        HANDLE*             m_work_threads;
+        unsigned int        m_work_threads_num;
         ClientConfig		m_client_config;
     };
 }

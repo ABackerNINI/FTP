@@ -88,18 +88,22 @@ network::ServerConfig::ServerConfig(unsigned int max_connect/* = SOMAXCONN*/) :
  */
 network::Server::Server() :
     m_completion_port(NULL),
-    m_sockid(SOCKET_ERROR),
+    m_sockid(INVALID_SOCKET),
     m_pAcceptEx(NULL),
     m_pGetAcceptExSockAddrs(NULL),
-    m_thread_num(0) {
+    m_shutdown_event(NULL),
+    m_work_threads(NULL),
+    m_work_threads_num(0) {
 }
 
 network::Server::Server(const ServerConfig &serverconfig) :
     m_completion_port(NULL),
-    m_sockid(SOCKET_ERROR),
+    m_sockid(INVALID_SOCKET),
     m_pAcceptEx(NULL),
     m_pGetAcceptExSockAddrs(NULL),
-    m_thread_num(0) {
+    m_shutdown_event(NULL),
+    m_work_threads(NULL),
+    m_work_threads_num(0) {
     m_server_config = serverconfig;
 }
 
@@ -117,7 +121,16 @@ bool network::Server::send(SOCKET sockid, const char *buffer, size_t buffer_len)
     return _post_send(sock_ctx);
 }
 
-bool network::Server::close_client(SOCKET sockid) {
+bool network::Server::close_listen() {
+    if (m_sockid != INVALID_SOCKET) {
+        closesocket(m_sockid);
+        m_sockid = INVALID_SOCKET;
+    }
+
+    return true;
+}
+
+bool network::Server::close_connection(SOCKET sockid) {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("Close Socket:%lld @Close\n", sockid);
 #endif
@@ -128,11 +141,18 @@ bool network::Server::close_client(SOCKET sockid) {
 }
 
 bool network::Server::close() {
-    if (m_thread_num > 0)notify_work_threads_to_exit();
+    notify_work_threads_to_exit();
 
-    //TODO errcheck
-    if (m_sockid != SOCKET_ERROR) {
+#if(DEBUG&DEBUG_LOG)
+    LOG(CC_YELLOW, "Waiting for work threads to exit\n");
+#endif
+
+    WaitForMultipleObjects(m_work_threads_num, m_work_threads, true, INFINITE);
+
+    //TODO errcheck & CRITICAL_SECTION
+    if (m_sockid != INVALID_SOCKET) {
         closesocket(m_sockid);
+        m_sockid = INVALID_SOCKET;
     }
     if (m_completion_port) {
         CloseHandle(m_completion_port);
@@ -142,18 +162,10 @@ bool network::Server::close() {
 }
 
 bool network::Server::notify_work_threads_to_exit() {
-    if (m_thread_num == 0)return true;
+    SetEvent(m_shutdown_event);
 
-    for (unsigned int i = 0; i < m_thread_num; ++i) {
+    for (unsigned int i = 0; i < m_work_threads_num + 1; ++i) {
         PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
-    }
-
-#if(DEBUG&DEBUG_LOG)
-    LOG(CC_YELLOW, "Waiting for work threads to exit\n");
-#endif
-
-    while (m_thread_num > 0) {
-        Sleep(50);
     }
 
     return true;
@@ -200,24 +212,24 @@ bool network::Server::_init_complition_port() {
         return false;
     }
 
-    m_thread_num = m_server_config.o0_worker_threads > 0 ? m_server_config.o0_worker_threads : (_GetProcessorNum()*m_server_config.o0_worker_threads_per_processor);
-    if (m_thread_num <= 0) {
+    m_work_threads_num = m_server_config.o0_worker_threads > 0 ? m_server_config.o0_worker_threads : (_GetProcessorNum()*m_server_config.o0_worker_threads_per_processor);
+    if (m_work_threads_num <= 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Invalid Worker Threads Number @_InitComplitionPort\n");
 #endif
         return false;
     }
 
-    HANDLE* worker_threads = new HANDLE[m_thread_num];
-    memset(worker_threads, 0, sizeof(HANDLE)*m_thread_num);
+    m_work_threads = new HANDLE[m_work_threads_num];
+    memset(m_work_threads, 0, sizeof(HANDLE)*m_work_threads_num);
     DWORD ThreadId;
-    for (unsigned int i = 0; i < m_thread_num; ++i) {
+    for (unsigned int i = 0; i < m_work_threads_num; ++i) {
         WORKER_PARAMS<Server> *_pWorkerParams = new WORKER_PARAMS<Server>();
         _pWorkerParams->m_instance = this;
         _pWorkerParams->m_thread_num = i;
 
-        worker_threads[i] = CreateThread(NULL, 0, ServerWorkThread, _pWorkerParams, 0, &ThreadId);
-        if (worker_threads[i] == NULL) {
+        m_work_threads[i] = CreateThread(NULL, 0, ServerWorkThread, _pWorkerParams, 0, &ThreadId);
+        if (m_work_threads[i] == NULL) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "Failed to Start Thread%u @_InitComplitionPort\n", i);
 #endif
@@ -604,18 +616,16 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID lpParam) {
 #if(DEBUG&DEBUG_LOG)
                 LOG(CC_YELLOW, "Unkwon Error Occur ErrCode:%d ThreadNum:%d @ClientWorkThread\n", err_code, worker_params->m_thread_num);
 #endif
-                --server->m_thread_num;
                 break;
             }
 
             continue;
         }
 
-        if (bytes_transferred == 0 && sock_ctx == 0 && overlapped == 0) {
+        if (bytes_transferred == 0 && sock_ctx == NULL && overlapped == NULL) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_YELLOW, "Exiting Notify Received ThreadNum:%d @ClientWorkThread\n", worker_params->m_thread_num);
 #endif
-            --server->m_thread_num;//mark:CRITICAL_SECTION?
             break;
         }
 
@@ -650,6 +660,11 @@ DWORD WINAPI network::Server::ServerWorkThread(LPVOID lpParam) {
             break;
         }
     }
+
+#if(DEBUG&DEBUG_LOG)
+    LOG(CC_YELLOW, "Work Thread Exit ThreadNum:%d @ClientWorkThread\n", worker_params->m_thread_num);
+#endif
+    delete worker_params;
 
     return 0;
 }
@@ -727,16 +742,20 @@ network::ClientConfig::ClientConfig() :
 network::Client::Client() :
     m_completion_port(NULL),
     m_pConnectEx(NULL),
-    m_sockid(SOCKET_ERROR),
-    m_thread_num(0) {
+    m_sockid(INVALID_SOCKET),
+    m_shutdown_event(NULL),
+    m_work_threads(NULL),
+    m_work_threads_num(0) {
     _init();
 }
 
 network::Client::Client(const ClientConfig &client_config) :
     m_completion_port(NULL),
     m_pConnectEx(NULL),
-    m_sockid(SOCKET_ERROR),
-    m_thread_num(0) {
+    m_sockid(INVALID_SOCKET),
+    m_shutdown_event(NULL),
+    m_work_threads(NULL),
+    m_work_threads_num(0) {
     m_client_config = client_config;
 
     _init();
@@ -810,6 +829,15 @@ bool network::Client::send(const char *buffer, size_t buffer_len) {
     return _post_send(sock_ctx);
 }
 
+bool network::Client::close_connection() {
+    if (m_sockid != INVALID_SOCKET) {
+        closesocket(m_sockid);
+        m_sockid = INVALID_SOCKET;
+    }
+
+    return true;
+}
+
 bool network::Client::close() {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("Close Socket:%lld @Close\n", m_sockid);
@@ -821,11 +849,17 @@ bool network::Client::close() {
     //_Linger.l_onoff = 0;
     //setsockopt(m_sockid, SOL_SOCKET, SO_LINGER, (const char *)&_Linger, sizeof(_Linger));
 
-    if (m_thread_num > 0)notify_work_threads_to_exit();
+    notify_work_threads_to_exit();
 
-    if (m_sockid != SOCKET_ERROR) {
+#if(DEBUG&DEBUG_LOG)
+    LOG(CC_YELLOW, "Waiting for work threads to exit\n");
+#endif
+
+    WaitForMultipleObjects(m_work_threads_num, m_work_threads, true, INFINITE);
+
+    if (m_sockid != INVALID_SOCKET) {
         closesocket(m_sockid);
-        m_sockid = SOCKET_ERROR;
+        m_sockid = INVALID_SOCKET;
     }
 
     if (m_completion_port) {
@@ -837,18 +871,10 @@ bool network::Client::close() {
 }
 
 bool network::Client::notify_work_threads_to_exit() {
-    if (m_thread_num == 0)return true;
+    SetEvent(m_shutdown_event);
 
-    for (unsigned int i = 0; i < m_thread_num; ++i) {
+    for (unsigned int i = 0; i < m_work_threads_num + 1; ++i) {
         PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
-    }
-
-#if(DEBUG&DEBUG_LOG)
-    LOG(CC_YELLOW, "Waiting for work threads to exit\n");
-#endif
-
-    while (m_thread_num > 0) {
-        Sleep(50);
     }
 
     return true;
@@ -895,30 +921,28 @@ bool network::Client::_init_completion_port() {
         return false;
     }
 
-    m_thread_num = m_client_config.o0_Worker_threads > 0 ? m_client_config.o0_Worker_threads : (m_client_config.o0_worker_threads_per_processor * _GetProcessorNum());
-    if (m_thread_num <= 0) {
+    m_work_threads_num = m_client_config.o0_Worker_threads > 0 ? m_client_config.o0_Worker_threads : (m_client_config.o0_worker_threads_per_processor * _GetProcessorNum());
+    if (m_work_threads_num <= 0) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Invalid Worker Threads Number @_InitCompletionPort\n");
 #endif
         return false;
     }
 
-    m_client_config.o0_Worker_threads = m_thread_num;
-
-    HANDLE* worker_threads = new HANDLE[m_thread_num];
-    memset(worker_threads, 0, sizeof(HANDLE)*m_thread_num);
+    m_work_threads = new HANDLE[m_work_threads_num];
+    //memset(m_work_threads, 0, sizeof(HANDLE)*m_work_threads_num);
     DWORD ThreadId;
-    for (unsigned int i = 0; i < m_thread_num; ++i) {
+    for (unsigned int i = 0; i < m_work_threads_num; ++i) {
         WORKER_PARAMS<Client> *worker_params = new WORKER_PARAMS<Client>();
         worker_params->m_instance = this;
         worker_params->m_thread_num = i;
 
-        worker_threads[i] = CreateThread(NULL, 0, ClientWorkThread, worker_params, 0, &ThreadId);
-        if (worker_threads[i] == NULL) {
+        m_work_threads[i] = CreateThread(NULL, 0, ClientWorkThread, worker_params, 0, &ThreadId);
 #if(DEBUG&DEBUG_LOG)
+        if (m_work_threads[i] == NULL) {
             LOG(CC_RED, "Faild to Start Thread%u @_InitCompletionPort\n", i);
-#endif
         }
+#endif
     }
     return true;
 }
@@ -1125,7 +1149,7 @@ DWORD network::Client::ClientWorkThread(LPVOID lpParam) {
 
     DWORD err_code;
 
-    while (true) {
+    while (WaitForSingleObject(client->m_shutdown_event, 0) != WAIT_OBJECT_0) {
         bytes_transferred = 0;
 
         ret = GetQueuedCompletionStatus(completion_port, &bytes_transferred, (PULONG_PTR)&sock_ctx, (LPOVERLAPPED*)&overlapped, INFINITE);
@@ -1145,10 +1169,10 @@ DWORD network::Client::ClientWorkThread(LPVOID lpParam) {
                     _OnClosed(client, sock_ctx);
 
                     closesocket(client->m_sockid);
+                    client->m_sockid = INVALID_SOCKET;
 
                     delete sock_ctx;
                 }
-                continue;
             } else if (err_code == ERROR_NETNAME_DELETED) {
                 if (sock_ctx) {
 #if(DEBUG&DEBUG_LOG)
@@ -1157,29 +1181,25 @@ DWORD network::Client::ClientWorkThread(LPVOID lpParam) {
                     _OnClosed(client, sock_ctx);
 
                     closesocket(client->m_sockid);
+                    client->m_sockid = INVALID_SOCKET;
 
                     delete sock_ctx;
                 }
-
-                continue;
             } else if (err_code == ERROR_ABANDONED_WAIT_0) {
                 // TODO
-                continue;
             } else {
                 // TODO
 #if(DEBUG&DEBUG_LOG)
                 LOG(CC_YELLOW, "Unkwon Error Occur ErrCode:%d ThreadNum:%d @ClientWorkThread\n", err_code, worker_params->m_thread_num);
 #endif
-                --client->m_thread_num;
-                break;
             }
+            break;
         }
 
         if (bytes_transferred == 0 && sock_ctx == NULL && overlapped == NULL) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_YELLOW, "Exiting Notify Received ThreadNum:%d @ClientWorkThread\n", worker_params->m_thread_num);
 #endif
-            --client->m_thread_num;
             break;
         }
 
@@ -1192,10 +1212,11 @@ DWORD network::Client::ClientWorkThread(LPVOID lpParam) {
             _OnClosed(client, sock_ctx);
 
             closesocket(client->m_sockid);
+            client->m_sockid = INVALID_SOCKET;
 
             delete sock_ctx;
 
-            continue;
+            break;
         }
 
         sock_ctx->m_bytes_transferred = bytes_transferred;
@@ -1214,6 +1235,11 @@ DWORD network::Client::ClientWorkThread(LPVOID lpParam) {
             break;
         }
     }
+
+#if(DEBUG&DEBUG_LOG)
+    LOG(CC_YELLOW, "Work Thread Exit ThreadNum:%d @ClientWorkThread\n", worker_params->m_thread_num);
+#endif
+    delete worker_params;
 
     return 0;
 }
