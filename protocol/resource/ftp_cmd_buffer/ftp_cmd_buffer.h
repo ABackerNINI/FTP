@@ -1,15 +1,15 @@
 #pragma once
 
-#ifndef _NINI_STRING_BUFFER_H_
-#define _NINI_STRING_BUFFER_H_
+#ifndef _NINI_FTP_CMD_BUFFER_H_
+#define _NINI_FTP_CMD_BUFFER_H_
 
 #include <stdio.h>
 
 #define STRING_BUFFER_DEFAULT_BUFFER_LEN 100
 
-class string_buffer {
+class ftp_cmd_buffer {
 public:
-    string_buffer();
+    ftp_cmd_buffer();
 
     void push(const char *str, size_t count);
 
@@ -17,7 +17,7 @@ public:
 
     size_t size();
 
-    ~string_buffer();
+    ~ftp_cmd_buffer();
 
 private:
     void _buffer(const char *str, size_t count);
@@ -29,4 +29,4 @@ private:
     size_t  m_capacity;
 };
 
-#endif //_NINI_STRING_BUFFER_H_
+#endif //_NINI_FTP_CMD_BUFFER_H_
