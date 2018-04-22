@@ -49,8 +49,8 @@ set(FTP_PROTOCOL_AGETN_DTP
 #############################################################
 
 set(FTP_PROTOCOL_AGENT_CLIENT_PI
-	protocol/agent/ftp_client/ftp_client_pi.h
-	protocol/agent/ftp_client/ftp_client_pi.cpp
+	protocol/agent/ftp_client_pi/ftp_client_pi.h
+	protocol/agent/ftp_client_pi/ftp_client_pi.cpp
 
 	${FTP_PROTOCOL_AGETN_DTP}
 	${FTP_PROTOCOL_RESOURCE_FTP_CMD}
@@ -59,8 +59,8 @@ set(FTP_PROTOCOL_AGENT_CLIENT_PI
 )
 #
 set(FTP_PROTOCOL_AGENT_SERVER_PI
-	protocol/agent/ftp_server/ftp_server_pi.h
-	protocol/agent/ftp_server/ftp_server_pi.cpp
+	protocol/agent/ftp_server_pi/ftp_server_pi.h
+	protocol/agent/ftp_server_pi/ftp_server_pi.cpp
 	
 	${FTP_PROTOCOL_AGETN_DTP}
 	${FTP_COMMON}
