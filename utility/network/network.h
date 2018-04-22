@@ -32,6 +32,12 @@ namespace network {
 #define DEFAULT_MAX_POST_ACCEPT 10
 #define DEFAULT_WORKER_THREADS_PER_PROCESSOR 2
 
+#define EVENT_ACCEPTED      0
+#define EVENT_CONNECTED     0
+#define EVENT_RECEIVED      1
+#define EVENT_SENT          2
+#define EVENT_CLOSED        3
+#define EVENT_ERROR         4
 
 #if(DEBUG&(DEBUG_TRACE|DEBUG_LOG))
     enum CONSOLE_COLOR {
@@ -113,11 +119,11 @@ namespace network {
     };
 
     enum SVR_OP {
-        SVROP_NULL,
-        SVROP_ACCEPTING,
-        SVROP_RECVING,
-        SVROP_SENDING,
-        SVROP_CLOSING
+        SVROP_ACCEPTING = 0,
+        SVROP_RECVING = 1,
+        SVROP_SENDING = 2,
+        SVROP_CLOSING = 3,
+        SVROP_NULL
     };
 
     struct SVR_SOCKET_CONTEXT {
@@ -187,13 +193,7 @@ namespace network {
         //Don't call it in on-functions because of the 3-rd step.
         bool close();
 
-        virtual void on_accepted(SVR_SOCKET_CONTEXT *sock_ctx);
-
-        virtual void on_recvd(SVR_SOCKET_CONTEXT *sock_ctx);
-
-        virtual void on_sent(SVR_SOCKET_CONTEXT *sock_ctx);
-
-        virtual void on_closed(SVR_SOCKET_CONTEXT *sock_ctx);
+        virtual void event_handler(SVR_SOCKET_CONTEXT *sock_ctx, int ev) = 0;
 
     protected:
         bool _start(unsigned int port, unsigned int max_connect);
@@ -208,11 +208,13 @@ namespace network {
 
         bool _post_send(SVR_SOCKET_CONTEXT *sock_ctx);
 
-        bool _do_accepted(SVR_SOCKET_CONTEXT *sock_ctx);
+        void _do_accepted(SVR_SOCKET_CONTEXT *sock_ctx);
 
-        bool _do_recvd(SVR_SOCKET_CONTEXT* sock_ctx);
+        void _do_recvd(SVR_SOCKET_CONTEXT* sock_ctx);
 
-        bool _do_sent(SVR_SOCKET_CONTEXT* sock_ctx);
+        void _do_sent(SVR_SOCKET_CONTEXT* sock_ctx);
+
+        void _do_closed(SVR_SOCKET_CONTEXT* sock_ctx);
 
         static bool _is_client_alive(SOCKET sockid);
 
@@ -301,13 +303,7 @@ namespace network {
         //Don't call it in on-functions because of the 3-rd step.
         bool close();
 
-        virtual void on_connected(CLT_SOCKET_CONTEXT *sock_ctx);
-
-        virtual void on_sent(CLT_SOCKET_CONTEXT *sock_ctx);
-
-        virtual void on_recvd(CLT_SOCKET_CONTEXT *sock_ctx);
-
-        virtual void on_closed(CLT_SOCKET_CONTEXT *sock_ctx);
+        virtual void event_handler(CLT_SOCKET_CONTEXT *sock_ctx, int ev) = 0;
 
         ~Client();
 
@@ -324,11 +320,13 @@ namespace network {
 
         bool _post_recv(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        bool _do_connected(CLT_SOCKET_CONTEXT *sock_ctx);
+        void _do_connected(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        bool _do_sent(CLT_SOCKET_CONTEXT *sock_ctx);
+        void _do_sent(CLT_SOCKET_CONTEXT *sock_ctx);
 
-        bool _do_recvd(CLT_SOCKET_CONTEXT *sock_ctx);
+        void _do_recvd(CLT_SOCKET_CONTEXT *sock_ctx);
+
+        void _do_closed(CLT_SOCKET_CONTEXT *sock_ctx);
 
         static bool _is_server_alive(SOCKET sockid);
 
