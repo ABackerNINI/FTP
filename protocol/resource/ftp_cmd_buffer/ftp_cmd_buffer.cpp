@@ -3,10 +3,10 @@
 #include <malloc.h>
 
 ftp_cmd_buffer::ftp_cmd_buffer() :
-    m_buffer((char *)malloc(STRING_BUFFER_DEFAULT_BUFFER_LEN)),
+    m_buffer((char *)malloc(FTP_CMD_BUFFER_DEFAULT_BUFFER_LEN)),
     m_pos(0),
     m_size(0),
-    m_capacity(STRING_BUFFER_DEFAULT_BUFFER_LEN) {
+    m_capacity(FTP_CMD_BUFFER_DEFAULT_BUFFER_LEN) {
 }
 
 void ftp_cmd_buffer::push(const char *str, size_t count) {
@@ -42,18 +42,29 @@ ftp_cmd_buffer::~ftp_cmd_buffer() {
 }
 
 void ftp_cmd_buffer::_buffer(const char *str, size_t count) {
+    //if the buffer capacity is not enough,enlarge it.
     if (m_capacity < m_size + count) {
-        //TODO string len check
-        m_capacity = m_size + count + STRING_BUFFER_DEFAULT_BUFFER_LEN;
+        size_t tmp = m_size + count + FTP_CMD_BUFFER_DEFAULT_BUFFER_LEN;
+
+        //if the cmd is too long,abondon all.
+        if (tmp > FTP_CMD_BUFFER_MAX_BUFFER_LEN) {
+            m_pos = 0;
+            m_size = 0;
+            return;
+        }
+
+        m_capacity = tmp;
         m_buffer = (char *)realloc(m_buffer, m_capacity);
         //TODO if(m_buffer==NULL)
     }
 
+    //if the rest of the buffer is not enough,move the string to the buffer head.
     if (m_capacity < m_pos + m_size + count) {
         memcpy(m_buffer, m_buffer + m_pos, m_size);
         m_pos = 0;
     }
 
+    //append new string at the end of the old.
     memcpy(m_buffer + m_pos + m_size, str, count);
 
     m_size += count;

@@ -5,7 +5,8 @@
 
 #include <stdio.h>
 
-#define STRING_BUFFER_DEFAULT_BUFFER_LEN 100
+#define FTP_CMD_BUFFER_DEFAULT_BUFFER_LEN   100
+#define FTP_CMD_BUFFER_MAX_BUFFER_LEN       2048
 
 class ftp_cmd_buffer {
 public:
