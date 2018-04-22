@@ -144,7 +144,7 @@ bool network::Server::notify_worker_threads_to_exit() {
 #endif
     SetEvent(m_shutdown_event);
 
-    for (unsigned int i = 0; i < m_worker_threads_num + 1; ++i) {
+    for (unsigned int i = 0; i < m_worker_threads_num; ++i) {
         PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
     }
 
@@ -807,8 +807,7 @@ bool network::Client::notify_worker_threads_to_exit() {
 #endif
     SetEvent(m_shutdown_event);
 
-    //TODO m_worker_threads_num + 1 -> m_worker_threads_num
-    for (unsigned int i = 0; i < m_worker_threads_num + 1; ++i) {
+    for (unsigned int i = 0; i < m_worker_threads_num; ++i) {
         PostQueuedCompletionStatus(m_completion_port, 0, NULL, NULL);
     }
 
