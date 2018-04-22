@@ -188,14 +188,17 @@ namespace network {
         //This func will do the following steps:
         //1.call close_listen()
         //2.call notify_work_threads_to_exit()
-        //3.wait all worker threads to exit
+        //3.wait for all worker threads to exit
         //4.close the complition port
-        //Don't call it in on-functions because of the 3-rd step.
+        //Don't call it in event_handler because of the 3-rd step.
         bool close();
 
         virtual void event_handler(SVR_SOCKET_CONTEXT *sock_ctx, int ev) = 0;
 
+        ~Server();
+
     protected:
+        //TODO return int to indicate different errors
         bool _start(unsigned int port, unsigned int max_connect);
 
         bool _init_sock(unsigned int port, unsigned int max_connect);
@@ -221,8 +224,6 @@ namespace network {
         static DWORD WINAPI ServerWorkerThread(LPVOID lpParam);
 
     protected:
-        //TODO Event Register
-
         HANDLE						m_completion_port;
         SOCKET						m_sockid;
         LPFN_ACCEPTEX				m_pAcceptEx;
@@ -298,9 +299,9 @@ namespace network {
         //This func will do the following steps:
         //1.call close_connection()
         //2.call notify_worker_threads_to_exit()
-        //3.wait all worker threads to exit
+        //3.wait for all worker threads to exit
         //4.close the complition port
-        //Don't call it in on-functions because of the 3-rd step.
+        //Don't call it in event_handler() because of the 3-rd step.
         bool close();
 
         virtual void event_handler(CLT_SOCKET_CONTEXT *sock_ctx, int ev) = 0;
