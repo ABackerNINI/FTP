@@ -3,19 +3,37 @@
 #include <conio.h>
 #include "../protocol/agent/ftp_server/ftp_server_pi.h"
 
-ftp_server_pi::ftp_server_pi server;
+class ftp_server {
+public:
+    int start(unsigned int port, const network::ServerConfig &config) {
+        m_server_pi.set_config(config);
+        m_server_pi.start_listen(port);
+
+        return 0;
+    }
+
+    int close() {
+        m_server_pi.close();
+
+        return 0;
+    }
+private:
+    ftp_server_pi::ftp_server_pi    m_server_pi;
+    ftp_dtp::ftp_dtp                m_server_dtp;
+};
+
 
 int main() {
     unsigned int port = 21;
     network::ServerConfig config;
     config.o_max_connect = 10;
 
-    server.set_config(config);
-    server.start_listen(port);
+    ftp_server ftp_server;
+    ftp_server.start(port, config);
 
     _getch();
 
-    server.close();
+    ftp_server.close();
 
     network::Cleanup();
 
