@@ -54,13 +54,15 @@ namespace ftp_client_pi {
 
         void _handle_response();
 
-        void on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
+        virtual void event_handler(network::CLT_SOCKET_CONTEXT *sock_ctx, int ev) override;
 
-        void on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
+        void _on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx);
 
-        void on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
+        void _on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx);
 
-        void on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx)override;
+        void _on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx);
+
+        void _on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx);
 
     protected:
         typedef void(*cmd_handler)(ftp_client_pi*, char *);

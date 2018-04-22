@@ -87,7 +87,26 @@ void ftp_client_pi::ftp_client_pi::_handle_response() {
     //TODO ERR CHECK
 }
 
-void ftp_client_pi::ftp_client_pi::on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+void ftp_client_pi::ftp_client_pi::event_handler(network::CLT_SOCKET_CONTEXT *sock_ctx, int ev) {
+    switch (ev) {
+    case EVENT_CONNECTED:
+        _on_connected(sock_ctx);
+        break;
+    case EVENT_RECEIVED:
+        _on_recvd(sock_ctx);
+        break;
+    case EVENT_SENT:
+        _on_sent(sock_ctx);
+        break;
+    case EVENT_CLOSED:
+        _on_closed(sock_ctx);
+        break;
+    default:
+        break;
+    }
+}
+
+void ftp_client_pi::ftp_client_pi::_on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
     m_client_status = CIS_CONNECTED;
 
     if (sock_ctx->m_bytes_transferred > 0) {
@@ -97,11 +116,11 @@ void ftp_client_pi::ftp_client_pi::on_connected(network::CLT_SOCKET_CONTEXT *soc
     }
 }
 
-void ftp_client_pi::ftp_client_pi::on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+void ftp_client_pi::ftp_client_pi::_on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
     m_client_status = CIS_SENT;
 }
 
-void ftp_client_pi::ftp_client_pi::on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+void ftp_client_pi::ftp_client_pi::_on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
     m_client_status = CIS_RECVD;
 
     m_client_inf.m_cmd_buffer.push(sock_ctx->m_buffer, sock_ctx->m_bytes_transferred);
@@ -109,7 +128,7 @@ void ftp_client_pi::ftp_client_pi::on_recvd(network::CLT_SOCKET_CONTEXT *sock_ct
     _handle_response();
 }
 
-void ftp_client_pi::ftp_client_pi::on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+void ftp_client_pi::ftp_client_pi::_on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
     m_client_status = CIS_CLOSED;
     printf("OnClosed\n");
 }

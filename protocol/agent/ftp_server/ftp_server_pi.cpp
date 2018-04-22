@@ -21,7 +21,26 @@ ftp_server_pi::ClientInf::ClientInf() :
 ftp_server_pi::ftp_server_pi::ftp_server_pi() :network::Server() {
 }
 
-void ftp_server_pi::ftp_server_pi::on_accepted(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+void ftp_server_pi::ftp_server_pi::event_handler(network::SVR_SOCKET_CONTEXT *sock_ctx, int ev) {
+    switch (ev) {
+    case EVENT_ACCEPTED:
+        _on_accepted(sock_ctx);
+        break;
+    case EVENT_RECEIVED:
+        _on_recvd(sock_ctx);
+        break;
+    case EVENT_SENT:
+        _on_sent(sock_ctx);
+        break;
+    case EVENT_CLOSED:
+        _on_closed(sock_ctx);
+        break;
+    default:
+        break;
+    }
+}
+
+void ftp_server_pi::ftp_server_pi::_on_accepted(network::SVR_SOCKET_CONTEXT *sock_ctx) {
     ClientInf *client_inf = new ClientInf();
 
     client_inf->m_ip = sock_ctx->m_client_addr.sin_addr.S_un.S_addr;
@@ -37,7 +56,7 @@ void ftp_server_pi::ftp_server_pi::on_accepted(network::SVR_SOCKET_CONTEXT *sock
     sock_ctx->m_extra = client_inf;
 }
 
-void ftp_server_pi::ftp_server_pi::on_recvd(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+void ftp_server_pi::ftp_server_pi::_on_recvd(network::SVR_SOCKET_CONTEXT *sock_ctx) {
     ClientInf *client_inf = (ClientInf *)(sock_ctx->m_extra);
 
     client_inf->m_cmd_buffer.push(sock_ctx->m_buffer, sock_ctx->m_bytes_transferred);
@@ -45,10 +64,10 @@ void ftp_server_pi::ftp_server_pi::on_recvd(network::SVR_SOCKET_CONTEXT *sock_ct
     _handle(sock_ctx->m_client_sockid, client_inf);
 }
 
-void ftp_server_pi::ftp_server_pi::on_sent(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+void ftp_server_pi::ftp_server_pi::_on_sent(network::SVR_SOCKET_CONTEXT *sock_ctx) {
 }
 
-void ftp_server_pi::ftp_server_pi::on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+void ftp_server_pi::ftp_server_pi::_on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) {
     delete (ClientInf *)(sock_ctx->m_extra);
 }
 

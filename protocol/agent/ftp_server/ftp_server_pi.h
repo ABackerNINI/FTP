@@ -44,13 +44,15 @@ namespace ftp_server_pi {
         ftp_server_pi();
 
     protected:
-        void on_accepted(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        void event_handler(network::SVR_SOCKET_CONTEXT *sock_ctx, int ev) override;
 
-        void on_recvd(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        void _on_accepted(network::SVR_SOCKET_CONTEXT *sock_ctx);
 
-        void on_sent(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        void _on_recvd(network::SVR_SOCKET_CONTEXT *sock_ctx);
 
-        void on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        void _on_sent(network::SVR_SOCKET_CONTEXT *sock_ctx);
+
+        void _on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx);
 
         bool _handle(SOCKET sockid, ClientInf *client_inf);
 

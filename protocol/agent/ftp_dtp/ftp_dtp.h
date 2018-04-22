@@ -46,13 +46,15 @@ namespace ftp_dtp {
         size_t get_fsize();
 
     protected:
-        virtual void on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
+        virtual void event_handler(network::CLT_SOCKET_CONTEXT *sock_ctx, int ev) override;
 
-        virtual void on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
+        void _on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx);
 
-        virtual void on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
+        void _on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx);
 
-        virtual void on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) override;
+        void _on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx);
+
+        void _on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx);
 
     protected:
         const char *        m_fpath;
@@ -73,13 +75,15 @@ namespace ftp_dtp {
         size_t get_bytes_recvd();
 
     protected:
-        virtual void on_accepted(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        virtual void event_handler(network::SVR_SOCKET_CONTEXT *sock_ctx, int ev) override;
 
-        virtual void on_recvd(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        void _on_accepted(network::SVR_SOCKET_CONTEXT *sock_ctx);
 
-        virtual void on_sent(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        void _on_recvd(network::SVR_SOCKET_CONTEXT *sock_ctx);
 
-        virtual void on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) override;
+        void _on_sent(network::SVR_SOCKET_CONTEXT *sock_ctx);
+
+        void _on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx);
 
     protected:
         const char *        m_fpath;
@@ -124,11 +128,11 @@ namespace ftp_dtp {
 
 #endif // _NINI_FTP_DTP_H_
 
-        //STATUS              m_status;
-        //STRUCTURE_TYPE      m_sturcture_type;
-        //DATA_TYPE           m_data_type;
-        //enum STATUS get_status();
-        //enum STRUCTURE_TYPE get_structure_type();
-        //enum DATA_TYPE get_data_type();
-        //void set_structure_type(enum STRUCTURE_TYPE sturcture_type);
-        //void set_data_type(enum DATA_TYPE data_type);
+//STATUS              m_status;
+//STRUCTURE_TYPE      m_sturcture_type;
+//DATA_TYPE           m_data_type;
+//enum STATUS get_status();
+//enum STRUCTURE_TYPE get_structure_type();
+//enum DATA_TYPE get_data_type();
+//void set_structure_type(enum STRUCTURE_TYPE sturcture_type);
+//void set_data_type(enum DATA_TYPE data_type);
