@@ -7,7 +7,7 @@
 #include "../../resource/ftp_cmds/ftp_cmds.h"
 #include "../../../common/common.h"
 #include "../../../utility/network/network.h"
-#include "../../../utility/string_buffer/string_buffer.h"
+#include "../../resource/ftp_cmd_buffer/ftp_cmd_buffer.h"
 
 namespace ftp_server_pi {
 
@@ -33,7 +33,7 @@ namespace ftp_server_pi {
         int		                m_port;
         unsigned long           m_ip;
         CLIENT_LOGIN_STATUS     m_status;
-        string_buffer           m_cmd_buffer;
+        ftp_cmd_buffer          m_cmd_buffer;
         ftp_dtp::ftp_dtp        m_dtp;
 
         ClientInf();

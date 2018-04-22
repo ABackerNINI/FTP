@@ -6,7 +6,7 @@
 #include "../ftp_dtp/ftp_dtp.h"
 #include "../../resource/ftp_cmds/ftp_cmds.h"
 #include "../../../utility/network/network.h"
-#include "../../../utility/string_buffer/string_buffer.h"
+#include "../../resource/ftp_cmd_buffer/ftp_cmd_buffer.h"
 
 namespace ftp_client_pi {
 
@@ -34,7 +34,7 @@ namespace ftp_client_pi {
     };
 
     struct ClientInf {
-        string_buffer m_cmd_buffer;
+        ftp_cmd_buffer  m_cmd_buffer;
     };
 
     class ftp_client_pi :public network::Client {

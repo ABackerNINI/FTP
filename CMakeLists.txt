@@ -21,11 +21,6 @@ set(FTP_UTILITY_NETWORK
 	utility/network/network.h
 	utility/network/network.cpp
 )
-#
-set(FTP_UTILITY_STRING_BUFFER
-	utility/string_buffer/string_buffer.h
-	utility/string_buffer/string_buffer.cpp
-)
 
 #############################################################
 
@@ -34,6 +29,11 @@ set(FTP_PROTOCOL_RESOURCE_FTP_CMD
 	protocol/resource/ftp_cmds/ftp_cmds.cpp
 
 	${FTP_COMMON}
+)
+#
+set(FTP_PROTOCOL_RESOURCE_FTP_CMD_BUFFER
+	protocol/resource/ftp_cmd_buffer/ftp_cmd_buffer.h
+	protocol/resource/ftp_cmd_buffer/ftp_cmd_buffer.cpp
 )
 
 #############################################################
@@ -55,7 +55,7 @@ set(FTP_PROTOCOL_AGENT_CLIENT_PI
 	${FTP_PROTOCOL_AGETN_DTP}
 	${FTP_PROTOCOL_RESOURCE_FTP_CMD}
 	${FTP_UTILITY_NETWORK}
-	${FTP_UTILITY_STRING_BUFFER}
+	${FTP_PROTOCOL_RESOURCE_FTP_CMD_BUFFER}
 )
 #
 set(FTP_PROTOCOL_AGENT_SERVER_PI
@@ -66,7 +66,7 @@ set(FTP_PROTOCOL_AGENT_SERVER_PI
 	${FTP_COMMON}
 	${FTP_PROTOCOL_RESOURCE_FTP_CMD}
 	${FTP_UTILITY_NETWORK}
-	${FTP_UTILITY_STRING_BUFFER}
+	${FTP_PROTOCOL_RESOURCE_FTP_CMD_BUFFER}
 )
 
 #############################################################
@@ -82,7 +82,7 @@ add_executable(ftp_server launcher/ftp_server.cpp
 #############################################################
 
 add_executable(test_string_buffer test/test_string_buffer.cpp
-	${FTP_UTILITY_STRING_BUFFER}
+	${FTP_PROTOCOL_RESOURCE_FTP_CMD_BUFFER}
 )
 
 add_executable(test_ftp_dtp_client test/test_ftp_dtp/test_ftp_dtp_client.cpp

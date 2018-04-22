@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <conio.h>
-#include "../utility/string_buffer/string_buffer.h"
+#include "../protocol/resource/ftp_cmd_buffer/ftp_cmd_buffer.h"
 
 #pragma warning(disable:4996)
 
 void test_string_buffer() {
-    string_buffer sb;
+    ftp_cmd_buffer sb;
     char *s1 = new char[100];
     char *s2 = new char[100];
     char *s3 = new char[100];
