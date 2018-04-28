@@ -19,7 +19,7 @@ public:
     }
 private:
     ftp_server_pi::ftp_server_pi    m_server_pi;
-    ftp_dtp::ftp_dtp                m_server_dtp;
+    //ftp_dtp::ftp_dtp                m_server_dtp;
 };
 
 

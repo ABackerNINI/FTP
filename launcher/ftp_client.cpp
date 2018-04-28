@@ -35,7 +35,7 @@ public:
 
 private:
     ftp_client_pi::ftp_client_pi    m_client_pi;
-    ftp_dtp::ftp_dtp                m_client_dtp;
+    //ftp_dtp::ftp_dtp                m_client_dtp;
 };
 
 ftp_client client;
