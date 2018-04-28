@@ -38,6 +38,7 @@ namespace network {
 #define EVENT_SENT          2
 #define EVENT_CLOSED        3
 #define EVENT_ERROR         4
+#define EVENT_USER_FIRST    5
 
 #if(DEBUG&(DEBUG_TRACE|DEBUG_LOG))
     enum CONSOLE_COLOR {

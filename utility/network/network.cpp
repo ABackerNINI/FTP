@@ -126,7 +126,7 @@ int network::Server::close_connection(SOCKET sockid) {
 
 int network::Server::close_listen() {
 #if(DEBUG&DEBUG_LOG)
-    LOG(CC_YELLOW, "Close listen, Sockid %d @close_listen\n", m_sockid);
+    LOG(CC_YELLOW, "Close listen, Sockid:%d @close_listen\n", m_sockid);
 #endif
 
     int ret = 0;
@@ -584,11 +584,20 @@ DWORD WINAPI network::Server::ServerWorkerThread(LPVOID lpParam) {
             continue;
         }
 
-        if (bytes_transferred == 0 && sock_ctx == NULL && overlapped == NULL) {
+        if (overlapped == NULL) {
+            if (bytes_transferred == 0 && sock_ctx == NULL) {
 #if(DEBUG&DEBUG_LOG)
-            LOG(CC_YELLOW, "Exiting Notify Received, ThreadNum:%d @ServerWorkerThread\n", worker_params->m_thread_num);
+                LOG(CC_YELLOW, "Exiting Notify Received, ThreadNum:%d @ServerWorkerThread\n", worker_params->m_thread_num);
 #endif
-            break;
+                break;
+            } else {
+#if(DEBUG&DEBUG_LOG)
+                LOG(CC_YELLOW, "User Event Received, ThreadNum:%d @ServerWorkerThread\n", worker_params->m_thread_num);
+#endif
+                server->event_handler(sock_ctx, (int)bytes_transferred);
+
+                continue;
+            }
         }
 
         sock_ctx = CONTAINING_RECORD(overlapped, SVR_SOCKET_CONTEXT, m_OVERLAPPED);
