@@ -75,7 +75,9 @@ void ftp_dtp::ftp_dtp_client::_on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) 
 /*
  *  ftp_dtp_server
  */
-ftp_dtp::ftp_dtp_server::ftp_dtp_server() {
+ftp_dtp::ftp_dtp_server::ftp_dtp_server():
+    m_completion_port_2(NULL),
+    m_sockid(INVALID_SOCKET) {
 }
 
 bool ftp_dtp::ftp_dtp_server::abort() {
@@ -85,6 +87,14 @@ bool ftp_dtp::ftp_dtp_server::abort() {
 }
 
 void ftp_dtp::ftp_dtp_server::set_fpath(const char *fpath) { m_fpath = fpath; }
+
+void ftp_dtp::ftp_dtp_server::set_completion_port_2(HANDLE completion_port_2) {
+    m_completion_port_2 = completion_port_2;
+}
+
+void ftp_dtp::ftp_dtp_server::set_sockid(SOCKET sockid) {
+    m_sockid = sockid;
+}
 
 size_t ftp_dtp::ftp_dtp_server::get_bytes_recvd() { return m_bytes_recvd; }
 
@@ -124,13 +134,23 @@ void ftp_dtp::ftp_dtp_server::_on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) 
     close_connection(sock_ctx->m_client_sockid);
     close_listen();
     notify_worker_threads_to_exit();
+
+    if (m_completion_port_2) {
+        PostQueuedCompletionStatus(m_completion_port_2, EVENT_USER_FIRST, (ULONG_PTR)&m_sockid, NULL);
+    }
+
     printf("done\n");
 }
 
 /*
  *  ftp_dtp
  */
-ftp_dtp::ftp_dtp::ftp_dtp() :m_passive(false), m_client(NULL), m_server(NULL) {
+ftp_dtp::ftp_dtp::ftp_dtp() :
+    m_completion_port_2(NULL),
+    m_sockid(INVALID_SOCKET),
+    m_passive(false), 
+    m_client(NULL),
+    m_server(NULL) {
 }
 
 bool ftp_dtp::ftp_dtp::start() {
@@ -148,6 +168,8 @@ bool ftp_dtp::ftp_dtp::start() {
         m_server = new ftp_dtp_server();
         m_server->set_config(*server_config);
         m_server->set_fpath(m_fpath);
+        m_server->set_completion_port_2(m_completion_port_2);
+        m_server->set_sockid(m_sockid);
         m_server->start_listen(m_port);
     } else {
         m_client = new ftp_dtp_client();
@@ -203,6 +225,14 @@ void ftp_dtp::ftp_dtp::set_addr(const char *addr) {
 
 void ftp_dtp::ftp_dtp::set_port(unsigned int port) {
     m_port = port;
+}
+
+void ftp_dtp::ftp_dtp::set_completion_port_2(HANDLE completion_port_2) {
+    m_completion_port_2 = completion_port_2;
+}
+
+void ftp_dtp::ftp_dtp::set_sockid(SOCKET sockid) {
+    m_sockid = sockid;
 }
 
 ftp_dtp::ftp_dtp::~ftp_dtp() {

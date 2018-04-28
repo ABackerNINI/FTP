@@ -35,7 +35,11 @@ void ftp_server_pi::ftp_server_pi::event_handler(network::SVR_SOCKET_CONTEXT *so
     case EVENT_CLOSED:
         _on_closed(sock_ctx);
         break;
+    case EVENT_USER_FIRST:
+        _on_file_transfer_complete(sock_ctx);
+        break;
     default:
+        assert(false);
         break;
     }
 }
@@ -69,6 +73,10 @@ void ftp_server_pi::ftp_server_pi::_on_sent(network::SVR_SOCKET_CONTEXT *sock_ct
 
 void ftp_server_pi::ftp_server_pi::_on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) {
     delete (ClientInf *)(sock_ctx->m_extra);
+}
+
+void ftp_server_pi::ftp_server_pi::_on_file_transfer_complete(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+    _ftp_send(*(SOCKET *)sock_ctx, "500 File transfer complete.\r\n");
 }
 
 bool ftp_server_pi::ftp_server_pi::_handle(SOCKET sockid, ClientInf *client_inf) {
@@ -168,6 +176,8 @@ void ftp_server_pi::ftp_server_pi::cmd_handler_STOR(SOCKET sockid, ClientInf *cl
     client_inf->m_dtp.set_passive(true);
     client_inf->m_dtp.set_port(20);
     client_inf->m_dtp.set_fpath(args);
+    client_inf->m_dtp.set_completion_port_2(m_completion_port);
+    client_inf->m_dtp.set_sockid(sockid);
 
     client_inf->m_dtp.start();
 }

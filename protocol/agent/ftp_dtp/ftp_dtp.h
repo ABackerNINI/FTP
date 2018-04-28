@@ -71,6 +71,8 @@ namespace ftp_dtp {
 
     public:
         void set_fpath(const char *fpath);
+        void set_completion_port_2(HANDLE completion_port_2);
+        void set_sockid(SOCKET sockid);
 
         size_t get_bytes_recvd();
 
@@ -86,6 +88,9 @@ namespace ftp_dtp {
         void _on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx);
 
     protected:
+        HANDLE              m_completion_port_2;//post back
+        SOCKET              m_sockid;
+
         const char *        m_fpath;
         size_t              m_bytes_recvd;
         file::file_writer   m_fwriter;
@@ -109,12 +114,17 @@ namespace ftp_dtp {
         const char *get_addr();
         int get_port();
 
+        void set_completion_port_2(HANDLE completion_port_2);
+        void set_sockid(SOCKET sockid);
         void set_passive(bool passive);
         void set_fpath(const char *fpath);
         void set_addr(const char *addr);
         void set_port(unsigned int port);
 
     protected:
+        HANDLE              m_completion_port_2;//post back
+        SOCKET              m_sockid;
+
         bool                m_passive;
 
         const char*         m_fpath;

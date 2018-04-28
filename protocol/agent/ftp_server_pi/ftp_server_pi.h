@@ -54,6 +54,8 @@ namespace ftp_server_pi {
 
         void _on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx);
 
+        void _on_file_transfer_complete(network::SVR_SOCKET_CONTEXT *sock_ctx);
+
         bool _handle(SOCKET sockid, ClientInf *client_inf);
 
         bool _ftp_send(SOCKET sockid, const char *buffer);
