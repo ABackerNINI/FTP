@@ -159,12 +159,12 @@ bool network::Server::close() {
 
     notify_worker_threads_to_exit();
 
-#if(DEBUG&DEBUG_LOG)
-    LOG(CC_YELLOW, "Wait For Worker Threads to Exit, ThreadsNum:%u @close\n", m_worker_threads_num);
-#endif
-    WaitForMultipleObjects(m_worker_threads_num, m_worker_threads, true, INFINITE);
-
     if (m_worker_threads) {
+#if(DEBUG&DEBUG_LOG)
+        LOG(CC_YELLOW, "Wait For Worker Threads to Exit, ThreadsNum:%u @close\n", m_worker_threads_num);
+#endif
+        WaitForMultipleObjects(m_worker_threads_num, m_worker_threads, true, INFINITE);
+
         delete[] m_worker_threads;
         m_worker_threads = NULL;
     }
@@ -326,7 +326,7 @@ bool network::Server::_init_sock(unsigned int port, unsigned int max_connect) {
 }
 
 network::Server::~Server() {
-    close();
+    if (m_completion_port)close();
 }
 
 bool network::Server::_start(unsigned int port, unsigned int max_connect) {
@@ -829,13 +829,12 @@ bool network::Client::close() {
 
     notify_worker_threads_to_exit();
 
-#if(DEBUG&DEBUG_LOG)
-    LOG(CC_YELLOW, "Wait for Worker Threads to Exit, ThreadNum:%u @close\n", m_worker_threads_num);
-#endif
-
-    WaitForMultipleObjects(m_worker_threads_num, m_worker_threads, true, INFINITE);
-
     if (m_worker_threads) {
+#if(DEBUG&DEBUG_LOG)
+        LOG(CC_YELLOW, "Wait for Worker Threads to Exit, ThreadNum:%u @close\n", m_worker_threads_num);
+#endif
+        WaitForMultipleObjects(m_worker_threads_num, m_worker_threads, true, INFINITE);
+
         delete[] m_worker_threads;
         m_worker_threads = NULL;
     }
@@ -1181,5 +1180,5 @@ bool network::Client::_is_server_alive(SOCKET sockid) {
 }
 
 network::Client::~Client() {
-    close();
+    if (m_completion_port)close();
 }
