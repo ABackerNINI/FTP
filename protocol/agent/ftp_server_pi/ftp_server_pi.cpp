@@ -13,6 +13,8 @@ ftp_server_pi::ClientInf::ClientInf() :
     m_passwd[0] = '\0';
     m_working_dir[0] = '/';
     m_working_dir[1] = '\0';
+
+    m_dtp.set_passive(true);
 }
 
 /*
@@ -163,21 +165,29 @@ void ftp_server_pi::ftp_server_pi::cmd_handler_PORT(SOCKET sockid, ClientInf *cl
 
 void ftp_server_pi::ftp_server_pi::cmd_handler_PASV(SOCKET sockid, ClientInf *client_inf, char *args) {
     _ftp_send(sockid, "500 PASV.\r\n");
+    client_inf->m_dtp.set_passive(true);
 }
 
 void ftp_server_pi::ftp_server_pi::cmd_handler_RETR(SOCKET sockid, ClientInf *client_inf, char *args) {
-    _ftp_send(sockid, "500 RETR.\r\n");
+    _ftp_send(sockid, "500 RETR.\r\n");    
+    
+    client_inf->m_dtp.set_is_to_send(true);
+    client_inf->m_dtp.set_port(20);
+    client_inf->m_dtp.set_fpath(args);
+    client_inf->m_dtp.set_completion_port_2(m_completion_port);
+    client_inf->m_dtp.set_sockid_2(sockid);
 
+    client_inf->m_dtp.start();
 }
 
 void ftp_server_pi::ftp_server_pi::cmd_handler_STOR(SOCKET sockid, ClientInf *client_inf, char *args) {
     _ftp_send(sockid, "500 STOR.\r\n");    
 
-    client_inf->m_dtp.set_passive(true);
+    client_inf->m_dtp.set_is_to_send(false);
     client_inf->m_dtp.set_port(20);
     client_inf->m_dtp.set_fpath(args);
     client_inf->m_dtp.set_completion_port_2(m_completion_port);
-    client_inf->m_dtp.set_sockid(sockid);
+    client_inf->m_dtp.set_sockid_2(sockid);
 
     client_inf->m_dtp.start();
 }

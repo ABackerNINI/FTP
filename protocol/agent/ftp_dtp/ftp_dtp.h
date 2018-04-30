@@ -32,17 +32,19 @@ namespace ftp_dtp {
         TYPE_COMPRESSED
     };
 
-    class ftp_dtp_client : public network::Client {
+    class ftp_dtp_active : public network::Client {
     public:
-        ftp_dtp_client();
+        ftp_dtp_active();
 
         bool abort();
 
     public:
+        void set_completion_port_2(HANDLE completion_port_2);
+        void set_sockid_2(SOCKET sockid);
+        void set_is_to_send(bool is_to_send);
         void set_fpath(const char *fpath);
 
         size_t get_bytes_sent();
-
         size_t get_fsize();
 
     protected:
@@ -57,22 +59,27 @@ namespace ftp_dtp {
         void _on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx);
 
     protected:
+        HANDLE              m_completion_port_2;//post back
+        SOCKET              m_sockid_2;//post back
+
+        bool                m_is_to_send;
         const char *        m_fpath;
-        size_t              m_bytes_sent;
         size_t              m_fsize;
-        file::file_reader   m_freader;
+        size_t              m_bytes_transfered;
+        file::File          m_file;
     };
 
-    class ftp_dtp_server : public network::Server {
+    class ftp_dtp_passive : public network::Server {
     public:
-        ftp_dtp_server();
+        ftp_dtp_passive();
 
         bool abort();
 
     public:
-        void set_fpath(const char *fpath);
         void set_completion_port_2(HANDLE completion_port_2);
-        void set_sockid(SOCKET sockid);
+        void set_sockid_2(SOCKET sockid);
+        void set_is_to_send(bool is_to_send);
+        void set_fpath(const char *fpath);
 
         size_t get_bytes_recvd();
 
@@ -89,11 +96,13 @@ namespace ftp_dtp {
 
     protected:
         HANDLE              m_completion_port_2;//post back
-        SOCKET              m_sockid;
+        SOCKET              m_sockid_2;//post back
 
+        bool                m_is_to_send;
         const char *        m_fpath;
-        size_t              m_bytes_recvd;
-        file::file_writer   m_fwriter;
+        size_t              m_fsize;
+        size_t              m_bytes_transfered;
+        file::File          m_file;
     };
 
     class ftp_dtp {
@@ -115,24 +124,26 @@ namespace ftp_dtp {
         int get_port();
 
         void set_completion_port_2(HANDLE completion_port_2);
-        void set_sockid(SOCKET sockid);
+        void set_sockid_2(SOCKET sockid);
         void set_passive(bool passive);
+        void set_is_to_send(bool is_to_send);
         void set_fpath(const char *fpath);
         void set_addr(const char *addr);
         void set_port(unsigned int port);
 
     protected:
         HANDLE              m_completion_port_2;//post back
-        SOCKET              m_sockid;
+        SOCKET              m_sockid_2;//post back
 
         bool                m_passive;
 
+        bool                m_is_to_send;
         const char*         m_fpath;
         const char*         m_addr;
         int                 m_port;
 
-        ftp_dtp_client*     m_client;
-        ftp_dtp_server*     m_server;
+        ftp_dtp_active*     m_dtp_active;
+        ftp_dtp_passive*    m_dtp_passive;
     };
 }
 

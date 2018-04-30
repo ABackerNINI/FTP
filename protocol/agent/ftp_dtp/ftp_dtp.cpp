@@ -1,24 +1,38 @@
 #include "ftp_dtp.h"
 
 /*
- *  ftp_dtp_client
+ *  ftp_dtp_passive
  */
-ftp_dtp::ftp_dtp_client::ftp_dtp_client() {
+ftp_dtp::ftp_dtp_active::ftp_dtp_active() :
+    m_completion_port_2(NULL),
+    m_sockid_2(INVALID_SOCKET) {
 }
 
-bool ftp_dtp::ftp_dtp_client::abort() {
+bool ftp_dtp::ftp_dtp_active::abort() {
     close();
 
     return true;
 }
 
-void ftp_dtp::ftp_dtp_client::set_fpath(const char *fpath) { m_fpath = fpath; }
+void ftp_dtp::ftp_dtp_active::set_completion_port_2(HANDLE completion_port_2) {
+    m_completion_port_2 = completion_port_2;
+}
 
-size_t ftp_dtp::ftp_dtp_client::get_bytes_sent() { return m_bytes_sent; }
+void ftp_dtp::ftp_dtp_active::set_sockid_2(SOCKET sockid) {
+    m_sockid_2 = sockid;
+}
 
-size_t ftp_dtp::ftp_dtp_client::get_fsize() { return m_fsize; }
+void ftp_dtp::ftp_dtp_active::set_is_to_send(bool is_to_send) {
+    m_is_to_send = is_to_send;
+}
 
-void ftp_dtp::ftp_dtp_client::event_handler(network::CLT_SOCKET_CONTEXT *sock_ctx, int ev) {
+void ftp_dtp::ftp_dtp_active::set_fpath(const char *fpath) { m_fpath = fpath; }
+
+size_t ftp_dtp::ftp_dtp_active::get_bytes_sent() { return m_bytes_transfered; }
+
+size_t ftp_dtp::ftp_dtp_active::get_fsize() { return m_fsize; }
+
+void ftp_dtp::ftp_dtp_active::event_handler(network::CLT_SOCKET_CONTEXT *sock_ctx, int ev) {
     switch (ev) {
     case EVENT_CONNECTED:
         _on_connected(sock_ctx);
@@ -37,68 +51,92 @@ void ftp_dtp::ftp_dtp_client::event_handler(network::CLT_SOCKET_CONTEXT *sock_ct
     }
 }
 
-void ftp_dtp::ftp_dtp_client::_on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
-    char buffer[DEFAULT_BUFFER_LEN];
-    size_t count;
+void ftp_dtp::ftp_dtp_active::_on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+    if (m_is_to_send) {
+        char buffer[DEFAULT_BUFFER_LEN];
+        size_t count;
 
-    if (m_freader.open(m_fpath) == NULL) {
-        return;
-    }
-
-    m_fsize = m_freader.size();
-
-    while (!m_freader.feof()) {
-        count = m_freader.read(buffer, sizeof(char), DEFAULT_BUFFER_LEN);
-
-        if (m_freader.ferror() || !send(buffer, count)) {
-            break;
+        if (m_file.open(m_fpath,"rb") == NULL) {
+            return;
         }
-        m_bytes_sent += count;
+
+        m_fsize = m_file.size();
+
+        while (!m_file.feof()) {
+            count = m_file.read(buffer, sizeof(char), DEFAULT_BUFFER_LEN);
+
+            if (m_file.ferror() || !send(buffer, count)) {
+                break;
+            }
+            m_bytes_transfered += count;
+        }
+
+        m_file.close();
+
+        //close the client step by step
+        close_connection();
+        notify_worker_threads_to_exit();
+    } else {
+        m_file.open(m_fpath, "wb");
+    }
+}
+
+void ftp_dtp::ftp_dtp_active::_on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+}
+
+void ftp_dtp::ftp_dtp_active::_on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+    if (!m_is_to_send) {
+        m_file.write(sock_ctx->m_buffer, sizeof(char), sock_ctx->m_bytes_transferred);
+        m_bytes_transfered += sock_ctx->m_bytes_transferred;
+    }
+}
+
+void ftp_dtp::ftp_dtp_active::_on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+    m_file.close();
+
+    //close the client step by step
+    close_connection();
+    notify_worker_threads_to_exit();
+
+    //post done-msg back
+    if (m_completion_port_2) {
+        PostQueuedCompletionStatus(m_completion_port_2, EVENT_USER_FIRST, (ULONG_PTR)&m_sockid_2, NULL);
     }
 
-    m_freader.close();
-
-    close_connection();
-
-    notify_worker_threads_to_exit();
-}
-
-void ftp_dtp::ftp_dtp_client::_on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
-}
-
-void ftp_dtp::ftp_dtp_client::_on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
-}
-
-void ftp_dtp::ftp_dtp_client::_on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
+    printf("done\n");
 }
 
 /*
- *  ftp_dtp_server
+ *  ftp_dtp_passive
  */
-ftp_dtp::ftp_dtp_server::ftp_dtp_server():
+ftp_dtp::ftp_dtp_passive::ftp_dtp_passive() :
     m_completion_port_2(NULL),
-    m_sockid(INVALID_SOCKET) {
+    m_sockid_2(INVALID_SOCKET) {
 }
 
-bool ftp_dtp::ftp_dtp_server::abort() {
+bool ftp_dtp::ftp_dtp_passive::abort() {
     close();
 
     return true;
 }
 
-void ftp_dtp::ftp_dtp_server::set_fpath(const char *fpath) { m_fpath = fpath; }
+void ftp_dtp::ftp_dtp_passive::set_is_to_send(bool is_to_send) {
+    m_is_to_send = is_to_send;
+}
 
-void ftp_dtp::ftp_dtp_server::set_completion_port_2(HANDLE completion_port_2) {
+void ftp_dtp::ftp_dtp_passive::set_fpath(const char *fpath) { m_fpath = fpath; }
+
+void ftp_dtp::ftp_dtp_passive::set_completion_port_2(HANDLE completion_port_2) {
     m_completion_port_2 = completion_port_2;
 }
 
-void ftp_dtp::ftp_dtp_server::set_sockid(SOCKET sockid) {
-    m_sockid = sockid;
+void ftp_dtp::ftp_dtp_passive::set_sockid_2(SOCKET sockid) {
+    m_sockid_2 = sockid;
 }
 
-size_t ftp_dtp::ftp_dtp_server::get_bytes_recvd() { return m_bytes_recvd; }
+size_t ftp_dtp::ftp_dtp_passive::get_bytes_recvd() { return m_bytes_transfered; }
 
-void ftp_dtp::ftp_dtp_server::event_handler(network::SVR_SOCKET_CONTEXT *sock_ctx, int ev) {
+void ftp_dtp::ftp_dtp_passive::event_handler(network::SVR_SOCKET_CONTEXT *sock_ctx, int ev) {
     switch (ev) {
     case EVENT_ACCEPTED:
         _on_accepted(sock_ctx);
@@ -117,26 +155,59 @@ void ftp_dtp::ftp_dtp_server::event_handler(network::SVR_SOCKET_CONTEXT *sock_ct
     }
 }
 
-void ftp_dtp::ftp_dtp_server::_on_accepted(network::SVR_SOCKET_CONTEXT *sock_ctx) {
-    m_fwriter.open(m_fpath);
+void ftp_dtp::ftp_dtp_passive::_on_accepted(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+    if (m_is_to_send) {
+        char buffer[DEFAULT_BUFFER_LEN];
+        size_t count;
+        SOCKET sockid = sock_ctx->m_client_sockid;
+
+        if (m_file.open(m_fpath, "rb") == NULL) {
+            return;
+        }
+
+        m_fsize = m_file.size();
+
+        while (!m_file.feof()) {
+            count = m_file.read(buffer, sizeof(char), DEFAULT_BUFFER_LEN);
+
+            if (m_file.ferror() || !send(sockid, buffer, count)) {
+                break;
+            }
+            m_bytes_transfered += count;
+        }
+
+        m_file.close();
+
+        //close the server step by step
+        close_connection(sockid);      
+        close_listen();
+        notify_worker_threads_to_exit();
+    } else {
+        m_file.open(m_fpath, "wb");
+    }
 }
 
-void ftp_dtp::ftp_dtp_server::_on_recvd(network::SVR_SOCKET_CONTEXT *sock_ctx) {
-    m_fwriter.write(sock_ctx->m_buffer, sizeof(char), sock_ctx->m_bytes_transferred);
-    m_bytes_recvd += sock_ctx->m_bytes_transferred;
+void ftp_dtp::ftp_dtp_passive::_on_recvd(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+    if (!m_is_to_send) {
+        m_file.write(sock_ctx->m_buffer, sizeof(char), sock_ctx->m_bytes_transferred);
+        m_bytes_transfered += sock_ctx->m_bytes_transferred;
+    }
 }
 
-void ftp_dtp::ftp_dtp_server::_on_sent(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+void ftp_dtp::ftp_dtp_passive::_on_sent(network::SVR_SOCKET_CONTEXT *sock_ctx) {
 }
 
-void ftp_dtp::ftp_dtp_server::_on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) {
-    m_fwriter.close();
+void ftp_dtp::ftp_dtp_passive::_on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) {
+    m_file.close();
+
+    //close the server step by step
     close_connection(sock_ctx->m_client_sockid);
     close_listen();
     notify_worker_threads_to_exit();
 
+    //post done-msg back
     if (m_completion_port_2) {
-        PostQueuedCompletionStatus(m_completion_port_2, EVENT_USER_FIRST, (ULONG_PTR)&m_sockid, NULL);
+        PostQueuedCompletionStatus(m_completion_port_2, EVENT_USER_FIRST, (ULONG_PTR)&m_sockid_2, NULL);
     }
 
     printf("done\n");
@@ -147,10 +218,11 @@ void ftp_dtp::ftp_dtp_server::_on_closed(network::SVR_SOCKET_CONTEXT *sock_ctx) 
  */
 ftp_dtp::ftp_dtp::ftp_dtp() :
     m_completion_port_2(NULL),
-    m_sockid(INVALID_SOCKET),
-    m_passive(false), 
-    m_client(NULL),
-    m_server(NULL) {
+    m_sockid_2(INVALID_SOCKET),
+    m_passive(false),
+    m_is_to_send(false),
+    m_dtp_active(NULL),
+    m_dtp_passive(NULL) {
 }
 
 bool ftp_dtp::ftp_dtp::start() {
@@ -165,16 +237,20 @@ bool ftp_dtp::ftp_dtp::start() {
     }
 
     if (m_passive) {
-        m_server = new ftp_dtp_server();
-        m_server->set_config(*server_config);
-        m_server->set_fpath(m_fpath);
-        m_server->set_completion_port_2(m_completion_port_2);
-        m_server->set_sockid(m_sockid);
-        m_server->start_listen(m_port);
+        m_dtp_passive = new ftp_dtp_passive();
+        m_dtp_passive->set_config(*server_config);
+        m_dtp_passive->set_completion_port_2(m_completion_port_2);
+        m_dtp_passive->set_sockid_2(m_sockid_2);
+        m_dtp_passive->set_is_to_send(m_is_to_send);
+        m_dtp_passive->set_fpath(m_fpath);
+        m_dtp_passive->start_listen(m_port);
     } else {
-        m_client = new ftp_dtp_client();
-        m_client->set_fpath(m_fpath);
-        m_client->connect(m_addr, m_port);
+        m_dtp_active = new ftp_dtp_active();
+        m_dtp_active->set_completion_port_2(m_completion_port_2);
+        m_dtp_active->set_sockid_2(m_sockid_2);
+        m_dtp_active->set_is_to_send(m_is_to_send);
+        m_dtp_active->set_fpath(m_fpath);
+        m_dtp_active->connect(m_addr, m_port);
     }
 
     return true;
@@ -185,15 +261,15 @@ bool ftp_dtp::ftp_dtp::abort() {
 }
 
 bool ftp_dtp::ftp_dtp::close() {
-    if (m_server) {
-        m_server->close();
-        delete m_server;
-        m_server = NULL;
+    if (m_dtp_passive) {
+        m_dtp_passive->close();
+        delete m_dtp_passive;
+        m_dtp_passive = NULL;
     }
-    if (m_client) {
-        m_client->close();
-        delete m_client;
-        m_client = NULL;
+    if (m_dtp_active) {
+        m_dtp_active->close();
+        delete m_dtp_active;
+        m_dtp_active = NULL;
     }
 
     return true;
@@ -215,6 +291,10 @@ void ftp_dtp::ftp_dtp::set_passive(bool passive) {
     m_passive = passive;
 }
 
+void ftp_dtp::ftp_dtp::set_is_to_send(bool is_to_send) {
+    m_is_to_send = is_to_send;
+}
+
 void ftp_dtp::ftp_dtp::set_fpath(const char *fpath) {
     m_fpath = fpath;
 }
@@ -231,8 +311,8 @@ void ftp_dtp::ftp_dtp::set_completion_port_2(HANDLE completion_port_2) {
     m_completion_port_2 = completion_port_2;
 }
 
-void ftp_dtp::ftp_dtp::set_sockid(SOCKET sockid) {
-    m_sockid = sockid;
+void ftp_dtp::ftp_dtp::set_sockid_2(SOCKET sockid) {
+    m_sockid_2 = sockid;
 }
 
 ftp_dtp::ftp_dtp::~ftp_dtp() {

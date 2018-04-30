@@ -1,6 +1,7 @@
 #include "ftp_client_pi.h"
 
 ftp_client_pi::ftp_client_pi::ftp_client_pi() :network::Client() {
+    m_dtp.set_passive(false);
 }
 
 bool ftp_client_pi::ftp_client_pi::ftp_connect(const char *addr, unsigned int port, unsigned int *local_port/* = NULL*/) {
@@ -149,12 +150,18 @@ void ftp_client_pi::ftp_client_pi::cmd_handler_PASV(char *args) {
 }
 
 void ftp_client_pi::ftp_client_pi::cmd_handler_RETR(char *args) {
+    m_dtp.set_is_to_send(false);
+    m_dtp.set_addr("192.168.1.107");
+    m_dtp.set_port(20);
+    m_dtp.set_fpath("client_root/file_recvd");
+    m_dtp.start();
 }
 
 void ftp_client_pi::ftp_client_pi::cmd_handler_STOR(char *args) {
+    m_dtp.set_is_to_send(true);
     m_dtp.set_addr("192.168.1.107");
     m_dtp.set_port(20);
-    m_dtp.set_fpath("file_to_be_sent");
+    m_dtp.set_fpath("client_root/file_to_be_sent");
     m_dtp.start();
 }
 
