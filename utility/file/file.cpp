@@ -120,3 +120,56 @@ int file::file_writer::close() {
     }
     return ret;
 }
+
+/*
+ *  File
+ */
+file::File::File() :
+    m_file(NULL) {
+}
+
+FILE * file::File::open(const char *path, const char *mode) {
+    if (m_file) {
+        ::fclose(m_file);
+    }
+    m_file = ::fopen(path, mode);
+
+    return m_file;
+}
+
+size_t file::File::size() {
+    ::fseek(m_file, 0, SEEK_END);
+    size_t size = ::ftell(m_file);
+    ::rewind(m_file);
+
+    return size;
+}
+
+bool file::File::jump(size_t bytes) {
+    return false;
+}
+
+size_t file::File::read(void *buffer, size_t size, size_t count) {
+    return ::fread(buffer, size, count, m_file);
+}
+
+size_t file::File::write(const void *buffer, size_t size, size_t count) {
+    return ::fwrite(buffer, size, count, m_file);
+}
+
+int file::File::feof() {
+    return ::feof(m_file);
+}
+
+int file::File::ferror() {
+    return ::ferror(m_file);
+}
+
+int file::File::close() {
+    int ret = 0;
+    if (m_file) {
+        ret = ::fclose(m_file);
+        m_file = NULL;
+    }
+    return ret;
+}

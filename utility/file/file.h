@@ -105,6 +105,30 @@ namespace file {
     //If stream is a NULL pointer, the invalid parameter handler is invoked, as described in Parameter Validation.If execution is allowed to continue, this function returns and errno is set to EINVAL.
     void rewind(FILE *stream);
 
+    class File {
+    public:
+        File();
+
+        FILE *open(const char *path, const char *mode);
+
+        size_t size();
+
+        bool jump(size_t bytes);
+
+        size_t read(void *buffer, size_t size, size_t count);
+
+        size_t write(const void *buffer, size_t size, size_t count);
+
+        int feof();
+
+        int ferror();
+
+        int close();
+
+    protected:
+        FILE * m_file;
+    };
+
     class file_reader {
     public:
         file_reader();
@@ -140,6 +164,8 @@ namespace file {
     protected:
         FILE * m_File;
     };
+
+   
 }
 
 #endif //_NINI_FILE_H_
