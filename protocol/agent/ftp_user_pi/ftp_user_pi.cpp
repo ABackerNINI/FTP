@@ -1,4 +1,4 @@
-#include "ftp_client_pi.h"
+#include "ftp_user_pi.h"
 
 ftp_user_pi::FtpUserPi::FtpUserPi() :network::Client() {
 }
@@ -7,7 +7,7 @@ bool ftp_user_pi::FtpUserPi::ftp_connect(const char *addr, unsigned int port, un
     if (connect(addr, port, local_port) != SOCKET_ERROR) {
         for (int i = 0; i < 10; ++i) {
 
-            if (m_client_status == CLIENT_IO_STATUS::CIS_RSP_HANDLED) {
+            if (m_client_status == USER_IO_STATUS::UIS_RSP_HANDLED) {
                 printf("\n");
 
                 return true;
@@ -35,8 +35,8 @@ bool ftp_user_pi::FtpUserPi::ftp_input(char *buffer, size_t count) {
     return true;
 }
 
-ftp_user_pi::CLIENT_IO_STATUS ftp_user_pi::FtpUserPi::get_io_status() {
-    return m_client_status;
+ftp_user_pi::USER_IO_STATUS ftp_user_pi::FtpUserPi::get_io_status() {
+    return this->m_client_status;
 }
 
 bool ftp_user_pi::FtpUserPi::_ftp_send(char *buffer, size_t count) {
@@ -46,13 +46,13 @@ bool ftp_user_pi::FtpUserPi::_ftp_send(char *buffer, size_t count) {
 
     bool sending = false;
     while (true) {
-        if (!sending && (m_client_status == CIS_RSP_HANDLED || m_client_status == CIS_CONNECTED)) {
+        if (!sending && (m_client_status == UIS_RSP_HANDLED || m_client_status == UIS_CONNECTED)) {
             if (send(buffer, count) == false) {
                 return false;
             }
-            m_client_status = CIS_SENDING;
+            m_client_status = UIS_SENDING;
             sending = true;
-        } else if (sending && m_client_status == CIS_RSP_HANDLED) {
+        } else if (sending && m_client_status == UIS_RSP_HANDLED) {
             break;
         }
         Sleep(100);
@@ -81,7 +81,7 @@ void ftp_user_pi::FtpUserPi::_handle_response() {
         printf("\t%s\n", str);
         fflush(stdout);
 
-        m_client_status = CIS_RSP_HANDLED;
+        m_client_status = UIS_RSP_HANDLED;
     }
 
     //TODO ERR CHECK
@@ -107,7 +107,7 @@ void ftp_user_pi::FtpUserPi::event_handler(network::CLT_SOCKET_CONTEXT *sock_ctx
 }
 
 void ftp_user_pi::FtpUserPi::_on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx) {
-    m_client_status = CIS_CONNECTED;
+    m_client_status = UIS_CONNECTED;
 
     if (sock_ctx->m_bytes_transferred > 0) {
         m_client_inf.m_cmd_buffer.push(sock_ctx->m_buffer, sock_ctx->m_bytes_transferred);
@@ -117,11 +117,11 @@ void ftp_user_pi::FtpUserPi::_on_connected(network::CLT_SOCKET_CONTEXT *sock_ctx
 }
 
 void ftp_user_pi::FtpUserPi::_on_sent(network::CLT_SOCKET_CONTEXT *sock_ctx) {
-    m_client_status = CIS_SENT;
+    m_client_status = UIS_SENT;
 }
 
 void ftp_user_pi::FtpUserPi::_on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
-    m_client_status = CIS_RECVD;
+    m_client_status = UIS_RECVD;
 
     m_client_inf.m_cmd_buffer.push(sock_ctx->m_buffer, sock_ctx->m_bytes_transferred);
 
@@ -129,7 +129,7 @@ void ftp_user_pi::FtpUserPi::_on_recvd(network::CLT_SOCKET_CONTEXT *sock_ctx) {
 }
 
 void ftp_user_pi::FtpUserPi::_on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx) {
-    m_client_status = CIS_CLOSED;
+    m_client_status = UIS_CLOSED;
     printf("OnClosed\n");
 }
 

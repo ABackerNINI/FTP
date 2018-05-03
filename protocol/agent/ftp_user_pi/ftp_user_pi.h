@@ -14,26 +14,26 @@ namespace ftp_user_pi {
 
 #define _CMD(CMD)  network::pointer_cast<cmd_handler>(&FtpUserPi::cmd_handler_##CMD)
 
-    enum CLIENT_IO_STATUS {
-        CIS_CONNECTING,
-        CIS_CONNECTED,
-        CIS_SENDING,
-        CIS_SENT,
-        CIS_RECVD,
-        CIS_RSP_HANDLED,
-        CIS_CLOSED
+    enum USER_IO_STATUS {
+        UIS_CONNECTING,
+        UIS_CONNECTED,
+        UIS_SENDING,
+        UIS_SENT,
+        UIS_RECVD,
+        UIS_RSP_HANDLED,
+        UIS_CLOSED
     };
 
-    enum CLIENT_LOGIN_STATUS {
-        CLS_NOT_CONNECTED,
-        CLS_CONNECTED,
-        CLS_USERNAME_SPECIFIED,
-        CLS_PASSWORD_SPECIFIED,
-        CLS_LOGIN_SUCCESS,
-        CLS_DISCONNECTED
-    };
+    //enum USER_LOGIN_STATUS {
+    //    ULS_NOT_CONNECTED,
+    //    ULS_CONNECTED,
+    //    ULS_USERNAME_SPECIFIED,
+    //    ULS_PASSWORD_SPECIFIED,
+    //    ULS_LOGIN_SUCCESS,
+    //    ULS_DISCONNECTED
+    //};
 
-    struct ClientInf {
+    struct UserInf {
         ftp_cmd_buffer  m_cmd_buffer;
     };
 
@@ -45,7 +45,7 @@ namespace ftp_user_pi {
 
         bool ftp_input(char *buffer, size_t count);
 
-        CLIENT_IO_STATUS get_io_status();
+        USER_IO_STATUS get_io_status();
 
     protected:
         bool _ftp_send(char *buffer, size_t count);
@@ -139,8 +139,8 @@ namespace ftp_user_pi {
     protected:
         ftp_dtp::FtpDtp     m_dtp;
         ftp_cmds::FTP_CMDS	m_last_cmd;
-        ClientInf			m_client_inf;
-        CLIENT_IO_STATUS	m_client_status;
+        UserInf			    m_client_inf;
+        USER_IO_STATUS	m_client_status;
     };
 }
 
