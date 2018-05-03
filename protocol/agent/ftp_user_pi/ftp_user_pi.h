@@ -8,11 +8,11 @@
 #include "../../../utility/network/network.h"
 #include "../../resource/ftp_cmd_buffer/ftp_cmd_buffer.h"
 
-namespace ftp_client_pi {
+namespace ftp_user_pi {
 
 #define DEFAULT_BUFFER_LEN 1024
 
-#define _CMD(CMD)  network::pointer_cast<cmd_handler>(&ftp_client_pi::cmd_handler_##CMD)
+#define _CMD(CMD)  network::pointer_cast<cmd_handler>(&FtpUserPi::cmd_handler_##CMD)
 
     enum CLIENT_IO_STATUS {
         CIS_CONNECTING,
@@ -37,9 +37,9 @@ namespace ftp_client_pi {
         ftp_cmd_buffer  m_cmd_buffer;
     };
 
-    class ftp_client_pi :public network::Client {
+    class FtpUserPi :public network::Client {
     public:
-        ftp_client_pi();
+        FtpUserPi();
 
         bool ftp_connect(const char *addr, unsigned int port, unsigned int *local_port = NULL);
 
@@ -65,7 +65,7 @@ namespace ftp_client_pi {
         void _on_closed(network::CLT_SOCKET_CONTEXT *sock_ctx);
 
     protected:
-        typedef void(*cmd_handler)(ftp_client_pi*, char *);
+        typedef void(*cmd_handler)(FtpUserPi*, char *);
 
         const cmd_handler m_cmd_handler[ftp_cmds::FTP_CMDS_NUM + 1] = {//Need to Handle FTP_CMD_ERR
         { _CMD(USER) },
@@ -137,7 +137,7 @@ namespace ftp_client_pi {
         void cmd_handler_NOT_IMPLEMENTED(char *args);
 
     protected:
-        ftp_dtp::ftp_dtp    m_dtp;
+        ftp_dtp::FtpDtp     m_dtp;
         ftp_cmds::FTP_CMDS	m_last_cmd;
         ClientInf			m_client_inf;
         CLIENT_IO_STATUS	m_client_status;
