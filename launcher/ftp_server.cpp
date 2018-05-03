@@ -7,7 +7,7 @@ class ftp_server {
 public:
     int start(unsigned int port, const network::ServerConfig &config) {
         m_server_pi.set_config(config);
-        m_server_pi.start_listen(port);
+        m_server_pi.start_listen(&port);
 
         return 0;
     }
