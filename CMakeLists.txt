@@ -38,9 +38,17 @@ set(FTP_PROTOCOL_RESOURCE_FTP_CMD_BUFFER
 
 #############################################################
 
-set(FTP_PROTOCOL_AGETN_DTP
-	protocol/agent/ftp_dtp/ftp_dtp.h
-	protocol/agent/ftp_dtp/ftp_dtp.cpp
+set(FTP_PROTOCOL_AGETN_DTP_SERVER
+	protocol/agent/ftp_dtp/ftp_dtp_server.h
+	protocol/agent/ftp_dtp/ftp_dtp_server.cpp
+	
+	${FTP_UTILITY_FILE}
+	${FTP_UTILITY_NETWORK}
+)
+#
+set(FTP_PROTOCOL_AGETN_DTP_USER
+	protocol/agent/ftp_dtp/ftp_dtp_user.h
+	protocol/agent/ftp_dtp/ftp_dtp_user.cpp
 	
 	${FTP_UTILITY_FILE}
 	${FTP_UTILITY_NETWORK}
@@ -52,7 +60,7 @@ set(FTP_PROTOCOL_AGENT_USER_PI
 	protocol/agent/ftp_user_pi/ftp_user_pi.h
 	protocol/agent/ftp_user_pi/ftp_user_pi.cpp
 
-	${FTP_PROTOCOL_AGETN_DTP}
+	${FTP_PROTOCOL_AGETN_DTP_USER}
 	${FTP_PROTOCOL_RESOURCE_FTP_CMD}
 	${FTP_UTILITY_NETWORK}
 	${FTP_PROTOCOL_RESOURCE_FTP_CMD_BUFFER}
@@ -62,7 +70,7 @@ set(FTP_PROTOCOL_AGENT_SERVER_PI
 	protocol/agent/ftp_server_pi/ftp_server_pi.h
 	protocol/agent/ftp_server_pi/ftp_server_pi.cpp
 	
-	${FTP_PROTOCOL_AGETN_DTP}
+	${FTP_PROTOCOL_AGETN_DTP_SERVER}
 	${FTP_COMMON}
 	${FTP_PROTOCOL_RESOURCE_FTP_CMD}
 	${FTP_UTILITY_NETWORK}
@@ -86,11 +94,11 @@ add_executable(test_string_buffer test/test_string_buffer.cpp
 )
 
 add_executable(test_ftp_dtp_client test/test_ftp_dtp/test_ftp_dtp_client.cpp
-	${FTP_PROTOCOL_AGETN_DTP}
+	${FTP_PROTOCOL_AGETN_DTP_USER}
 )
 
 add_executable(test_ftp_dtp_server test/test_ftp_dtp/test_ftp_dtp_server.cpp
-	${FTP_PROTOCOL_AGETN_DTP}
+	${FTP_PROTOCOL_AGETN_DTP_SERVER}
 )
 
 #############################################################
