@@ -3,7 +3,7 @@
 #ifndef _NINI_FTP_SERVER_PI_H_
 #define _NINI_FTP_SERVER_PI_H_
 
-#include "../ftp_dtp/ftp_dtp.h"
+#include "../ftp_dtp/ftp_dtp_server.h"
 #include "../../resource/ftp_cmds/ftp_cmds.h"
 #include "../../../common/common.h"
 #include "../../../utility/network/network.h"
