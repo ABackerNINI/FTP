@@ -1,5 +1,5 @@
 #include <conio.h>
-#include "../../protocol/agent/ftp_dtp/ftp_dtp.h"
+#include "../../protocol/agent/ftp_dtp/ftp_dtp_server.h"
 
 unsigned int local_port = 20;
 
@@ -22,8 +22,8 @@ unsigned int local_port = 20;
 
 void test_ftp_dtp_v2() {
     ftp_dtp::FtpDtp dtp;
-    //dtp.start(FTP_DTP_TYPE_PASSIVE_SEND, "server_root/file_to_be_sent", NULL, 0, &local_port);
-    dtp.start(FTP_DTP_TYPE_PASSIVE_RECV, "server_root/file_recved", NULL, 0, &local_port);
+    //dtp.start(FTP_DTP_TYPE_SERVER_PASSIVE_SEND, "server_root/file_to_be_sent", NULL, 0, &local_port);
+    dtp.start(FTP_DTP_TYPE_SERVER_PASSIVE_RECV, "server_root/file_recved", NULL, 0, &local_port);
 
     _getch();
 
