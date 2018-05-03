@@ -106,8 +106,8 @@ void network::Server::set_config(const ServerConfig &serverconfig) {
     m_server_config = serverconfig;
 }
 
-bool network::Server::start_listen(unsigned int port) {
-    return _start(port, m_server_config.o_max_connect);
+bool network::Server::start_listen(unsigned int *local_port /*= NULL*/) {
+    return _start(local_port, m_server_config.o_max_connect);
 }
 
 bool network::Server::send(SOCKET sockid, const char *buffer, size_t buffer_len) {
@@ -218,7 +218,7 @@ bool network::Server::_init_complition_port() {
     return true;
 }
 
-bool network::Server::_init_sock(unsigned int port, unsigned int max_connect) {
+SOCKET network::Server::_init_sock(unsigned int *local_port, unsigned int max_connect) {
     //WSADATA
     WSADATA Wsadata;
     WORD wVersionRequested = MAKEWORD(2, 2);
@@ -226,53 +226,53 @@ bool network::Server::_init_sock(unsigned int port, unsigned int max_connect) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Load WSAStartup @_init_sock\n");
 #endif
-        return false;
+        return -2;
     }
 
     if (LOBYTE(Wsadata.wVersion) != 2 || HIBYTE(Wsadata.wVersion) != 2) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Wrong WSA Version(!2.2) @_init_sock\n");
 #endif
-        return false;
+        return -3;
     }
 
     //SOCKET
-    m_sockid = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-    if (m_sockid == INVALID_SOCKET) {
+    SOCKET sockid = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    if (sockid == INVALID_SOCKET) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Create Socket @_init_sock\n");
 #endif
-        return false;
+        return -4;
     }
 
     SOCKADDR_IN addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(port);
+    addr.sin_port = htons(local_port ? (unsigned short)*local_port : 0);
 
     //BIND
-    if (bind(m_sockid, (SOCKADDR*)&addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
+    if (bind(sockid, (SOCKADDR*)&addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket @_init_sock\n");
 #endif
-        return false;
+        return -5;
     }
 
     //LISTEN
-    if (listen(m_sockid, max_connect) == SOCKET_ERROR) {
+    if (listen(sockid, max_connect) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Listen Port %d @_init_sock\n", port);
+        LOG(CC_RED, "Faild to Listen Port %d @_init_sock\n", local_port ? *local_port : 0);
 #endif
-        return false;
+        return -6;
     }
 
     //COMPLETIONPORT
-    if (CreateIoCompletionPort((HANDLE)m_sockid, m_completion_port, (ULONG_PTR)NULL, 0) == NULL) {
+    if (CreateIoCompletionPort((HANDLE)sockid, m_completion_port, (ULONG_PTR)NULL, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_init_sock\n");
 #endif
-        return false;
+        return -7;
     }
 
     //pACCEPTEX pGETACCEPTEXSOCKADDRS
@@ -280,7 +280,7 @@ bool network::Server::_init_sock(unsigned int port, unsigned int max_connect) {
     GUID GuidGetAcceptExSockAddrs = WSAID_GETACCEPTEXSOCKADDRS;
     DWORD dwBytes = 0;
     if (SOCKET_ERROR == WSAIoctl(
-        m_sockid,
+        sockid,
         SIO_GET_EXTENSION_FUNCTION_POINTER,
         &GuidAcceptEx,
         sizeof(GuidAcceptEx),
@@ -292,11 +292,11 @@ bool network::Server::_init_sock(unsigned int port, unsigned int max_connect) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Get AcceptEx @_init_sock\n");
 #endif
-        return false;
+        return -8;
     }
 
     if (SOCKET_ERROR == WSAIoctl(
-        m_sockid,
+        sockid,
         SIO_GET_EXTENSION_FUNCTION_POINTER,
         &GuidGetAcceptExSockAddrs,
         sizeof(GuidGetAcceptExSockAddrs),
@@ -308,6 +308,31 @@ bool network::Server::_init_sock(unsigned int port, unsigned int max_connect) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Get GetAcceptExSockAddrs @_init_sock\n");
 #endif
+        return -9;
+    }
+
+    return sockid;
+}
+
+network::Server::~Server() {
+    if (m_completion_port)close();
+}
+
+bool network::Server::_start(unsigned int *local_port, unsigned int max_connect) {
+    if (_init_complition_port() == false) {
+#if(DEBUG&DEBUG_LOG)
+        LOG(CC_RED, "Faild to Init ComplitionPort @_start\n");
+#endif
+        return false;
+    }
+
+    m_sockid = _init_sock(local_port, max_connect);
+
+    //check if SOCKET_ERROR == -1
+    if (m_sockid < 0) {
+#if(DEBUG&DEBUG_LOG)
+        LOG(CC_RED, "Faild to Init Socket @_start\n");
+#endif
         return false;
     }
 
@@ -316,32 +341,10 @@ bool network::Server::_init_sock(unsigned int port, unsigned int max_connect) {
         SVR_SOCKET_CONTEXT *sock_ctx = new SVR_SOCKET_CONTEXT();
         if (_post_accept(sock_ctx) == false) {
 #if(DEBUG&DEBUG_LOG)
-            LOG(CC_RED, "Faild to Post Accept, AcceptNum:%d @_init_sock\n", i);
+            LOG(CC_RED, "Faild to Post Accept, AcceptNum:%d @_start\n", i);
 #endif
             return false;
         }
-    }
-
-    return true;
-}
-
-network::Server::~Server() {
-    if (m_completion_port)close();
-}
-
-bool network::Server::_start(unsigned int port, unsigned int max_connect) {
-    if (_init_complition_port() == false) {
-#if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Init ComplitionPort @_start\n");
-#endif
-        return false;
-    }
-
-    if (_init_sock(port, max_connect) == false) {
-#if(DEBUG&DEBUG_LOG)
-        LOG(CC_RED, "Faild to Init Socket @_start\n");
-#endif
-        return false;
     }
 
     return true;
@@ -477,7 +480,7 @@ void network::Server::_do_accepted(SVR_SOCKET_CONTEXT *sock_ctx) {
 
     _post_recv(sock_ctx);
 #endif
-}
+    }
 
 void network::Server::_do_recvd(SVR_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
@@ -495,7 +498,7 @@ void network::Server::_do_recvd(SVR_SOCKET_CONTEXT *sock_ctx) {
 #else
     _post_recv(sock_ctx);
 #endif
-}
+    }
 
 void network::Server::_do_sent(SVR_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
@@ -693,7 +696,7 @@ network::CLT_SOCKET_CONTEXT::~CLT_SOCKET_CONTEXT() {
 #if(DEBUG&DEBUG_TRACE)
     TRACE_PRINT("CSC Dispose, DEBUG_TRACE:%d\n", _DEBUG_TRACE);
 #endif
-}
+    }
 
 /*
  * ClientConfig
@@ -761,13 +764,10 @@ int network::Client::_init() {
 }
 
 SOCKET network::Client::connect(const char *addr, unsigned int port, unsigned int *local_port/* = NULL*/) {
-    unsigned int tmp_local_port = 0;
-    if (!local_port) {
-        local_port = &tmp_local_port;
-    }
-
     m_sockid = _init_sock(local_port);
-    if (*local_port < 0) {
+
+    //check if SOCKET_ERROR == -1
+    if (m_sockid < 0 || (local_port && (*local_port < 0))) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Init Socket @connect\n");
 #endif
@@ -894,35 +894,35 @@ bool network::Client::_init_completion_port() {
     return true;
 }
 
-SOCKET network::Client::_init_sock(unsigned int *port) {
+SOCKET network::Client::_init_sock(unsigned int *local_port) {
     //SOCKET
     SOCKET sockid = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
     if (sockid == INVALID_SOCKET) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Create Socket @_init_sock\n");
 #endif
-        return -3;
+        return -4;
     }
 
     SOCKADDR_IN local_addr;
     memset(&local_addr, 0, sizeof(local_addr));
     local_addr.sin_family = AF_INET;
     local_addr.sin_addr.S_un.S_addr = INADDR_ANY;
-    local_addr.sin_port = htons(port ? (short)*port : 0);
+    local_addr.sin_port = htons(local_port ? (unsigned short)*local_port : 0);
 
     //BIND
     if (bind(sockid, (SOCKADDR*)&local_addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket @_init_sock\n");
 #endif
-        return -4;
+        return -5;
     }
 
     if (CreateIoCompletionPort((HANDLE)sockid, m_completion_port, (ULONG_PTR)NULL, 0) == NULL) {
 #if(DEBUG&DEBUG_LOG)
         LOG(CC_RED, "Faild to Bind Socket with CompletionPort @_init_sock\n");
 #endif
-        return -5;
+        return -7;
     }
 
     if (!m_pConnectEx) {
@@ -942,11 +942,11 @@ SOCKET network::Client::_init_sock(unsigned int *port) {
 #if(DEBUG&DEBUG_LOG)
             LOG(CC_RED, "Faild to Get ConnectEx @_init_sock\n");
 #endif
-            return -6;
+            return -8;
         }
     }
 
-    *port = local_addr.sin_port;
+    if (local_port)*local_port = local_addr.sin_port;
 
     return sockid;
 }
@@ -1043,7 +1043,7 @@ void network::Client::_do_connected(CLT_SOCKET_CONTEXT *sock_ctx) {
 #else
     _post_recv(sock_ctx);
 #endif
-}
+    }
 
 void network::Client::_do_sent(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)
@@ -1069,7 +1069,7 @@ void network::Client::_do_recvd(CLT_SOCKET_CONTEXT *sock_ctx) {
 #else
     _post_recv(sock_ctx);
 #endif
-}
+    }
 
 void network::Client::_do_closed(CLT_SOCKET_CONTEXT *sock_ctx) {
 #if(DEBUG&DEBUG_TRACE)

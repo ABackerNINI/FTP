@@ -175,7 +175,7 @@ namespace network {
 
         void set_config(const ServerConfig &server_config);
 
-        bool start_listen(unsigned int port);
+        bool start_listen(unsigned int *local_port = NULL);
 
         bool send(SOCKET sockid, const char *buffer, size_t buffer_len);
 
@@ -200,9 +200,9 @@ namespace network {
 
     protected:
         //TODO return int to indicate different errors
-        bool _start(unsigned int port, unsigned int max_connect);
+        bool _start(unsigned int *local_port, unsigned int max_connect);
 
-        bool _init_sock(unsigned int port, unsigned int max_connect);
+        SOCKET _init_sock(unsigned int *local_port, unsigned int max_connect);
 
         bool _init_complition_port();
 
@@ -312,7 +312,7 @@ namespace network {
     protected:
         int _init();
 
-        SOCKET _init_sock(unsigned int *port);
+        SOCKET _init_sock(unsigned int *local_port);
 
         bool _init_completion_port();
 
