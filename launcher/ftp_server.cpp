@@ -18,7 +18,7 @@ public:
         return 0;
     }
 private:
-    ftp_server_pi::ftp_server_pi    m_server_pi;
+    ftp_server_pi::FtpServerPi    m_server_pi;
     //ftp_dtp::ftp_dtp                m_server_dtp;
 };
 

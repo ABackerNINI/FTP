@@ -2,7 +2,7 @@
 #include <iostream>
 #include <conio.h>
 
-#include "../protocol/agent/ftp_client_pi/ftp_client_pi.h"
+#include "../protocol/agent/ftp_user_pi/ftp_user_pi.h"
 
 class ftp_client {
 public:
@@ -34,7 +34,7 @@ public:
     }
 
 private:
-    ftp_client_pi::ftp_client_pi    m_client_pi;
+    ftp_user_pi::FtpUserPi    m_client_pi;
     //ftp_dtp::ftp_dtp                m_client_dtp;
 };
 
